@@ -13,7 +13,7 @@ updated  2017.12.07
 留意事項:このチュートリアルは、MaxMind社が製作したWorld Cities Database を使用しています。下記はその宣言です。なお、チュートリアルでは日本部分のみを抽出して使用していますが、このコンバータはヒープを確保すれば全世界の変換*1も可能でしょう。
 This product includes data created by MaxMind, available from http://www.maxmind.com/
 
-*1:全世界(約317万ポイント)の変換例を以下のURLに掲載します(ヒープ確保量　-xMx800m、1時間程度で変換完了)
+*1:全世界(約317万ポイント)の変換例を以下のURLに掲載します(ヒープ確保量　-xMx800m)
 http://svgmap.org/devinfo/devkddi/lvl0.1/rev14/SVGMapper_r14.html#visibleLayer=worldcities&hiddenLayer=polygonAuthoringTester
 
 
