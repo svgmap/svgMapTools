@@ -10,8 +10,11 @@ updated  2017.12.07
 ＃IEも同様の制限があります。（双方とも、イントラネット上のWebサーバ上に設置して利用するのが好ましい）
 ＃生成したコンテンツは、背景地図としてインターネット上のコンテンツ(OpenStreetMapや電子国土)を参照しているため、一般的なインターネットWebサイトに接続できる環境で利用する必要があります（別途背景地図をローカルに用意すればスタンドアロン環境でも利用可能）
 
-留意事項:このチュートリアルは、MaxMind社が製作したWorld Cities Database を使用しています。下記はその宣言です。なお、チュートリアルでは日本部分のみを抽出して使用していますが、このコンバータはヒープを確保すれば全世界の変換も可能でしょう。
+留意事項:このチュートリアルは、MaxMind社が製作したWorld Cities Database を使用しています。下記はその宣言です。なお、チュートリアルでは日本部分のみを抽出して使用していますが、このコンバータはヒープを確保すれば全世界の変換*1も可能でしょう。
 This product includes data created by MaxMind, available from http://www.maxmind.com/
+
+*1:全世界(約317万ポイント)の変換例を以下のURLに掲載します(ヒープ確保量　-xMx800m、1時間程度で変換完了)
+http://svgmap.org/devinfo/devkddi/lvl0.1/rev14/SVGMapper_r14.html#visibleLayer=worldcities&hiddenLayer=polygonAuthoringTester
 
 
 ＝＝＝＝＝最初の練習＝＝＝＝＝
