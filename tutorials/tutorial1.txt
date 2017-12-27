@@ -1,147 +1,147 @@
-CSV�f�[�^����C���^���N�e�B�u�n�}���쐻������@�̃`���[�g���A��
-2014.3.3 By Satoru Takagi sa-takagi@kddi.com
-updated 2017.12.07
+CSVデータからインタラクティブ地図を作製する方法のチュートリアル
+1st rev. 2014.3.3 By Satoru Takagi
+updated  2017.12.07
 
-���f�[�^�̍쐬�̂��߂ɁAjre��������java ���C���X�g�[������Ă�������K�v�ł��B
-���Ȃ��A����`�F�b�N��Windows10��JAVA8�ōs���Ă��܂��B
-�����������R���e���c��Firefox(57.0.2�œ���m�F)�ŗ��p�\�ł��B�Ȃ��AChrome,IE(9�ȍ~)�ł����p�\�ł��i���j�j
-�����FChrome�̓��[�J���t�@�C���ւ�AJAX�ɐ������������Ă��邽�߁A --allow-file-access-from-files�I�v�V���������ċN������K�v������܂��i�V���[�g�J�b�g���쐬����Ɨǂ��j
-����F�@"C:\Program Files\Google\Chrome\Application\chrome.exe" --allow-file-access-from-files
-��IE�����l�̐���������܂��B�i�o���Ƃ��A�C���g���l�b�g���Web�T�[�o��ɐݒu���ė��p����̂��D�܂����j
-�����������R���e���c�́A�w�i�n�}�Ƃ��ăC���^�[�l�b�g��̃R���e���c(OpenStreetMap��d�q���y)���Q�Ƃ��Ă��邽�߁A��ʓI�ȃC���^�[�l�b�gWeb�T�C�g�ɐڑ��ł�����ŗ��p����K�v������܂��i�ʓr�w�i�n�}�����[�J���ɗp�ӂ���΃X�^���h�A�������ł����p�\�j
+＃データの作成のために、jreもしくはjava がインストールされている環境が必要です。
+＃なお、動作チェックはWindows10とJAVA8で行っています。
+＃生成したコンテンツはFirefox(57.0.2で動作確認)で利用可能です。なお、Chrome,IE(9以降)でも利用可能です（注））
+＃注：ChromeはローカルファイルへのAJAXに制限がかかっているため、 --allow-file-access-from-filesオプションをつけて起動する必要があります（ショートカットを作成すると良い）
+＃例：　"C:\Program Files\Google\Chrome\Application\chrome.exe" --allow-file-access-from-files
+＃IEも同様の制限があります。（双方とも、イントラネット上のWebサーバ上に設置して利用するのが好ましい）
+＃生成したコンテンツは、背景地図としてインターネット上のコンテンツ(OpenStreetMapや電子国土)を参照しているため、一般的なインターネットWebサイトに接続できる環境で利用する必要があります（別途背景地図をローカルに用意すればスタンドアロン環境でも利用可能）
 
-���ӎ���:���̃`���[�g���A���́AMaxMind�Ђ����삵��World Cities Database ���g�p���Ă��܂��B���L�͂��̐錾�ł��B�Ȃ��A�`���[�g���A���ł͓��{�����݂̂𒊏o���Ďg�p���Ă��܂����A���̃R���o�[�^�̓q�[�v���m�ۂ���ΑS���E�̕ϊ����\�ł��傤�B
+留意事項:このチュートリアルは、MaxMind社が製作したWorld Cities Database を使用しています。下記はその宣言です。なお、チュートリアルでは日本部分のみを抽出して使用していますが、このコンバータはヒープを確保すれば全世界の変換も可能でしょう。
 This product includes data created by MaxMind, available from http://www.maxmind.com/
 
 
-�����������ŏ��̗��K����������
+＝＝＝＝＝最初の練習＝＝＝＝＝
 
-�P�F�O�����C�u�����̏���
-(���̕����̂���f�B���N�g��)\..\tools\�Ɉȉ��̃t�@�C�����z�u����Ă��邱�Ƃ��m�F���܂��B
+１：外部ライブラリの準備
+(この文書のあるディレクトリ)\..\tools\に以下のファイルが配置されていることを確認します。
 shape2svgmap.jar
 mesh2.txt
 symbolTemplate.txt
-lib (�t�H���_)
+lib (フォルダ)
 
-svgmaptools�͓�̊O�����C�u�������g�p���܂��B
+svgmaptoolsは二つの外部ライブラリを使用します。
 1: geotools2.7.5 : https://sourceforge.net/projects/geotools/files/GeoTools%202.7%20Releases/2.7.5/
 2: javacsv2.1 : https://sourceforge.net/projects/javacsv/
-lib�t�H���_�����ɁA�����̃��C�u������jar�t�@�C���𓊓����܂��B�Ȃ��z�z�`�Ԃɂ���Ă͊��ɔz�u�ς݂̏ꍇ������܂��B
-javacsv2.1��jar�t�@�C���͈�ł����Ageotools2.7.5��jar�t�@�C��(geotools-2.7.5-bin.zip)�Ƀp�b�N����Ă���A�𓀂���ƕ����ɕ�����Ă��܂����A������jar�t�@�C�������ׂē������Ă��������B
+libフォルダ直下に、これらのライブラリのjarファイルを投入します。なお配布形態によっては既に配置済みの場合もあります。
+javacsv2.1のjarファイルは一個ですが、geotools2.7.5のjarファイル(geotools-2.7.5-bin.zip)にパックされており、解凍すると複数に分かれていますが、これらのjarファイルをすべて投入してください。
 
-��ƃf�B���N�g���ړ���classpath�ݒ�
-���R�}���h�v�����v�g���J���@
-cd (���̕����̂���f�B���N�g��)\..\tools\
+作業ディレクトリ移動とclasspath設定
+○コマンドプロンプトを開き　
+cd (この文書のあるディレクトリ)\..\tools\
 set CLASSPATH=%CLASSPATH%;.\lib\*;shape2svgmap.jar
 
-���Ȃ��ϊ�����Ώۃt�@�C���́Atools�f�B���N�g���ɑ΂��āA
-��..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv�@�Ɋi�[����Ă���Ɖ��肵�ĕϊ���i�߂܂��B
+＃なお変換する対象ファイルは、toolsディレクトリに対して、
+＃..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv　に格納されていると仮定して変換を進めます。
 
 
-�Q�Fcsvfile���k��(�g��\��)�p�n�}�ɕϊ�����B
-��java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv
+２：csvfileを大縮尺(拡大表示)用地図に変換する。
+○java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv
 
-�����f�B���N�g���ɁASelf-GS-POI-b.svg�t�@�C������сA�⏕��.svg�t�@�C���Q���쐬�����B
+＃同ディレクトリに、JPcities_of_worldcitiespop_utf8.svgファイルおよび、補助の.svgファイル群が作成される。
 
-�R�FShapefile�����k��(�k���\��)�p�n�}�ɕϊ�����B
-��java Shape2ImageSVGMap ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.svg -sumUp 16 -antiAlias -charset utf-8 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv #0000ff #0000ff 0 3
+３：Shapefileを小縮尺(縮小表示)用地図に変換する。
+○java Shape2ImageSVGMap ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.svg -sumUp 16 -antiAlias -charset utf-8 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv #0000ff #0000ff 0 3
 
-�����f�B���N�g���ɁASelf-GS-POI-b�f�B���N�g�����쐬����A���̉��ɕ⏕�t�@�C���Q���쐬�����B(�������̃f�B���N�g����png��svg�t�@�C���j
-
-
-�S�F..\webApps\webApps\Container.svg�@���e�L�X�g�G�f�B�^�ŕҏW����B
-
-��<!-- Thematic Layer -->�̍s�̌�ɁA
-<animation title="Self Gas Stand" xlink:href="sample/Self-GS-POI-b.svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />
-��ǉ�����B�i�T���v���ɂ͂��łɒǉ��ς݂ł��j
-
-����Œn�}�쐬����
+＃同ディレクトリに、JPcities_of_worldcitiespop_utf8ディレクトリが作成され、その下に補助ファイル群が作成される。(いくつかのディレクトリとpngやsvgファイル）
 
 
-�T�F..\tutorials\webApps\SvgMapper.html�@��Firefox�ŊJ���ƕϊ������f�[�^��������B
+４：..\webApps\webApps\Container.svg　をテキストエディタで編集する。
+
+○<!-- Thematic Layer -->の行の後に、
+<animation title="Cities of Japan" xlink:href="sample/JPcities_of_worldcitiespop_utf8.svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />
+を追加する。（サンプルにはすでに追加済みです）
+
+これで地図作成完了
 
 
-
-
-
-�������������H����������
-�P�F��ƃf�B���N�g���̐ݒu
-��tools�f�B���N�g�����J�����g�f�B���N�g���Ƒz��
-
-��..\tutorials\webApps\�@�ȉ��ɔC�ӂ̍�ƃf�B���N�g��(�p�������D�܂���)��ݒu����
-�@�@�� ���̃t�H���_���ȉ�..\webApps\(wdir)�Ƃ���
-
-��tools\mappins\mappin.png�@���@..\tutorials\webApps\(wdir)�ɃR�s�[����
-
-
-�Q�FCSV�t�@�C���̏���
-���ݒu����..\tutorials\webApps\(wdir)�@�ɁA���炩���ߗp�ӂ���CSV�t�@�C���i�K���Ȍ��Ɉܓx�A�o�x�������Ă���j��z�u����B
-�@�@���ȉ��A���̃t�@�C�����@..\tutorials\webApps\(wdir)\(wfile).csv�@�Ƃ���
-
-csv�t�@�C���̒��ӓ_�F�i�Ȃ��Ashapefile��ϊ����邱�Ƃ��\�j
-�E�����������Ă���ꍇ�A�V�t�gJIS�ɂ���(�I�v�V�����ɂ���ĕ����R�[�h�𖾎����邱�Ƃ��\)
-�E�ŏ��̍s�ɂ͍��ږ����J���}��؂�œ����Ă���K�v������i�����ꍇ�̓e�L�X�g�G�f�B�^�ŕҏW�}���i�G�N�Z���Ȃǂł��炩���ߓ���Ă����Ɨǂ��Ǝv���܂��B�Ȃ��A�X�L�[�}�t�@�C����^���邱�Ƃō��ږ������܂܂ł̕ϊ����\�j
-�E�ܓx�o�x�̃J�����̍��ږ��́Alatitude, longitude�łȂ���΂Ȃ�Ȃ�
-�E�ܓx�o�x�̃J�����́A�ȍ~�̃J�����w��ԍ�����O���čl����
-�E���̂����ŁA1�J�����ڂ��ŏ��̃J�����ƂȂ�
-
-�S�FShapefile���k��(�g��\��)�p�n�}�ɕϊ�����B�i�f�[�^�T�C�Y�ɂ���Ď��Ԃ�������j
-��java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage ..\tutorials\webApps\(wdir)\(wfile).csv
-
-�����f�B���N�g���ɁASelf-GS-POI-b.svg�t�@�C������сA�⏕��.svg�t�@�C���Q���쐬�����B
-�T�FShapefile�����k��(�k���\��)�p�n�}�ɕϊ�����B�i�f�[�^�T�C�Y�ɂ���Ď��Ԃ�������j
-��java Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 16 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).csv #0000ff #0000ff 0 3
-
-�����f�B���N�g���ɁA(wfile)�f�B���N�g�����쐬����A���̉��ɕ⏕�t�@�C���Q���쐬�����B(�������̃f�B���N�g����png��svg�t�@�C���j
-
-�U�F..\tutorials\webApps\Container.svg�@��ҏW����B
-
-<!-- Thematic Layer -->�̍s�̌�ɁA�ȉ��̃^�O
-<animation title="(�K���ȃf�[�^��)" xlink:href="(wdir)/(wfile).svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />
-��ǉ�����B
-
-��(�K���ȃf�[�^��)�́A���ł��ǂ����A���p�p���𐄏�(�����̏ꍇUTF-8�ł�)
-����Œn�}�쐬����
-
-
-�V�F..\tutorials\webApps\SvgMapper.html�@��Firefox�ŊJ���ƕϊ������f�[�^��������B
+５：..\tutorials\webApps\SvgMapper.html　をFirefoxで開くと変換したデータが見られる。
 
 
 
-�������������p�F�����̃f�[�^�̍�������������
-�E�����̃f�[�^��ʂ̃f�B���N�g���ɍ쐬���A�������ꖇ�ɍ���������A�؂�ւ����肷�邱�Ƃ��ł���i���C�������O�@�\�j
-�����H�҂̍�Ƃ�ʂ̃f�B���N�g����������ĕ�������{����
-
-����Ńf�t�H���g�ł��ׂẴ��C���[���\�����ꂽ��ԂƂȂ�B
-
-����k�ڕ\���p�s���̐F��ύX����ɂ́A
-�@mapins\�̓K����png����ƃf�B���N�g���ɃR�s�[���������ŁAmappin.png�Ƀ��l�[������
-
-�����k�ڕ\���p�̊ۓ_�̐F��ύX����ɂ́A
-�@���H�҂̃v���Z�X�T�̈ȉ���(�F�R�[�h)������ύX���Ď��s����
-�@java Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 8 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).shp (�F�R�[�h) (�F�R�[�h) 0 3
-�@���Q��(�F�R�[�h)�͓����l�ŗǂ��B�F�R�[�h��Web�̐F�R�[�h��#RRGGBB (RR,GG,BB���ꂼ��00-FF)�ł��B
-�@
-��������Ԃŕ\�����������Ȃ��f�[�^�̏ꍇ
-���H�҂̃v���Z�X�U�̃^�O�ҏW��visibilty="hidden"������t����
-��<animation title="Self Gas Stand" xlink:href="(wdir)/(wfile).svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" visibilty="hidden"/>
-
-���ǂꂩ�̃f�[�^������\���i����\���j���������ꍇ
-�f�t�H���g�ŕ\�����������f�[�^�ȊO��visibilty="hidden"������t���������ŁA
-�S�Ẵ��C���[�̃^�O��class������class="poi switch"�ɕύX����
-<animation title="Self Gas Stand" xlink:href="(wdir)/(wfile).svg" class="poi switch" x="-30000" y="-30000" width="60000" height="60000" visibilty="hidden"/>
 
 
-��������������ɉ��p�F�c�[���̕��G�Ȏg�����Ȃǁ���������
-���ȉ��̃c�[���́A�I�v�V�����Ȃ��ŋN�����邱�ƂŃw���v���b�Z�[�W���o�͂����B�ڍׂȃI�v�V�����̐������񋟂����B
-�Ejava Shape2SVGMap
-�Ejava Shape2ImageSVGMap
-�Ejava Shape2WGS84
-�Ejava HyperBuilder
+＝＝＝＝＝実践＝＝＝＝＝
+１：作業ディレクトリの設置
+＃toolsディレクトリをカレントディレクトリと想定
 
-���_�̌��͂P�O�O�O���_�K�͂܂œ��쌟�؂��Ă���B
+○..\tutorials\webApps\　以下に任意の作業ディレクトリ(英文字が好ましい)を設置する
+　　＃ そのフォルダを以下..\webApps\(wdir)とする
 
-�����̃`���[�g���A���ł́A�_�I�u�W�F�N�g�݂̂̒n�}�������s�������Ashapefile��p���邱�ƂŁA����ʂ́i�x�N�g���^�C���j�n�}���ɂ��Ή����Ă���B
-�܂��A�ψ�ɕ������ꂽ�^�C�����O�ɂ��A�l���؂łȂ�ׂ������x�̃t�@�C���T�C�Y�ƂȂ�悤�ɒ������ꂽ�^�C�����O�iQuad Tree Tiling�F�{�`���[�g���A���Ŏg�p�j�ɂ��Ή����Ă���B
+○tools\mappins\mappin.png　を　..\tutorials\webApps\(wdir)にコピーする
 
-�ȏ�
+
+２：CSVファイルの準備
+○設置した..\tutorials\webApps\(wdir)　に、あらかじめ用意したCSVファイル（適当な桁に緯度、経度が入っている）を配置する。
+　　＃以下、そのファイルを　..\tutorials\webApps\(wdir)\(wfile).csv　とする
+
+csvファイルの注意点：（なお、shapefileを変換することも可能）
+・漢字が入っている場合、シフトJISにする(オプションによって文字コードを明示することも可能)
+・最初の行には項目名がカンマ区切りで入っている必要がある（無い場合はテキストエディタで編集挿入（エクセルなどであらかじめ入れておくと良いと思います。なお、スキーマファイルを与えることで項目名無いままでの変換も可能）
+・緯度経度のカラムの項目名は、latitude, longitudeでなければならない
+・緯度経度のカラムは、以降のカラム指定番号から外して考える
+・そのうえで、1カラム目が最初のカラムとなる
+
+４：Shapefileを大縮尺(拡大表示)用地図に変換する。（データサイズによって時間がかかる）
+○java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage ..\tutorials\webApps\(wdir)\(wfile).csv
+
+＃同ディレクトリに、JPcities_of_worldcitiespop_utf8.svgファイルおよび、補助の.svgファイル群が作成される。
+５：Shapefileを小縮尺(縮小表示)用地図に変換する。（データサイズによって時間がかかる）
+○java Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 16 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).csv #0000ff #0000ff 0 3
+
+＃同ディレクトリに、(wfile)ディレクトリが作成され、その下に補助ファイル群が作成される。(いくつかのディレクトリとpngやsvgファイル）
+
+６：..\tutorials\webApps\Container.svg　を編集する。
+
+<!-- Thematic Layer -->の行の後に、以下のタグ
+<animation title="(適当なデータ名)" xlink:href="(wdir)/(wfile).svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />
+を追加する。
+
+＃(適当なデータ名)は、何でも良いが、半角英数を推奨(漢字の場合UTF-8です)
+これで地図作成完了
+
+
+７：..\tutorials\webApps\SvgMapper.html　をFirefoxで開くと変換したデータが見られる。
+
+
+
+＝＝＝＝＝応用：複数のデータの合成＝＝＝＝＝
+・複数のデータを別のディレクトリに作成し、それらを一枚に合成したり、切り替えたりすることができる（レイヤリング機能）
+→実践編の作業を別のディレクトリ名を作って複数回実施する
+
+これでデフォルトですべてのレイヤーが表示された状態となる。
+
+○大縮尺表示用ピンの色を変更するには、
+　mapins\の適当なpngを作業ディレクトリにコピーしたうえで、mappin.pngにリネームする
+
+○小縮尺表示用の丸点の色を変更するには、
+　実践編のプロセス５の以下の(色コード)部分を変更して実行する
+　java Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 8 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).shp (色コード) (色コード) 0 3
+　＃２つの(色コード)は同じ値で良い。色コードはWebの色コードで#RRGGBB (RR,GG,BBそれぞれ00-FF)です。
+　
+○初期状態で表示させたくないデータの場合
+実践編のプロセス６のタグ編集でvisibilty="hidden"属性を付ける
+＃<animation title="Cities of Japan" xlink:href="(wdir)/(wfile).svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" visibilty="hidden"/>
+
+○どれかのデータだけを表示（択一表示）させたい場合
+デフォルトで表示させたいデータ以外にvisibilty="hidden"属性を付けたうえで、
+全てのレイヤーのタグのclass属性をclass="poi switch"に変更する
+<animation title="Cities of Japan" xlink:href="(wdir)/(wfile).svg" class="poi switch" x="-30000" y="-30000" width="60000" height="60000" visibilty="hidden"/>
+
+
+＝＝＝＝＝さらに応用：ツールの複雑な使い方など＝＝＝＝＝
+◎以下のツールは、オプションなしで起動することでヘルプメッセージが出力される。詳細なオプションの説明が提供される。
+・java Shape2SVGMap
+・java Shape2ImageSVGMap
+・java Shape2WGS84
+・java HyperBuilder
+
+◎点の個数は１０００万点規模まで動作検証している。
+
+◎このチュートリアルでは、点オブジェクトのみの地図化を実行したが、shapefileを用いることで、線や面の（ベクトルタイル）地図化にも対応している。
+また、均一に分割されたタイリングにも、四分木でなるべく同程度のファイルサイズとなるように調整されたタイリング（Quad Tree Tiling：本チュートリアルで使用）にも対応している。
+
+以上
