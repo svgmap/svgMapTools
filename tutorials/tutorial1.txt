@@ -46,7 +46,7 @@ set CLASSPATH=%CLASSPATH%;.\lib\*;shape2svgmap.jar
 
 
 ２：csvfileを大縮尺(拡大表示)用地図に変換する。
-○java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv
+○java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv
 
 ＃同ディレクトリに、JPcities_of_worldcitiespop_utf8.svgファイルおよび、補助の.svgファイル群が作成される。
 
@@ -93,7 +93,7 @@ csvファイルの注意点：（なお、shapefileを変換することも可�
 ・そのうえで、1カラム目が最初のカラムとなる
 
 ４：Shapefileを大縮尺(拡大表示)用地図に変換する。（データサイズによって時間がかかる）
-○java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage ..\tutorials\webApps\(wdir)\(wfile).csv
+○java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage ..\tutorials\webApps\(wdir)\(wfile).csv
 
 ＃同ディレクトリに、JPcities_of_worldcitiespop_utf8.svgファイルおよび、補助の.svgファイル群が作成される。
 ５：Shapefileを小縮尺(縮小表示)用地図に変換する。（データサイズによって時間がかかる）
