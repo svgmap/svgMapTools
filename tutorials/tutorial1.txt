@@ -18,6 +18,10 @@ http://svgmap.org/devinfo/devkddi/lvl0.1/rev14/SVGMapper_r14.html#visibleLayer=w
 
 
 ＝＝＝＝＝最初の練習＝＝＝＝＝
+０：ツールのダウンロード
+release（https://github.com/svgmap/svgMapTools/releases）から、最新のリリースのソースコード（ Source code (zip)）と、jar（shape2svgmap.jar）をダウンロードします。
+ソースコードを解凍し、toolsディレクトリに shape2svgmap.jarを投入します。
+＃もしくはjavacがあれば、srcディレクトリのMakeClass.batで自分でjarを生成することもできます。
 
 １：外部ライブラリの準備
 (この文書のあるディレクトリ)\..\tools\に以下のファイルが配置されていることを確認します。
