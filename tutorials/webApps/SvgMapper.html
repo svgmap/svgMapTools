@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SvgMapViewer for tutorial</title>
+<meta name="viewport" content="width=device-width,user-scalable=no,initial-scale=1.0,maximum-scale=1.0" />
+<meta charset="UTF-8">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+<style>
+ body {
+ 	font-family: Meiryo;
+ }
+ #layerTable{
+ 	background:#ffE0E0;
+ 	border: 2px solid #bbb;
+ }
+ .layerItem{
+ 	background-color: white;
+ }
+ .noGroup{
+ 	background-color: #fff0f0;
+ }
+ #layerList{
+ 	background-color: #ffff80;opacity:0.8;
+ }
+</style>
+
+<script type="text/javascript" src="js/SVGMapLv0.1_r14.js"></script>
+<script type="text/javascript" src="js/SVGMapLv0.1_LayerUI2_r3.js"></script>
+
+
+<script type="text/javascript">
+
+console.log("start svgMapper_r12");
+// メタデータがマッチしたPOIだけを表示する
+// ズームパンが実行されると、"zoomPanMap" イベントが発行される。それをキャプチャして伸縮スクロール時に処理を実行させる。
+
+	function poiFilterSet( ){
+		if ( document.getElementById("poiFilterButton").innerHTML == "setPOIfilter(regExp)"){
+			// フィルターオンにする
+			document.getElementById("poiFilterButton").innerHTML = "disableFilter";
+			document.getElementById("poiFilterValue").disabled = "true";
+			
+			var matchWord = (document.getElementById("poiFilterValue").value);
+//			console.log("Enable poiFilterContinuous:" + matchWord);
+			eDom = editDOM( matchWord ); // フィルタ処理を登録
+			
+			// 最初の処理実施(これはズームパンと関係なく、すぐに処理を反映させるため)
+			eDom();
+			
+			// ズームパン処理が完了したところで指定処理を実施し再描画を実施するためのイベントリスナ登録
+			document.addEventListener("zoomPanMap", eDom , false);
+			
+		} else {
+			// フィルターオフにする
+			document.getElementById("poiFilterButton").innerHTML = "setPOIfilter(regExp)";
+			document.getElementById("poiFilterValue").disabled = "";
+			
+			document.removeEventListener("zoomPanMap", eDom, false); // イベントリスナ消去
+			
+			 // すでに画面にかかっているフィルタを除去するための処理
+			eDom = editDOM("");
+			eDom();
+		}
+		
+	}
+
+	var eDom; // editDOMクロージャ用のグローバル変数
+	function editDOM(matchWord){ // DOM編集処理の内容(関数化すると良い) クロージャになります！
+		return function (){
+	//		console.log("custom event detect");
+			// POIのレイヤー(のルート文書のハッシュ)を取り出す
+			var targetHash;
+			
+			var layers = svgMap.getLayers( );
+			for ( var i = 0 ; i < layers.length ; i++ ){
+				if ( layers[i].getAttribute("class").toLowerCase().indexOf("poi") >= 0 &&
+				( !layers[i].getAttribute("visibility") ||
+				layers[i].getAttribute("visibility").toLowerCase().indexOf("hidden") < 0 ) ){
+					targetHash = svgMap.getHashByDocPath( layers[i].getAttribute("xlink:href") );
+//					console.log("target:", layers[i].getAttribute("xlink:href") , " class:" , layers[i].getAttribute("class"));
+					break;
+				}
+			}
+			if ( targetHash ){
+			
+				
+				// その文書の子孫文書(タイル)全部に対して、指定した文書処理(ここではcontourMarker)を実施する
+				// linkedDocOpがそのためのユーティリティ関数です
+				svgMap.linkedDocOp( poiMetadataFilter , targetHash , matchWord);
+				svgMap.refreshScreen();
+//				dynamicLoad( "root" , mapCanvas );
+			}
+		}
+	}
+	
+	function poiMetadataFilter( layerDoc , layerProps , matchWord ){
+		var re = new RegExp(matchWord);
+		// use要素のcontent属性がmatchしたものだけ表示する
+		var pois = layerDoc.getElementsByTagName("use");
+		changeDisplay ( pois , re );
+		
+		// path要素の.. 同上
+		pois = layerDoc.getElementsByTagName("path");
+		changeDisplay ( pois , re );
+		
+	}
+	
+	function changeDisplay( pois , re ){
+		for ( var i = 0 ; i < pois.length ; i++){
+			var onePoi = pois[i];
+			var meta = onePoi.getAttribute("content");
+			if ( re.test(meta) ){
+//				console.log("match:" + meta + " = " + matchWord );
+				onePoi.setAttribute("display","inline");
+			} else {
+//				console.log("UNmatch:" + meta + " = " + matchWord );
+				onePoi.setAttribute("display","none");
+			}
+		}
+	}
+	
+</script>
+
+<body bgcolor="#ffffff" style="overflow:hidden;" >
+
+ <div id="mapcanvas" title="Container.svg"></div>
+ <div id="gui">
+  <img id="zoomupButton" style="left: 5px; top: 5px; position: absolute;" src="buttons/zoomup.png" onclick="svgMap.zoomup()" width="20" height="20" />
+  <img id="zoomdownButton" style="left: 5px; top: 25px; position: absolute;" src="buttons/zoomdown.png" onclick="svgMap.zoomdown()" width="20" height="20" />
+  <img id="gpsButton" style="left: 5px; top: 45px; position: absolute;" src="buttons/gps.png" onclick="svgMap.gps()" width="20" height="20" />
+  <font color="blue" style="right: 5px; top: 5px; position: absolute;" >Tutorial SVG Map</font>
+  <img id="centerSight" style="opacity:0.5" src="buttons/Xcursor.png" width="15" height="15"/>
+  <font id="posCmt" size="-2" color="brown" style="left: 5px; bottom: 5px; position: absolute;">Lat,Lng:</font>
+  <font id="centerPos" size="-2" color="brown" style="left: 50px; bottom: 5px; position: absolute;" >lat , lng</font>
+  
+  <div id="layerList" style="left :30px; top: 10px; width:250px;height:90%; position: absolute; ">
+  <div id="layerSpecificUI" style="right :10px; top: 40px; width:400px;height:400px; position: absolute; background-color: white;opacity:0.8;display:none;">
+  </div>
+  
+  <input id="poiFilterValue" type="text" style="left :250px; top: 5px; position: absolute; width :135px; height: 20px" value="[Oo]"/>
+  <button id="poiFilterButton" onclick="poiFilterSet()"  style="left :390px; top: 5px; position: absolute; width :150px; height: 20px">setPOIfilter(regExp)</button>
+  
+  <textarea style="font-size:10px;opacity:0.7; left :550px; top: 5px; position: absolute; width :205px; height: 40px">フィルタには正規表現が使用でます</textarea>
+  
+ </div>
+</body>
+</html>

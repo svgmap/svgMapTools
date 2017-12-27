@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:go="http://purl.org/svgmap/profile" viewBox="12300 -4600 2200 2200" >
+
+<metadata>
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:crs="http://opengis.org/xmldtds/transformations.dtd" xmlns:svg="http://www.w3.org/svg" >
+  <rdf:Description>
+   <crs:CoordinateReferenceSystem rdf:resource="http://purl.org/crs/84" svg:transform="matrix(100.0,0.0,0.0,-100.0,0.0,0.0)" />
+  </rdf:Description>
+ </rdf:RDF>
+</metadata>
+<globalCoordinateSystem srsName="http://purl.org/crs/84" transform="matrix(100.0,0.0,0.0,-100.0,0.0,0.0)" />
+
+<!-- BaseMaps -->
+<animation x="-30000" y="-30000" width="60000" height="60000" xlink:href="baseMap/dynamicOSM_r10.svg" title="OpenStreetMap(Global)" class="basemap switch" visibility="visible"/>
+
+<animation x="-30000" y="-30000" width="60000" height="60000" xlink:href="baseMap/dynamicDenshiKokudo.svg#map=ort" title="DenshiKokudoORT" class="basemap switch" visibility="hidden"/>
+
+<animation x="-30000" y="-30000" width="60000" height="60000" xlink:href="baseMap/dynamicDenshiKokudo.svg#map=relief" title="DenshiKokudoRELIEF" class="basemap switch" visibility="hidden"/>
+
+<animation x="-30000" y="-30000" width="60000" height="60000" xlink:href="baseMap/dynamicDenshiKokudo.svg" title="DenshiKokudo" class="basemap switch" visibility="hidden"/>
+
+<!-- Thematic Layer -->
+<animation title="Self Gas Stand" xlink:href="sample/JPcities_of_worldcitiespop_utf8.svg" class="poi clickable" x="-30000" y="-30000" width="60000" height="60000" visibility="visible"/>
+
+</svg>
