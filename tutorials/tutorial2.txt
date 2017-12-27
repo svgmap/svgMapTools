@@ -7,7 +7,7 @@ updated  2017.12.07
 １：toolsフォルダをカレントにしたコマンドプロンプトで作業する。その他は省略（tutorial1.txtの練習と同じ）
 
 ２：Shapefileを大縮尺(拡大表示)用地図に変換する。
-○java Shape2SVGMap -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 -directpoi rect -color 4 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv
+○java Shape2SVGMap -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 -directpoi rect -color 4 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv
 
 ＃同ディレクトリに、JPcities_of_worldcitiespop_utf8.svgファイルおよび、補助の.svgファイル群が作成される。
 
@@ -45,7 +45,7 @@ updated  2017.12.07
 １：省略（その１と同じ）
 
 ２：Shapefileを大縮尺(拡大表示)用地図に変換する。
-○java Shape2SVGMap -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage -directpoi rect -color 6 -csvschema ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8_schema.txt ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv
+○java Shape2SVGMap -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -directpoi rect -color 6 -csvschema ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8_schema.txt ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv
 
 ３：Shapefileを小縮尺(縮小表示)用地図に変換する。
 ○java Shape2ImageSVGMap ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.svg -sumUp 16 -antiAlias -csvschema ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8_schema.txt ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv 6 #000000 0 3
@@ -98,7 +98,7 @@ Finished...
 
 
 ５：Shapefileを大縮尺(拡大表示)用地図に変換する。（データサイズによって時間がかかる）
-○java Shape2SVGMap -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage -directpoi rect -color (colorCol) ..\tutorials\webApps\(wdir)\(wfile).shp
+○java Shape2SVGMap -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -directpoi rect -color (colorCol) ..\tutorials\webApps\(wdir)\(wfile).shp
 
 ＃同ディレクトリに、Self-GS-POI-b.svgファイルおよび、補助の.svgファイル群が作成される。
 ６：Shapefileを小縮尺(縮小表示)用地図に変換する。（データサイズによって時間がかかる）
