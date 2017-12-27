@@ -1,123 +1,123 @@
-CSV�f�[�^����C���^���N�e�B�u�n�}���쐻������@�̃`���[�g���A���@���̂Q�i�|�C���g�̃J�e�S���[�ɉ����āA�|�C���g�̐F��ς���j
-2014.5.13 By Satoru Takagi sa-takagi@kddi.com
-updated 2017.12.07
+CSVデータからインタラクティブ地図を作製する方法のチュートリアル　その２（ポイントのカテゴリーに応じて、ポイントの色を変える）
+ist rev. 2014.5.13 By Satoru Takagi
+updated  2017.12.07
 
 
-�����������ŏ��̗��K����������
-�P�Ftools�t�H���_���J�����g�ɂ����R�}���h�v�����v�g�ō�Ƃ���B���̑��͏ȗ��itutorial1.txt�̗��K�Ɠ����j
+＝＝＝＝＝最初の練習＝＝＝＝＝
+１：toolsフォルダをカレントにしたコマンドプロンプトで作業する。その他は省略（tutorial1.txtの練習と同じ）
 
-�Q�FShapefile���k��(�g��\��)�p�n�}�ɕϊ�����B
-��java Shape2SVGMap -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 -directpoi rect -color 4 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv
+２：Shapefileを大縮尺(拡大表示)用地図に変換する。
+○java Shape2SVGMap -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 -directpoi rect -color 4 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv
 
-�����f�B���N�g���ɁASelf-GS-POI-b.svg�t�@�C������сA�⏕��.svg�t�@�C���Q���쐬�����B
-
-
-�R�FShapefile�����k��(�k���\��)�p�n�}�ɕϊ�����B
-��java Shape2ImageSVGMap ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.svg -sumUp 16 -antiAlias -charset utf-8 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv 4 #000000 0 3
-
-�����f�B���N�g���ɁASelf-GS-POI-b�f�B���N�g�����쐬����A���̉��ɕ⏕�t�@�C���Q���쐬�����B(�������̃f�B���N�g����png��svg�t�@�C���j
+＃同ディレクトリに、JPcities_of_worldcitiespop_utf8.svgファイルおよび、補助の.svgファイル群が作成される。
 
 
-�S�F..\tutorials\webApps\Container.svg�@���e�L�X�g�G�f�B�^�ŕҏW����B
+３：Shapefileを小縮尺(縮小表示)用地図に変換する。
+○java Shape2ImageSVGMap ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.svg -sumUp 16 -antiAlias -charset utf-8 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv 4 #000000 0 3
 
-��<!-- Thematic Layer -->�̍s�̌�ɁA
-<animation title="Self Gas Stand" xlink:href="sample/Self-GS-POI-b.svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />
-��ǉ�����B�i�T���v���ɂ͂��łɒǉ��ς݂ł��j
-
-����Œn�}�쐬����
+＃同ディレクトリに、JPcities_of_worldcitiespop_utf8ディレクトリが作成され、その下に補助ファイル群が作成される。(いくつかのディレクトリとpngやsvgファイル）
 
 
-�T�F..\tutorials\webApps\SvgMapper.html�@��Firefox�ŊJ���ƕϊ������f�[�^��������B
+４：..\tutorials\webApps\Container.svg　をテキストエディタで編集する。
 
-�@�@Regeon(��)�̒l�ɉ����ĐF���������|�C���g���\������Ă���B
+○<!-- Thematic Layer -->の行の後に、
+<animation title="Cities of Japan" xlink:href="sample/JPcities_of_worldcitiespop_utf8.svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />
+を追加する。（サンプルにはすでに追加済みです）
 
-�U�F�n�}��UI�̊ȒP�Ȑ���
-�E������x�i�_������������x�j�g�傷��ƁA�_�̌`���l�p�`�ɂȂ�A�N���b�N���ăv���p�e�B��\�����邱�Ƃ��ł���悤b�ɂȂ�B�i�ǂ̒��x�g�傷��Ǝl�p�`�ɕω����邩�̓f�[�^�̖��x�Ɉ˂�j
-�E�_�̌`���l�p�`�ɂȂ����i�K�ł́A�������͗�(ENEOS�Ə����l�������Ă���)�Ƀv���p�e�B�̒l����͂���SetPOIfilter�{�^���������ƃt�B���^�\�����ł���i���K�\���j�B
-�������̃v���p�e�B�̕��������́A�v���p�e�B��CSV�`���i���я���CSV�̃f�[�^�Ɠ���)�ł��邱�Ƃ�z�肵�āA���I�\���`���œ��͂��邱�Ƃŉ\
-
+これで地図作成完了
 
 
-�����������K���̂Q������
-���̗��K�ł́ARegeon�̒l�ł͂Ȃ�Test3�J�����̒l(�ܓx���R�s�[�����J����)�����ƂɁA�|�C���g�ɐF�t������B���K�P�ƈႤ�̂͐F�t���̂��߂̃J���������K�P�ł͕�����iRegeon���j�ɑ΂��A���K�Q�͐��l�i�ܓx�j�ł��邱�ƁBcsv�̃f�[�^�����l�ł��邩�ǂ����𖾎����邽�߁A�X�L�[�}�t�@�C����p���Ă���i-csvschema�I�v�V�����@�ڍׂ̓w���v���Q�Ɓj
-���̏ꍇ�A�F��HSV��H(�F��)�l�Ɋ�Â��Ă�����B�i�l�������Ɛ�(H:0)�A�Ⴂ�Ɛ�(H:270)�j
+５：..\tutorials\webApps\SvgMapper.html　をFirefoxで開くと変換したデータが見られる。
 
-�P�F�ȗ��i���̂P�Ɠ����j
+　　Regeon(県)の値に応じて色分けしたポイントが表示されている。
 
-�Q�FShapefile���k��(�g��\��)�p�n�}�ɕϊ�����B
-��java Shape2SVGMap -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage -directpoi rect -color 6 -csvschema ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8_schema.txt ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv
-
-�R�FShapefile�����k��(�k���\��)�p�n�}�ɕϊ�����B
-��java Shape2ImageSVGMap ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.svg -sumUp 16 -antiAlias -csvschema ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8_schema.txt ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv 6 #000000 0 3
-
-�S�F�ȗ��i���̂P�Ɠ����j
-
-����Œn�}�쐬����
-
-�T�F..\tutorials\webApps\SvgMapper.html�@��Firefox�ŊJ���ƕϊ������f�[�^��������B
-
-�@�@Test3(�ܓx�̒l�̃R�s�[)�̒l�ɉ����ĐF���������|�C���g���\������Ă���B�i�k���Ԃ��A�삪���\���j
-
-�U�F�ȗ��i���̂P�Ɠ����j
+６：地図のUIの簡単な説明
+・ある程度（点が分離する程度）拡大すると、点の形が四角形になり、クリックしてプロパティを表示することができるようbになる。（どの程度拡大すると四角形に変化するかはデータの密度に依る）
+・点の形が四角形になった段階では、文字入力欄(ENEOSと初期値が入っている)にプロパティの値を入力してSetPOIfilterボタンを押すとフィルタ表示ができる（正規表現）。
+＃複数のプロパティの複合検索は、プロパティがCSV形式（並び順はCSVのデータと同一)であることを想定して、世紀表現形式で入力することで可能
 
 
 
-�������������H����������
-�P�F��ƃf�B���N�g���̐ݒu
-��tools�f�B���N�g�����J�����g�f�B���N�g���Ƒz��
+＝＝＝＝練習その２＝＝＝
+この練習では、Regeonの値ではなくTest3カラムの値(緯度をコピーしたカラム)をもとに、ポイントに色付けする。練習１と違うのは色付けのためのカラムが練習１では文字列（Regeon名）に対し、練習２は数値（緯度）であること。csvのデータが数値であるかどうかを明示するため、スキーマファイルを用いている（-csvschemaオプション　詳細はヘルプを参照）
+この場合、色はHSVのH(色相)値に基づいてつけられる。（値が高いと赤(H:0)、低いと青(H:270)）
 
-��..\tutorials\webApps\�@�ȉ��ɔC�ӂ̍�ƃf�B���N�g��(�p�������D�܂���)��ݒu����
-�@�@�� ���̃t�H���_���ȉ�..\tutorials\webApps\(wdir)�Ƃ���
+１：省略（その１と同じ）
 
-�Q�FCSV�t�@�C���̏���
-���ݒu����..\tutorials\webApps\(wdir)�@�ɁA���炩���ߗp�ӂ���CSV�t�@�C���i�K���Ȍ��Ɉܓx�A�o�x�������Ă���j��z�u����B
-�@�@���ȉ��A���̃t�@�C�����@..\tutorials\webApps\(wdir)\(wfile).csv�@�Ƃ���
+２：Shapefileを大縮尺(拡大表示)用地図に変換する。
+○java Shape2SVGMap -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage -directpoi rect -color 6 -csvschema ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8_schema.txt ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv
 
-csv�t�@�C���̒��ӓ_�F�i�Ȃ��Ashapefile��ϊ����邱�Ƃ��\�j
-�E�����������Ă���ꍇ�A�V�t�gJIS�ɂ���(�I�v�V�����ɂ���ĕ����R�[�h�𖾎����邱�Ƃ��\)
-�E�ŏ��̍s�ɂ͍��ږ����J���}��؂�œ����Ă���K�v������i�����ꍇ�̓e�L�X�g�G�f�B�^�ŕҏW�}���i�G�N�Z���Ȃǂł��炩���ߓ���Ă����Ɨǂ��Ǝv���܂��B�Ȃ��A�X�L�[�}�t�@�C����^���邱�Ƃō��ږ������܂܂ł̕ϊ����\�j
-�E�ܓx�o�x�̃J�����̍��ږ��́Alatitude, longitude�łȂ���΂Ȃ�Ȃ�
-�E�ܓx�o�x�̃J�����́A�ȍ~�̃J�����w��ԍ�����O���čl����B
-�E���̂����ŁA1�J�����ڂ��ŏ��̃J�����ƂȂ�
-�E����ɁA�l�ɉ����ăA�C�R���̐F��ω������邽�߂̃J�����̔ԍ�����̃��[�������ƂɍT���Ă����i���̃J�����̃f�[�^�͊�{�I�ɕ�����Ƃ��Ĉ�����B�Ȃ��A�X�L�[�}��ʂɗ^���邱�ƂŐ��l�Ƃ��Ĉ������Ƃ��\�j
+３：Shapefileを小縮尺(縮小表示)用地図に変換する。
+○java Shape2ImageSVGMap ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.svg -sumUp 16 -antiAlias -csvschema ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8_schema.txt ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv 6 #000000 0 3
+
+４：省略（その１と同じ）
+
+これで地図作成完了
+
+５：..\tutorials\webApps\SvgMapper.html　をFirefoxで開くと変換したデータが見られる。
+
+　　Test3(緯度の値のコピー)の値に応じて色分けしたポイントが表示されている。（北が赤く、南が青く表示）
+
+６：省略（その１と同じ）
 
 
-�S�FShapefile��(ColorCol�F�l�ɉ����ăA�C�R���̐F��ω������邽�߂̑����ԍ�)�𒲂ׂ�
-�����F�ܓx�ƌo�x�J��������ԏ��ɕϊ�����A�����ԍ����ω����邽�߁ACSV�̃J�����ԍ��Ƃ͈قȂ�
-��java Shape2SVGMap -showhead ..\tutorials\webApps\(wdir)\(wfile).shp
-�����s�A�ȉ��̂悤�ȕ\�����o��B
+
+＝＝＝＝＝実践＝＝＝＝＝
+１：作業ディレクトリの設置
+＃toolsディレクトリをカレントディレクトリと想定
+
+○..\tutorials\webApps\　以下に任意の作業ディレクトリ(英文字が好ましい)を設置する
+　　＃ そのフォルダを以下..\tutorials\webApps\(wdir)とする
+
+２：CSVファイルの準備
+○設置した..\tutorials\webApps\(wdir)　に、あらかじめ用意したCSVファイル（適当な桁に緯度、経度が入っている）を配置する。
+　　＃以下、そのファイルを　..\tutorials\webApps\(wdir)\(wfile).csv　とする
+
+csvファイルの注意点：（なお、shapefileを変換することも可能）
+・漢字が入っている場合、シフトJISにする(オプションによって文字コードを明示することも可能)
+・最初の行には項目名がカンマ区切りで入っている必要がある（無い場合はテキストエディタで編集挿入（エクセルなどであらかじめ入れておくと良いと思います。なお、スキーマファイルを与えることで項目名無いままでの変換も可能）
+・緯度経度のカラムの項目名は、latitude, longitudeでなければならない
+・緯度経度のカラムは、以降のカラム指定番号から外して考える。
+・そのうえで、1カラム目が最初のカラムとなる
+・さらに、値に応じてアイコンの色を変化させるためのカラムの番号を上のルールをもとに控えておく（このカラムのデータは基本的に文字列として扱われる。なお、スキーマを別に与えることで数値として扱うことも可能）
+
+
+４：Shapefileの(ColorCol：値に応じてアイコンの色を変化させるための属性番号)を調べる
+＃注：緯度と経度カラムが空間情報に変換され、属性番号が変化するため、CSVのカラム番号とは異なる
+○java Shape2SVGMap -showhead ..\tutorials\webApps\(wdir)\(wfile).shp
+を実行、以下のような表示が出る。
 
 attrNo:0 Name:the_geom type:Point
 attrNo:1 Name:xxxx
 ....
-attrNo:n Name:(ColorAttrName)��
+attrNo:n Name:(ColorAttrName)名
 ....
 Finished...
 
-�����ŁA�T���Ă������J�����̖���(ColorAttrName)�ƈ�v����attrNo�̒l(n)���T����B�����(ColorCol)�Ƃ���B
+ここで、控えておいたカラムの名称(ColorAttrName)と一致するattrNoの値(n)を控える。これを(ColorCol)とする。
 
 
-�T�FShapefile���k��(�g��\��)�p�n�}�ɕϊ�����B�i�f�[�^�T�C�Y�ɂ���Ď��Ԃ�������j
-��java Shape2SVGMap -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage -directpoi rect -color (colorCol) ..\tutorials\webApps\(wdir)\(wfile).shp
+５：Shapefileを大縮尺(拡大表示)用地図に変換する。（データサイズによって時間がかかる）
+○java Shape2SVGMap -micrometa2 -level 3 -limit 200 -showtile -densityControl 400 -lowresimage -directpoi rect -color (colorCol) ..\tutorials\webApps\(wdir)\(wfile).shp
 
-�����f�B���N�g���ɁASelf-GS-POI-b.svg�t�@�C������сA�⏕��.svg�t�@�C���Q���쐬�����B
-�U�FShapefile�����k��(�k���\��)�p�n�}�ɕϊ�����B�i�f�[�^�T�C�Y�ɂ���Ď��Ԃ�������j
-��java Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 16 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).shp (colorCol) #000000 0 3
+＃同ディレクトリに、Self-GS-POI-b.svgファイルおよび、補助の.svgファイル群が作成される。
+６：Shapefileを小縮尺(縮小表示)用地図に変換する。（データサイズによって時間がかかる）
+○java Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 16 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).shp (colorCol) #000000 0 3
 
-�����f�B���N�g���ɁA(wfile)�f�B���N�g�����쐬����A���̉��ɕ⏕�t�@�C���Q���쐬�����B(�������̃f�B���N�g����png��svg�t�@�C���j
+＃同ディレクトリに、(wfile)ディレクトリが作成され、その下に補助ファイル群が作成される。(いくつかのディレクトリとpngやsvgファイル）
 
-�V�F..\tutorials\webApps\Container.svg�@��ҏW����B
+７：..\tutorials\webApps\Container.svg　を編集する。
 
-<!-- Thematic Layer -->�̍s�̌�ɁA�ȉ��̃^�O
-<animation title="(�K���ȃf�[�^��)" xlink:href="(wdir)/(wfile).svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />
-��ǉ�����B
+<!-- Thematic Layer -->の行の後に、以下のタグ
+<animation title="(適当なデータ名)" xlink:href="(wdir)/(wfile).svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />
+を追加する。
 
-��(�K���ȃf�[�^��)�́A���ł��ǂ����A���p�p���𐄏�(�����̏ꍇUTF-8�ł�)
-����Œn�}�쐬����
-
-
-�W�F..\tutorials\webApps\SvgMapper.html�@��Firefox�ŊJ���ƕϊ������f�[�^��������B
+＃(適当なデータ名)は、何でも良いが、半角英数を推奨(漢字の場合UTF-8です)
+これで地図作成完了
 
 
+８：..\tutorials\webApps\SvgMapper.html　をFirefoxで開くと変換したデータが見られる。
 
-�ȏ�
+
+
+以上
