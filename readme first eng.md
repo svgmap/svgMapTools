@@ -25,10 +25,10 @@ Note: Currently, much of the tutorials and help files are in Japanese. Please do
 
 A compiled jar file is registered in the [releases](https://github.com/svgmap/svgMapTools/releases). Preparation of environment is described in [tutorial1](tutorials).
 
-* java -classpath lib\*;shape2svgmap.jar Shape2SVGMap (options)
-* java -classpath lib\*;shape2svgmap.jar Shape2ImageSVGMap (options)
-* java -classpath lib\*;shape2svgmap.jar Shape2WGS84 (options)
-* java -classpath lib\*;shape2svgmap.jar HyperBuilder (options)
+* `java -classpath lib\*;shape2svgmap.jar Shape2SVGMap (options)`
+* `java -classpath lib\*;shape2svgmap.jar Shape2ImageSVGMap (options)`
+* `java -classpath lib\*;shape2svgmap.jar Shape2WGS84 (options)`
+* `java -classpath lib\*;shape2svgmap.jar HyperBuilder (options)`
 
 
 There shold be jar files of [geotools2.7.5](https://sourceforge.net/projects/geotools/files/GeoTools%202.7%20Releases/2.7.5/) and [javacsv2.1](https://sourceforge.net/projects/javacsv/) in the libs folder.
