@@ -38,10 +38,10 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 <br>javacsv2.1のjarファイルは一個ですが、geotools2.7.5のjarファイルは(geotools-2.7.5-bin.zip)にパックされており、解凍すると複数のjarに分かれています。これらのjarファイルをすべて投入してください。
 
 1. 作業ディレクトリ移動とclasspath設定
-   * コマンドプロンプトを開き、以下を指示します<br>
+   * コマンドプロンプトを開き、以下を指示します<br>
 `cd (この文書のあるディレクトリ)\..\tools\`<br>
 `set CLASSPATH=%CLASSPATH%;.\lib\*;shape2svgmap.jar`<br>
-     * なお変換する対象ファイルは、toolsディレクトリに対して、`..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv` に格納されていると仮定して変換を進めます。
+   * なお変換する対象ファイルは、toolsディレクトリに対して、`..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv` に格納されていると仮定して変換を進めます。
 
 1. csvfileを大縮尺(拡大表示)用地図に変換
    * `java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv`<br>
@@ -52,7 +52,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
      * 同ディレクトリに、JPcities_of_worldcitiespop_utf8ディレクトリが作成され、その下に付随するファイル群が作成されます。(いくつかのディレクトリとpngやsvgファイル）
 
 1. `..\webApps\webApps\Container.svg`をテキストエディタで編集
-   * `<!-- Thematic Layer -->`の行の後に、生成したコンテンツのルートとなるファイルへのリンクを追加します。（サンプルにはすでに追加済みですので確認のみしてください。）
+   * `<!-- Thematic Layer -->`の行の後に、生成したコンテンツのルートとなるファイルへのリンクを追加します。（サンプルにはすでに追加済みですので確認のみしてください。）
    * `<animation title="Cities of Japan" xlink:href="sample/JPcities_of_worldcitiespop_utf8.svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />`
    * これで地図作成完了
 
@@ -60,9 +60,9 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 ## 実践
 1. 作業ディレクトリの設置
-   * `tools`ディレクトリをカレントディレクトリと想定
+   * `tools`ディレクトリをカレントディレクトリと想定
    * `..\tutorials\webApps\`　以下に任意の作業ディレクトリ(英文字が好ましい)を設置
-     * このフォルダを以下`..\webApps\(wdir)`とする
+     * このフォルダを以下`..\webApps\(wdir)`とする
    * `tools\mappins\mappin.png`　を　`..\tutorials\webApps\(wdir)`にコピー
 
 1. CSVファイルの準備
@@ -70,10 +70,10 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
      * 以下、そのファイルを　`..\tutorials\webApps\(wdir)\(wfile).csv`　とします。
      * csvファイルの注意点：（なお、shapefileを変換することも可能）
        * 漢字が入っている場合、シフトJISにします。(Windowsの場合（OS標準文字コード）　オプションによって文字コードを明示することも可能)
-       * 最初の行には項目名がカンマ区切りで入っている必要があります。（無い場合はテキストエディタで編集挿入します。なお、スキーマファイルを与えることで項目名が無いままでの変換も可能です。）
-       * 緯度経度のカラムの項目名は、`latitude`, `longitude`　となっている必要があります。
-       * 緯度経度のカラムは、以降のカラム指定番号から外して考えます。
-       * そのうえで、1カラム目が最初のカラムとなります。
+       * 最初の行には項目名がカンマ区切りで入っている必要があります。（無い場合はテキストエディタで編集挿入します。なお、スキーマファイルを与えることで項目名が無いままでの変換も可能です。）
+       * 緯度経度のカラムの項目名は、`latitude`, `longitude`　となっている必要があります。
+       * 緯度経度のカラムは、以降のカラム指定番号から外して考えます。
+       * そのうえで、1カラム目が最初のカラムとなります。
 
 1. 大縮尺(拡大表示)用ベクトル地図を生成（データサイズによって時間がかかります）
    * `java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage ..\tutorials\webApps\(wdir)\(wfile).csv`
