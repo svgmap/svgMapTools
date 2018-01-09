@@ -8,11 +8,11 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 ## 練習１
 1. toolsフォルダをカレントにしたコマンドプロンプトで作業する。その他は省略（tutorial1の練習と同じ）
 
-1. 大縮尺(拡大表示)用ベクターデータに変換
-   * `java Shape2SVGMap -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 -directpoi rect -color 4 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv`
+1. 大縮尺(拡大表示)用ベクターデータを生成
+   * `java Shape2SVGMap -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 -directpoi rect -color 4 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv`
      * 同ディレクトリに、JPcities_of_worldcitiespop_utf8.svgファイルおよび、補助の.svgファイル群が作成される。
 
-1. 小縮尺(縮小表示)用ラスターデータに変換
+1. 小縮尺(縮小表示)用ラスターデータを生成
    * `java Shape2ImageSVGMap ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.svg -sumUp 16 -antiAlias -charset utf-8 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv 4 #000000 0 3`
      * 同ディレクトリに、JPcities_of_worldcitiespop_utf8ディレクトリが作成され、その下に補助ファイル群が作成される。(いくつかのディレクトリとpngやsvgファイル）
 
@@ -38,10 +38,10 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 1. 省略（練習１と同じ）
 
-2. 大縮尺(拡大表示)用ベクターデータに変換
+2. 大縮尺(拡大表示)用ベクターデータを生成
    * `java Shape2SVGMap -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -directpoi rect -color 6 -csvschema ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8_schema.txt ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv`
 
-1. 小縮尺(縮小表示)用ラスターデータに変換
+1. 小縮尺(縮小表示)用ラスターデータを生成
    * `java Shape2ImageSVGMap ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.svg -sumUp 16 -antiAlias -csvschema ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8_schema.txt ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv 6 #000000 0 3`
 
 1. 省略（練習１と同じ）
@@ -76,11 +76,11 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
      `Finished...`<br>
      ここで、控えておいたカラムの名称`(ColorAttrName)`と一致するattrNoの値(n)を控える。これを`(ColorCol)`とする。
 
-1. Shapefileを大縮尺(拡大表示)用地図に変換する。（データサイズによって時間がかかる）
+1. 大縮尺(拡大表示)用ベクターデータを生成（データサイズによって時間がかかる）
    * `java Shape2SVGMap -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -directpoi rect -color (colorCol) ..\tutorials\webApps\(wdir)\(wfile).shp
    * 同ディレクトリに、Self-GS-POI-b.svgファイルおよび、補助の.svgファイル群が作成される。
 
-1. Shapefileを小縮尺(縮小表示)用地図に変換する。（データサイズによって時間がかかる）
+1. 小縮尺(縮小表示)用ラスターデータを生成（データサイズによって時間がかかる）
    * `java Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 16 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).shp (colorCol) #000000 0 3`
      * 同ディレクトリに、`(wfile)`ディレクトリが作成され、その下に補助ファイル群が作成される。(いくつかのディレクトリとpngやsvgファイル）
 
