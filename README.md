@@ -2,8 +2,8 @@
 SVGMap contents generator from shapefile or csv
 
 ## Readme
-* [(in Japanese)](./readMeFirstEN.md)
-* [(in English)](./readMeFirstJA.md)
+* [(in Japanese)](./readMeFirstJA.md)
+* [(in English)](./readMeFirstEN.md)
 
 ## Tutorials
 [(in Japanese)](tutorials)
