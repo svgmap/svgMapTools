@@ -65,7 +65,7 @@
      * 以下、そのファイルを　..\tutorials\webApps\(wdir)\(wfile).csv　とする
    * csvファイルの注意点：tutorial1と同じ
 
-1. Shapefileの(ColorCol：値に応じてアイコンの色を変化させるための属性番号)を調べる
+1. CSVの(ColorCol：値に応じてアイコンの色を変化させるための属性番号)を調べる
    * 注：緯度と経度カラムが空間情報に変換され、属性番号が変化するため、CSVのカラム番号とは異なる
    * `java Shape2SVGMap -showhead ..\tutorials\webApps\(wdir)\(wfile).shp`を実行、以下のような表示が出る。<br>
      `attrNo:0 Name:the_geom type:Point`<br>
