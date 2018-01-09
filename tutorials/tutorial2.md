@@ -67,17 +67,14 @@
 
 1. Shapefileの(ColorCol：値に応じてアイコンの色を変化させるための属性番号)を調べる
    * 注：緯度と経度カラムが空間情報に変換され、属性番号が変化するため、CSVのカラム番号とは異なる
-   * `java Shape2SVGMap -showhead ..\tutorials\webApps\(wdir)\(wfile).shp`
-を実行、以下のような表示が出る。<br>
-<br>
-`attrNo:0 Name:the_geom type:Point`<br>
-`attrNo:1 Name:xxxx`<br>
-`....`<br>
-`attrNo:n Name:(ColorAttrName)名`<br>
-`....`<br>
-`Finished...`<br>
-ここで、控えておいたカラムの名称`(ColorAttrName)`と一致するattrNoの値(n)を控える。これを`(ColorCol)`とする。
-
+   * `java Shape2SVGMap -showhead ..\tutorials\webApps\(wdir)\(wfile).shp`を実行、以下のような表示が出る。<br>
+     `attrNo:0 Name:the_geom type:Point`<br>
+     `attrNo:1 Name:xxxx`<br>
+     `....`<br>
+     `attrNo:n Name:(ColorAttrName)名`<br>
+     `....`<br>
+     `Finished...`<br>
+     ここで、控えておいたカラムの名称`(ColorAttrName)`と一致するattrNoの値(n)を控える。これを`(ColorCol)`とする。
 
 1. Shapefileを大縮尺(拡大表示)用地図に変換する。（データサイズによって時間がかかる）
    * `java Shape2SVGMap -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -directpoi rect -color (colorCol) ..\tutorials\webApps\(wdir)\(wfile).shp
