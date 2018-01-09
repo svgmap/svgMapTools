@@ -43,11 +43,11 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 `set CLASSPATH=%CLASSPATH%;.\lib\*;shape2svgmap.jar`<br>
    * なお変換する対象ファイルは、toolsディレクトリに対して、`..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv` に格納されていると仮定して変換を進めます。
 
-1. csvfileを大縮尺(拡大表示)用地図に変換
+1. csvfileを大縮尺(拡大表示)用ベクター地図に変換
    * `java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv`<br>
      * 同ディレクトリに、`JPcities_of_worldcitiespop_utf8.svg`ファイルおよび、補助の.svgファイル群が作成されます。
 
-1. Shapefileを小縮尺(縮小表示)用地図に変換
+1. csvfileを小縮尺(縮小表示)用ラスター地図に変換
    * `java Shape2ImageSVGMap ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.svg -sumUp 16 -antiAlias -charset utf-8 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv #0000ff #0000ff 0 3`<br>
      * 同ディレクトリに、JPcities_of_worldcitiespop_utf8ディレクトリが作成され、その下に付随するファイル群が作成されます。(いくつかのディレクトリとpngやsvgファイル）
 
