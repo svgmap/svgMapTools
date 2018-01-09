@@ -28,10 +28,10 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
    
 1. 外部ライブラリの準備
    * (この文書のあるディレクトリ)\..\tools\に以下のファイルが配置されていることを確認します。
-     * shape2svgmap.jar
-     * mesh2.txt
-     * symbolTemplate.txt
-     * lib (フォルダ) svgmaptoolsが使用する二つの外部ライブラリのjarを置きます
+     * `shape2svgmap.jar`
+     * `mesh2.txt`
+     * `symbolTemplate.txt`
+     * `lib` (フォルダ) `svgmaptools`が使用する二つの外部ライブラリのjarを置きます
        * geotools2.7.5 : https://sourceforge.net/projects/geotools/files/GeoTools%202.7%20Releases/2.7.5/
        * javacsv2.1 : https://sourceforge.net/projects/javacsv/
 <br>libフォルダ直下に、これらのライブラリのjarファイルを投入します。なお配布形態によっては既に配置済みの場合もあります。
@@ -67,9 +67,9 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 1. CSVファイルの準備
    * 設置した`..\tutorials\webApps\(wdir)`　に、あらかじめ用意したCSVファイル（適当な桁に緯度、経度が入っている）を配置
-     * 以下、そのファイルを　`..\tutorials\webApps\(wdir)\(wfile).csv`　とします。
-     * csvファイルの注意点：（なお、shapefileを変換することも可能）
-       * 漢字が入っている場合、シフトJISにします。(Windowsの場合（OS標準文字コード）　オプションによって文字コードを明示することも可能)
+     * 以下、そのファイルを　`..\tutorials\webApps\(wdir)\(wfile).csv`　とします。
+     * csvファイルの注意点：（なお、shapefileを変換することも可能）
+       * 漢字が入っている場合、シフトJISにします。(Windowsの場合（OS標準文字コード）　オプションによって文字コードを明示することも可能)
        * 最初の行には項目名がカンマ区切りで入っている必要があります。（無い場合はテキストエディタで編集挿入します。なお、スキーマファイルを与えることで項目名が無いままでの変換も可能です。）
        * 緯度経度のカラムの項目名は、`latitude`, `longitude`　となっている必要があります。
        * 緯度経度のカラムは、以降のカラム指定番号から外して考えます。
@@ -77,11 +77,11 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 1. 大縮尺(拡大表示)用ベクトル地図を生成（データサイズによって時間がかかります）
    * `java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage ..\tutorials\webApps\(wdir)\(wfile).csv`
-     * 同ディレクトリに、JPcities_of_worldcitiespop_utf8.svgファイルおよび、補助の.svgファイル群が作成されます。
+     * 同ディレクトリに、JPcities_of_worldcitiespop_utf8.svgファイルおよび、補助の.svgファイル群が作成されます。
      
 1. 小縮尺(縮小表示)用ラスター地図を生成（データサイズによって時間がかかります）
    * `java Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 16 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).csv #0000ff #0000ff 0 3`
-     * 同ディレクトリに、(wfile)ディレクトリが作成され、その下に補助ファイル群が作成されます。(いくつかのディレクトリとpngやsvgファイル）
+     * 同ディレクトリに、(wfile)ディレクトリが作成され、その下に補助ファイル群が作成されます。(いくつかのディレクトリとpngやsvgファイル）
 
 1. ルートコンテナファイル`..\tutorials\webApps\Container.svg`　を編集
    * `<!-- Thematic Layer -->`の行の後に、以下のタグ<br>
