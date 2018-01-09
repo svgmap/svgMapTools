@@ -1,8 +1,12 @@
 # svgMapTools
 SVGMap contents generator from shapefile or csv
 
-[readme (Japanese)](./readmeFirstEng.md)
+## Readme
+* [(in Japanese)](./readmeFirstEng.md)
+* [(in English)](./readmeFirst.md)
 
-[readme (English)](./readmeFirst.md)
+## Tutorials
+[(in Japanese)](tutorials)
 
-[Tutorials (Japanese)](tutorials)
+## Releases
+[Releases](https://github.com/svgmap/svgMapTools/releases)
