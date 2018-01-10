@@ -9,7 +9,7 @@ SVGMap contents generator from shapefile or csv
 * [(in English)](./readMeFirstEN.md)
 
 ## Tutorials
-[(in Japanese)](tutorials)
+[(to Tutorials Directory)](tutorials)
 
 ## Releases
 [Releases](https://github.com/svgmap/svgMapTools/releases)
