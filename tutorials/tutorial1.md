@@ -22,7 +22,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 ## 最初の練習  
 1. ツールのダウンロード
-   * [release](https://github.com/svgmap/svgMapTools/releases)から、最新のリリースのソースコード（ Source code (zip)）と、jar（shape2svgmap.jar）をダウンロードします。
+   * [releases](https://github.com/svgmap/svgMapTools/releases)から、最新のリリースのソースコード（ Source code (zip)）と、jar（shape2svgmap.jar）をダウンロードします。
    * ソースコードを解凍し、toolsディレクトリに shape2svgmap.jarを投入します。
    * もしくはjavacがあれば、srcディレクトリのMakeClass.batで自分でjarを生成することもできます。
    
