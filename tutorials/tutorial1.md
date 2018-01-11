@@ -117,10 +117,10 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 ## さらに応用：ツールの複雑な使い方など
 * 以下のツールは、オプションなしで起動することでヘルプメッセージが出力され、詳細なオプションの説明が提供されます。
-  * java Shape2SVGMap
-  * java Shape2ImageSVGMap
-  * java Shape2WGS84
-  * java HyperBuilder
+  * `java Shape2SVGMap`
+  * `java Shape2ImageSVGMap`
+  * `java Shape2WGS84`
+  * `java HyperBuilder`
 * 点の個数は１０００万点規模まで動作検証しています。
 * このチュートリアルでは、点オブジェクトのみの地図化を実行したが、shapefileを用いることで、線や面の（ベクトルタイル）地図化にも対応できます。
 * 複数のタイリング手法のサポート
