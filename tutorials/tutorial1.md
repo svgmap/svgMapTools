@@ -88,7 +88,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
    * `<!-- Thematic Layer -->`の行の後に、以下のタグ<br>
    `<animation title="(CONTENT Title)" xlink:href="(wdir)/(wfile).svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />`
 を追加
-     * (CONTENT Title)は、何でも良いですが、半角英数を推奨します。(漢字の場合UTF-8です)
+     * (CONTENT Title)は、何でも良いですが、半角英数を推奨します。(漢字の場合UTF-8です)
    * これで地図作成完了
 
 1. `..\tutorials\webApps\SvgMapper.html`　をFirefoxで開くと変換したデータが見られます。（ウェブサイトに置いた場合は、そのコンテンツの静的なURLでアクセスできます）
@@ -105,7 +105,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 * 小縮尺表示用の丸点の色を変更<br>
 　Shape2ImageSVGMapコマンドの、以下の(色コード)部分を変更して実行します<br>
 　`java Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 8 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).shp (Fill Color) (Stroke Color) 0 3`
-  * (Fill Color) (Stroke Color)はPOIの色コードで、ひとまずは両方とも同じ値で良いでしょう。色コードはWebの色コードで#RRGGBB (RR,GG,BBそれぞれ00-FF)です。
+  * (Fill Color) (Stroke Color)はPOIの色コードで、ひとまずは両方とも同じ値で良いでしょう。色コードはWebの色コードで#RRGGBB (RR,GG,BBそれぞれ00-FF)です。
 　
 * 初期状態で表示させたくないデータ<br>
 ルートコンテナファイルのタグ編集において、`visibilty="hidden"`属性を付けます
