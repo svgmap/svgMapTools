@@ -39,9 +39,10 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 1. 作業ディレクトリ移動とclasspath設定
    * コマンドプロンプトを開き、以下を指示します<br>
-`cd `(この文書のあるディレクトリ)`\..\tools\`<br>
+`cd (Tutorials DIR)\..\tools\`<br>
 `set CLASSPATH=%CLASSPATH%;.\lib\*;shape2svgmap.jar`<br>
-   * なお変換する対象ファイルは、toolsディレクトリに対して、`..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv` に格納されていると仮定して変換を進めます。
+   * (Tutorials DIR)は、この文書のあるディレクトリです。
+   * なお変換する対象ファイルは、toolsディレクトリに対して、`..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv` に格納されていると仮定して変換を進めます。
 
 1. csvfileを大縮尺(拡大表示)用ベクター地図に変換
    * `java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv`<br>
@@ -85,9 +86,9 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 1. ルートコンテナファイル`..\tutorials\webApps\Container.svg`　を編集
    * `<!-- Thematic Layer -->`の行の後に、以下のタグ<br>
-   `<animation title="`(適当なデータ名)`" xlink:href="(wdir)/(wfile).svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />`
+   `<animation title="(CONTENT Title)" xlink:href="(wdir)/(wfile).svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />`
 を追加
-     * (適当なデータ名)は、何でも良いですが、半角英数を推奨します。(漢字の場合UTF-8です)
+     * (CONTENT Title)は、何でも良いですが、半角英数を推奨します。(漢字の場合UTF-8です)
    * これで地図作成完了
 
 1. `..\tutorials\webApps\SvgMapper.html`　をFirefoxで開くと変換したデータが見られます。（ウェブサイトに置いた場合は、そのコンテンツの静的なURLでアクセスできます）
@@ -103,8 +104,8 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 * 小縮尺表示用の丸点の色を変更<br>
 　Shape2ImageSVGMapコマンドの、以下の(色コード)部分を変更して実行します<br>
-　`java Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 8 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).shp `(色コード)` `(色コード)` 0 3`
-  * ２つの(色コード)は同じ値で良い。色コードはWebの色コードで#RRGGBB (RR,GG,BBそれぞれ00-FF)です。
+　`java Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 8 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).shp (Fill Color) (Stroke Color) 0 3`
+  * (Fill Color) (Stroke Color)はPOIの色コードで、ひとまずは両方とも同じ値で良いでしょう。色コードはWebの色コードで#RRGGBB (RR,GG,BBそれぞれ00-FF)です。
 　
 * 初期状態で表示させたくないデータ<br>
 ルートコンテナファイルのタグ編集において、`visibilty="hidden"`属性を付けます
