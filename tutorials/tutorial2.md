@@ -33,7 +33,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 
 ## 練習２
-この練習では、Regeonの値ではなくTest3カラムの値(緯度をコピーしたカラム)をもとに、ポイントに色付けする。練習１と違うのは色付けのためのカラムが練習１では文字列（Regeon名）に対し、練習２は数値（緯度）であること。csvのデータが数値であるかどうかを明示するため、スキーマファイルを用いている（-csvschemaオプション　詳細はヘルプを参照）
+この練習では、Regeonの値ではなくTest3カラムの値(緯度をコピーしたカラム)をもとに、ポイントに色付けする。練習１と違うのは色付けのためのカラムが練習１では文字列（Regeon名）に対し、練習２は数値（緯度）であること。csvのデータが数値であるかどうかを明示するため、スキーマファイルを用いている（`-csvschema`オプション　詳細はヘルプを参照）
 この場合、色はHSVのH(色相)値に基づいてつけられる。（値が高いと赤(H:0)、低いと青(H:270)）
 
 1. 省略（練習１と同じ）
@@ -47,7 +47,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 1. 省略（練習１と同じ）
    * これで地図作成完了
 
-1. `..\tutorials\webApps\SvgMapper.html　をFirefoxで開くと変換したデータが見られる。`
+1. `..\tutorials\webApps\SvgMapper.html`　をFirefoxで開くと変換したデータが見られる。
    * Test3(緯度の値のコピー)の値に応じて色分けしたポイントが表示されている。（北が赤く、南が青く表示）
 
 1. 省略（練習１と同じ）
@@ -58,11 +58,11 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 1. 作業ディレクトリの設置
    * toolsディレクトリをカレントディレクトリと想定
    * `..\tutorials\webApps\`　以下に任意の作業ディレクトリ(英文字が好ましい)を設置する
-     * そのフォルダを以下..\tutorials\webApps\(wdir)とする
+     * そのフォルダを以下`..\tutorials\webApps\(wdir)`とする
 
 1. CSVファイルの準備
    * 設置した..\tutorials\webApps\(wdir)　に、あらかじめ用意したCSVファイル（適当な桁に緯度、経度が入っている）を配置する。
-     * 以下、そのファイルを　..\tutorials\webApps\(wdir)\(wfile).csv　とする
+     * 以下、そのファイルを　`..\tutorials\webApps\(wdir)\(wfile).csv`　とする
    * csvファイルの注意点：tutorial1と同じ
 
 1. CSVの(ColorCol：値に応じてアイコンの色を変化させるための属性番号)を調べる
@@ -77,7 +77,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
      ここで、控えておいたカラムの名称`(ColorAttrName)`と一致するattrNoの値(n)を控える。これを`(ColorCol)`とする。
 
 1. 大縮尺(拡大表示)用ベクターデータを生成（データサイズによって時間がかかる）
-   * `java Shape2SVGMap -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -directpoi rect -color (colorCol) ..\tutorials\webApps\(wdir)\(wfile).shp
+   * `java Shape2SVGMap -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -directpoi rect -color (colorCol) ..\tutorials\webApps\(wdir)\(wfile).shp`
    * 同ディレクトリに、Self-GS-POI-b.svgファイルおよび、補助の.svgファイル群が作成される。
 
 1. 小縮尺(縮小表示)用ラスターデータを生成（データサイズによって時間がかかる）
