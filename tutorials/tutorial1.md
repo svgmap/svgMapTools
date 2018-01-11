@@ -1,7 +1,8 @@
 # Tutorial1 
 CSVデータからインタラクティブ地図を作製する方法のチュートリアル
->1st rev. 2014.3.3 By Satoru Takagi<br>
->updated  2017.12.07
+> 2014.03.03 1st rev. By Satoru Takagi<br>
+> 2017.12.07 OSS化に対応した更新<br>
+> 2017.01.11 markdown化 
 
 ## Notes:
 ### 実行環境について
