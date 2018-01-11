@@ -9,7 +9,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 1. toolsフォルダをカレントにしたコマンドプロンプトで作業する。その他は省略（tutorial1の練習と同じ）
 
 1. 大縮尺(拡大表示)用ベクターデータを生成
-   * `java Shape2SVGMap -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 -directpoi rect -color 4 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv`
+   * `java Shape2SVGMap -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 -directpoi rect -color 4 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv`
      * 同ディレクトリに、JPcities_of_worldcitiespop_utf8.svgファイルおよび、補助の.svgファイル群が作成される。
 
 1. 小縮尺(縮小表示)用ラスターデータを生成
