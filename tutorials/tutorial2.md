@@ -1,7 +1,7 @@
 # Tutorial2
 CSVデータからインタラクティブ地図を作製する方法のチュートリアル　その２<br>
 （ポイントのカテゴリーに応じて、ポイントの色を変える）<br>
-> 2014.5.13 1st rev. By Satoru Takagi<br>
+> 2014.05.13 1st rev. By Satoru Takagi<br>
 > 2017.12.07 OSS化に対応した更新<br>
 > 2017.01.11 markdown化 
 
