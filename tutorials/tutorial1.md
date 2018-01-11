@@ -27,11 +27,11 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
    * もしくはjavacがあれば、srcディレクトリのMakeClass.batで自分でjarを生成することもできます。
    
 1. 外部ライブラリの準備
-   * (この文書のあるディレクトリ) \..\tools\に以下のファイルが配置されていることを確認します。
+   * (この文書のあるディレクトリ) `\..\tools\`に以下のファイルが配置されていることを確認します。
      * `shape2svgmap.jar`
      * `mesh2.txt`
      * `symbolTemplate.txt`
-     * `lib\` (ディレクトリ) `svgmaptools`が使用する二つの外部ライブラリのjarをこのディレクトリに置きます
+     * `lib\` (ディレクトリ) `svgmaptools`が使用する二つの外部ライブラリのjarをこのディレクトリに置きます
        * geotools2.7.5 : https://sourceforge.net/projects/geotools/files/GeoTools%202.7%20Releases/2.7.5/
        * javacsv2.1 : https://sourceforge.net/projects/javacsv/
 <br>libディレクトリ直下に、これらのライブラリのjarファイルを投入します。なお配布形態によっては既に配置済みの場合もあります。
@@ -41,8 +41,8 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
    * コマンドプロンプトを開き、以下を指示します<br>
 `cd (Tutorials DIR)\..\tools\`<br>
 `set CLASSPATH=%CLASSPATH%;.\lib\*;shape2svgmap.jar`<br>
-   * (Tutorials DIR)は、この文書のあるディレクトリです。
-   * なお変換する対象ファイルは、toolsディレクトリに対して、`..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv` に格納されていると仮定して練習を進めます。
+     * (Tutorials DIR)は、この文書のあるディレクトリです。
+     * なお変換する対象ファイルは、toolsディレクトリに対して、`..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv` に格納されていると仮定して練習を進めます。
 
 1. csvfileを大縮尺(拡大表示)用ベクター地図に変換
    * `java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv`<br>
