@@ -117,7 +117,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 ## さらに応用：ツールの複雑な使い方など
 * 以下のツールは、オプションなしで起動することでヘルプメッセージが出力され、詳細なオプションの説明が提供されます。
-  * `java Shape2SVGMap`
+  * `java Shape2SVGMap`
   * `java Shape2ImageSVGMap`
   * `java Shape2WGS84`
   * `java HyperBuilder`
