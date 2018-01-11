@@ -61,7 +61,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
      * そのフォルダを以下`..\tutorials\webApps\(wdir)`とする
 
 1. CSVファイルの準備
-   * 設置した..\tutorials\webApps\(wdir)　に、あらかじめ用意したCSVファイル（適当な桁に緯度、経度が入っている）を配置する。
+   * 設置した`..\tutorials\webApps\(wdir)`　に、あらかじめ用意したCSVファイル（適当な桁に緯度、経度が入っている）を配置する。
      * 以下、そのファイルを　`..\tutorials\webApps\(wdir)\(wfile).csv`　とする
    * csvファイルの注意点：tutorial1と同じ
 
