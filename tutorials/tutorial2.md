@@ -71,7 +71,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
      `attrNo:0 Name:the_geom type:Point`<br>
      `attrNo:1 Name:xxxx`<br>
      `....`<br>
-     `attrNo:n Name:(ColorAttrName)名`<br>
+     `attrNo:n Name:(ColorAttrName)`<br>
      `....`<br>
      `Finished...`<br>
      ここで、控えておいたカラムの名称`(ColorAttrName)`と一致するattrNoの値(n)を控える。これを`(ColorCol)`とする。
@@ -86,8 +86,8 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 1. `..\tutorials\webApps\Container.svg`　を編集する。
    * `<!-- Thematic Layer -->`の行の後に、以下のタグを追加する。
-   * `<animation title="(適当なデータ名)" xlink:href="(wdir)/(wfile).svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />`
-     * (適当なデータ名)は、何でも良いが、半角英数を推奨(漢字の場合UTF-8です)
+   * `<animation title="(CONTENT Title)" xlink:href="(wdir)/(wfile).svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />`
+     * (CONTENT Title)は、何でも良いが、半角英数を推奨(漢字の場合UTF-8です)
    * これで地図作成完了
 
 
