@@ -23,5 +23,6 @@
 hs_err_pid*
 
 # other specific files
+*.ods
 outdated_and_toBeDevelop/
 tools/TKY2JGD.par

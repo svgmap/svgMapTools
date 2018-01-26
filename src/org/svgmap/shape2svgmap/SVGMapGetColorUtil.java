@@ -292,8 +292,14 @@ public class SVGMapGetColorUtil {
 	}
 	
 	
-	
-	
+	public void setAttrExtent(double mainAttrMin , double mainAttrMax , double outlineAttrMin , double outlineAttrMax ){
+		this.mainAttrMax = mainAttrMax;
+		this.mainAttrMin = mainAttrMin;
+		this.outlineAttrMax = outlineAttrMax;
+		this.outlineAttrMin = outlineAttrMin;
+		this.mainAttrIsNumber = true;
+		this.outlineAttrIsNumber = true;
+	}
 	
 	private void getAttrExtent(FeatureCollection fsShape , int mColorCol , int oColorCol , boolean makeStringColorMap ){
 		SimpleFeature oneFeature = null;

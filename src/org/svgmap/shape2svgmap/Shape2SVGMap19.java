@@ -52,11 +52,12 @@ package org.svgmap.shape2svgmap;
 // 2017.04.05 CSV対応：CSVDataStoreを実装
 // 2017.09.15 シンボルの参照IDに元データの文字列カラムの値を設定可能に。加えて２つのカラムの加算(Int,String)値も設定可能に
 // 2017.11.10 package化
+// 2017.12.27 OSS化　github登録
+// 2018.01.26 内蔵の色関係の関数を削除し、SVGMapGetColorUtil(コンプリのShape2ImageSVGMapで使用中)を使用
 // 
 // BUG 130806の手直しにより初期分割数が1x1の階層的データが生成できないバグができている。global level tilingを実施するとき(初期レベルの時の初期タイル分割数が1x1になる場合)に大きな問題がある。(データ生成に失敗する) (2014.03 確認 1420,1439行あたり？)  日本だけのデータで-level 0 -limit 100 とか指定すると、limit超えで打ち切っただけのルートデータを生成してしまい、その上でタイル生成を始めていますね・・ 2017.4.19 タイルは生成できるようになっているが、コンテナのLevel0のタイルのファイル名が誤る。
 //
 // ISSUES:
-//   内蔵の色関係の関数を削除し、SVGMapGetColorUtil(コンプリのShape2ImageSVGMapで使用中)を使うようにする
 //   geotoolsの対応リビジョンを上げる・・
 
 
@@ -114,7 +115,8 @@ public class Shape2SVGMap19 {
 	int lvl;
 	int xySys = 0;
 	int datum = GeoConverter.JGD2000;
-	HashMap<Object,String> colorMap;
+//	HashMap<Object,String> colorMap; // 2018.1.26 SVGMapGetColorUtil(下記)に移行
+	SVGMapGetColorUtil colorUtil;
 	String mainColor = "green"; // 線又は塗りの色
 	String outlineColor = ""; // ポリゴンの輪郭色
 	double opacity = 0.5; // 透明度 
@@ -217,7 +219,13 @@ public class Shape2SVGMap19 {
 	boolean gZipped = false; // 2017.5.15
 	String csvSchemaPath="";
 	
+	// 2018.1.26 SVGMapGetColorUtil移行に伴う変数
+	int colorTable = SVGMapGetColorUtil.HSV;
+	int outOfRangeViewMethod = SVGMapGetColorUtil.MARK;
+	int colorKeyLength = 2;
+	
 	static boolean layerDebug = false;
+	
 	private static void showHelp(){
 		System.out.println("Shape2SVGMap: ShapeをSVGMapに変換します。");
 		System.out.println("Copyright 2007-2017 by Satoru Takagi @ KDDI All Rights Reserved.");
@@ -532,13 +540,13 @@ public class Shape2SVGMap19 {
 				} else if ( args[i].toLowerCase().equals("-numcolor")){
 					++i;
 					if (args[i].toLowerCase().equals("hsv")){
-						s2sm.colorTable = HSV;
+						s2sm.colorTable = SVGMapGetColorUtil.HSV;
 					} else if (args[i].toLowerCase().equals("ihsv")){
-						s2sm.colorTable = iHSV;
+						s2sm.colorTable = SVGMapGetColorUtil.iHSV;
 					} else if (args[i].toLowerCase().equals("red")){
-						s2sm.colorTable = RED;
+						s2sm.colorTable = SVGMapGetColorUtil.RED;
 					} else if (args[i].toLowerCase().equals("quota")){
-						s2sm.colorTable = QUOTA;
+						s2sm.colorTable = SVGMapGetColorUtil.QUOTA;
 					}
 				} else if ( args[i].toLowerCase().equals("-numrange")){
 					++i;
@@ -580,19 +588,22 @@ public class Shape2SVGMap19 {
 						s2sm.sizeRangeMin = p2;
 					}
 				} else if ( args[i].toLowerCase().equals("-skipoutofrange")){
-					s2sm.nullColor = "";
+//					s2sm.nullColor = "";
+					s2sm.outOfRangeViewMethod = SVGMapGetColorUtil.SKIP;
 				} else if ( args[i].toLowerCase().equals("-outofrange")){
 					++i;
 					if (args[i].toLowerCase().equals("skip")){
-						s2sm.nullColor = "";
+//						s2sm.nullColor = "";
+						s2sm.outOfRangeViewMethod = SVGMapGetColorUtil.SKIP;
 					} else if (args[i].toLowerCase().equals("counterstop")) {
-						s2sm.counterStop = true;
+//						s2sm.counterStop = true;
+						s2sm.outOfRangeViewMethod = SVGMapGetColorUtil.COUNTER_STOP;
 					} else {
 						// set null color
 					}
 				} else if ( args[i].toLowerCase().equals("-strcolor")){
 					++i;
-					s2sm.keyLength = Integer.parseInt(args[i]);
+					s2sm.colorKeyLength = Integer.parseInt(args[i]);
 				} else if ( args[i].toLowerCase().equals("-colorkey")){
 					++i;
 					s2sm.colorKeys = args[i];
@@ -839,10 +850,12 @@ public class Shape2SVGMap19 {
 					}
 				} else if ( args[i].toLowerCase().equals("-showhead")){
 					s2sm.showHead = true;
+				/**
 				} else if ( args[i].toLowerCase().equals("-test")){
 					System.out.println("TEST");
 					s2sm.test();
 					throw new IOException();
+				**/
 				} else if ( args[i].toLowerCase().equals("-heapcheck")){
 					s2sm.heapCheck = true;
 				} else if ( args[i].toLowerCase().equals("-pstep")){
@@ -943,13 +956,15 @@ public class Shape2SVGMap19 {
 			lineMerge = false;
 		}
 		
-		// 色テーブルの作成
+		// 色テーブルの作成  SVGMapGetColorUtilに移行
+		/**
 		colorMap = new HashMap<Object,String>();
 		colorMap.put("default" , "green");
 		
 		if ( colorKeys != ""){
 			initColorKeyEnum(); // add 2013.02
 		}
+		**/
 		
 		// 図形単純化エンジンの組み込み(JTSを利用)
 		boolean simplify = false ;
@@ -1306,6 +1321,9 @@ public class Shape2SVGMap19 {
 			poiColumn2String = poiColumnString; // poiColumn2の方はpoiColumnと同じでないとダメ　おかしければメインループ内でexceptionです
 		}
 		
+		// カラーユーティリティの初期化 (2018.1.26)
+		colorUtil = new SVGMapGetColorUtil(fsShape, colorCol, olColorCol, colorTable, colorKeyLength, strIsSJIS, colorKeys);
+		colorUtil.setOutOfRangeView(outOfRangeViewMethod);
 		
 		// 図形重複チェックのための前準備
 		HashSet<Object> dupHash = new HashSet<Object>();
@@ -1343,7 +1361,8 @@ public class Shape2SVGMap19 {
 				mSize = false; // 既にmainAttrMinMaxが設定されている場合は、それを使えば良い
 			}
 			if ( mColor || oColor || mSize ){
-				getAttrExtent(fsShape , mColor , oColor , mSize);
+				getAttrExtent(fsShape , mColor , oColor , mSize); // このルーチンがまだSVGMapGetColorUtil非互換・・
+				colorUtil.setAttrExtent( mainAttrMin , mainAttrMax , outlineAttrMin , outlineAttrMax ); // 2018.1.26
 			}
 		}
 		
@@ -1627,10 +1646,10 @@ public class Shape2SVGMap19 {
 					}
 					
 					if (colorCol >= 0 ){
-						mainColor = getColor( oneFeature.getAttribute(colorCol) , mainAttrMin , mainAttrMax);
+						mainColor = colorUtil.getColor( oneFeature.getAttribute(colorCol) , mainAttrMin , mainAttrMax);
 					} 
 					if (olColorCol >= 0 ){
-						outlineColor = getColor( oneFeature.getAttribute(olColorCol) , outlineAttrMin , outlineAttrMax);
+						outlineColor = colorUtil.getColor( oneFeature.getAttribute(olColorCol) , outlineAttrMin , outlineAttrMax);
 					} 
 					if (mainColor.length() == 0 ){
 						continue;
@@ -1760,20 +1779,9 @@ public class Shape2SVGMap19 {
 					lineList = new Vector<LineString>();
 				}
 				sm.putComment("Total:"+lop+" records." );
-				if (colorCol >=0 && colorMap.size() <= 128 ){
-					/**
-					String mapStr = "";
-					Iterator it = colorMap.keySet().iterator();
-					while (it.hasNext()) {
-						Object o = it.next();
-//						mapStr += " , " + getKanjiProp((String)o) + ":" + getKanjiProp((String)colorMap.get(o));
-						mapStr += " , " + getKanjiProp((String)o) + ":" + ((String)colorMap.get(o));
-					}
-					
-					sm.putComment( "colorMap(" + colorMap.size() + "vals : under 128vals):" +mapStr );
-					**/
-					sm.putComment( "colorMap(" + colorMap.size() + "vals : under 128vals):" + colorMap );
-					System.out.println( "colorMap(" + colorMap.size() + "vals : under 128vals):" + colorMap );
+				if (colorCol >=0 && colorUtil.colorMap.size() <= 128 ){
+					sm.putComment( "colorMap(" + colorUtil.colorMap.size() + "vals : under 128vals):" + colorUtil.colorMap );
+					System.out.println( "colorMap(" + colorUtil.colorMap.size() + "vals : under 128vals):" + colorUtil.colorMap );
 				}
 				System.out.println("Total:"+lop+" records." );
 				if ( dupCheck >=0 ){
@@ -2066,326 +2074,6 @@ public class Shape2SVGMap19 {
 	}
 	
 	
-	String key;
-	static int RED = 0;
-	static int HSV = 1;
-	static int QUOTA = 2;
-	static int iHSV = 3;
-	
-	int colorTable = HSV;
-	int keyLength = 2;
-	
-	
-	private void initColorKeyEnum(){ // add 2013/2 for -colorkey
-		String[] colorKeyEnum  = colorKeys.split(",");
-//		System.out.println("colorEnum:" + colorKeys );
-		int kl=0;
-		keyLength = 0;
-		if ( colorKeyEnum.length > 1 ){
-			useColorKeys = true;
-			for ( int i = 0 ; i < colorKeyEnum.length ; i++ ){
-				String ck;
-				String color="";
-				
-				ck = colorKeyEnum[i];
-//				System.out.println("orig:" + ck);
-				
-				if ( ck.indexOf("#") > 0){ // パラメータで色を明示しているケース
-					color = ck.substring(ck.indexOf("#")); // 色を設定する
-					ck = ck.substring(0,ck.indexOf("#"));
-//					System.out.println("incl#" + ck.indexOf("#") + " : " + ck + " : " + color);
-				}
-				
-				
-				// keyの長さは、パラメータから自動設定させる。　(del:すべてのキーの文字列長は等しい必要がある) (この制約はきついので)最長をKenKengthにする 2015.4.17
-				kl = ck.length();
-				if ( keyLength < kl ){
-					keyLength = kl;
-				}
-				
-				/**
-				if ( ck.length() != keyLength ){
-					System.out.println("ERROR! Inconsistent key length.");
-					System.exit(0);
-				}
-				**/
-				
-				/**
-				if ( ck.length() > keyLength ){ // keyLengthよりも指定したKeyが長いときは短縮する
-					ck = ck.substring(0,keyLength);
-				} else {
-					ck = ck;
-				}
-				**/
-				
-				if ( color == ""){
-					// パラメータで色を明示していないケースでは、パラメータの並び順をベースにHTV||invHSVで色を設定する
-					if ( colorTable == iHSV ){
-						getRGB( ( 270.0 * i  /  ( colorKeyEnum.length - 1 ) ) , 1.0 , 1.0 );
-					} else {
-						getRGB( 270.0 - ( 270.0 * i /  ( colorKeyEnum.length - 1 ) ) , 1.0 , 1.0 );
-					}
-					color = "#" + Integer.toHexString(256 + cr).substring(1,3)
-						+ Integer.toHexString(256 + cg).substring(1,3)
-						+ Integer.toHexString(256 + cb).substring(1,3);
-				}
-//				System.out.println("colorMap:" + ck + " : " + color );
-				colorMap.put(ck , color);
-			}
-			System.out.println( "colorMap(" + colorMap.size() + "vals , keyLength(max):" + keyLength + "):" + colorMap );
-		} else {
-			System.out.println("ERROR! -colorkey syntax error");
-			System.exit(0);
-		}
-	}
-	
-	// 適当な設定で色を作り出す。 以下の色関係の関数群は、今後SVGMapGetColorUtilに移行予定
-	int colorMapMax=1024;
-	// 対象外の値に対する色(nullにするとスキップ)
-	String nullColor = "#808080";
-	boolean counterStop = false;
-	private String getColor( Object sValue , double attrMin , double attrMax){
-		if ( sValue == null ){
-			return (nullColor);
-		}
-		String color = "green";
-		double dValue = 0.0;
-		if ( sValue instanceof String ){ // 文字列ベースの属性から色をつくる
-//			System.out.println("color build fm STRING");
-			String sVal = getKanjiProp((String)sValue);
-			if ( sVal.length() > keyLength ){
-				key = sVal.substring(0,keyLength);
-			} else {
-				key = sVal;
-			}
-//			key = (String)sValue + "  ";
-//			key = key.substring(0,keyLength);
-			
-			if ( useColorKeys ){ // あらかじめ設定されたカラーテーブルを使う 2013/2
-				if ( colorMap.containsKey(key) ){
-					color = (String)colorMap.get(key);
-				} else {
-					color = nullColor; // テーブルに無いものは灰色
-				}
-			} else { // 適当な配分
-				if ( colorMap.containsKey(key) ){
-					color = (String)colorMap.get(key);
-				} else {
-					
-					getRGBtSeq();
-					color = "#" 
-						+ Integer.toHexString(btR+256).substring(1,3)
-						+ Integer.toHexString(btG+256).substring(1,3)
-						+ Integer.toHexString(btB+256).substring(1,3);
-					
-	//				color = "#" + Integer.toHexString(getBtSeq()).toUpperCase();
-					colorMap.put(key , color);
-				}
-			}
-//			System.out.println(sVal + " : " + key + " : " + color);
-		} else { // 数値ベースの属性から色を作る
-//			System.out.println("color build fm number");
-			if ( sValue instanceof Integer ){
-				dValue = ((Integer)sValue).doubleValue();
-			} else if ( sValue instanceof Double ){
-				dValue = ((Double)sValue).doubleValue();
-			} else if ( sValue instanceof Long ){
-				dValue = ((Long)sValue).doubleValue();
-			}
-			
-			// 最小最大値を超えたものは無効色を設定する（か色をクリップする）
-			// 本来、この仕様もオプションで選べるべきかも
-			if ( dValue < attrMin ){
-				if ( !counterStop ){
-					color = nullColor;
-					dValue = attrMin;
-	//				System.out.println("< attrMin :" + color);
-					return ( color );
-				} else {
-					dValue = attrMin;
-				}
-			} else if ( dValue >attrMax ){
-				if ( !counterStop ){
-					color = nullColor;
-					dValue = attrMax;
-	//				System.out.println("> attrMax :" + color);
-					return ( color );
-				} else {
-					dValue = attrMax;
-				}
-			} 
-			
-			if ( useColorKeys ){ // 数値に対してもカラーキーテーブルを使えるようにした(2016.2.5)
-				key = tzformat.format(dValue);
-				if ( colorMap.containsKey( key ) ){
-					color = (String)colorMap.get(key);
-				} else {
-					color = nullColor; // テーブルに無いものは灰色
-				}
-			} else if ( colorTable == HSV || colorTable == iHSV){
-				// HSV色　赤(0)：最低、　青(270ぐらい)：最高　で塗りわけ (多分300ぐらいまでが妥当かと)
-//				getRGB( ( 360.0 * ( dValue - attrMin )  /  ( attrMax - attrMin ) ) , 1.0 , 1.0 );
-				if ( dValue >= attrMin && dValue <= attrMax){
-					if ( colorTable == iHSV ){
-						getRGB( ( 270.0 * ( dValue - attrMin )  /  ( attrMax - attrMin ) ) , 1.0 , 1.0 );
-					} else {
-						getRGB( 270.0 - ( 270.0 * ( dValue - attrMin )  /  ( attrMax - attrMin ) ) , 1.0 , 1.0 );
-					}
-				} else { // 上の設定で、これはなくなってるかな（この辺がオプション選択制の理由）
-					cr = 0;
-					cg = 0;
-					cb = 0;
-				}
-				color = "#" + Integer.toHexString(256 + cr).substring(1,3)
-				+ Integer.toHexString(256 + cg).substring(1,3)
-				+ Integer.toHexString(256 + cb).substring(1,3);
-				if ( colorMap.size() < colorMapMax ){ // 数値のcolorMapは使われていないのでは？（最後にコメント出力する用途だけでしか使われてない）
-					if ( ! colorMap.containsKey(sValue) ){
-						colorMap.put( sValue, color );
-					}
-				}
-			} else if ( colorTable == RED) {
-				color = "#" + Integer.toHexString(256 + (int)(255.9 * ( (dValue - attrMin ) / (attrMax - attrMin)))).substring(1,3) + "0000";
-				if ( colorMap.size() < colorMapMax ){
-					if ( ! colorMap.containsKey(sValue) ){
-						colorMap.put( sValue, color );
-					}
-				}
-			} else { // もっともいい加減な色分け法
-				key = Double.toString(dValue);
-//				key = key.substring(0,keyLength);
-				if ( colorMap.containsKey(key) ){
-					color = (String)colorMap.get(key);
-				} else {
-					
-					getRGBtSeq();
-					color = "#" 
-						+ Integer.toHexString(btR+256).substring(1,3)
-						+ Integer.toHexString(btG+256).substring(1,3)
-						+ Integer.toHexString(btB+256).substring(1,3);
-					colorMap.put(key , color);
-				}
-				
-			}
-			
-//			System.out.println("in:" + sValue + " double:" + dValue + " color:" + color );
-		}
-		
-		
-		return ( color );
-	}
-	
-	
-	private void test(){
-		for (double h = 0 ; h < 360 ; h +=1 ){
-			getRGB( h , 1.0 , 1.0 );
-			System.out.println( "H:" + h + " : " + cr + ":" + cg + ":" + cb );
-		}
-	}
-	
-	int cr, cg, cb;
-	private void getRGB( double h , double s , double v ){
-		// h: 0-360 , s: 0-1 , v: 0-1
-		double f ;
-		int m , n , k ;
-		int i = (int)( h / 60.0 );
-		v = v * 255.9;
-		f = h / 60.0  - i;
-		m = (int)(v * ( 1.0 - s ));
-		n = (int)(v * ( 1.0 - s * f ));
-		k = (int)(v * ( 1.0 - s * ( 1.0 - f ) ));
-		switch (i){
-		case 0:
-			cr = (int)v;
-			cg = k;
-			cb = m;
-			break;
-		case 1:
-			cr = n;
-			cg = (int)v;
-			cb = m;
-			break;
-		case 2:
-			cr = m;
-			cg = (int)v;
-			cb = k;
-			break;
-		case 3:
-			cr = m;
-			cg = n;
-			cb = (int)v;
-			break;
-		case 4:
-			cr = k;
-			cg = m;
-			cb = (int)v;
-			break;
-		case 5:
-			cr = (int)v;
-			cg = m;
-			cb = n;
-			break;
-		default:
-			break;
-		}
-		
-	}
-	
-	
-	int btMin = 0;
-	int btMax= 256;
-	int btR = 128;
-	int btG = 128;
-	int btB = 128;
-	int btStart = 128;
-	int btStep = 256;
-	private void getRGBtSeq(){
-		if ((btR + btStep) <= btMax ){
-			btR += btStep;
-		} else {
-			btR = btStart;
-			if ((btG + btStep) <= btMax ){
-				btG += btStep;
-			} else {
-				btG = btStart;
-				if ((btB + btStep) <= btMax ){
-					btB += btStep;
-				} else {
-					btStep = btStep / 2;
-					btStart = btStep/2;
-					btB = btStart;
-					btG = btStart;
-					btR = btStart;
-					
-				}
-			}
-		}
-	}
-	
-	
-	
-	
-	int btSp = 256;
-	int btPrev = -1;
-	private int getBtSeq(){
-		// 二分木数列の生成
-		if (btPrev < 0){
-			btPrev = 0;
-		} else if ( (btPrev + btSp) < btMax ) {
-			btPrev += (btSp + btSp );
-		} else {
-			btSp = btSp/2;
-			if (btSp < 1){
-				btSp = btMax;
-				btPrev = btMin;
-			} else {
-				btPrev = btSp;
-			}
-		}
-		
-		return ( btPrev );
-	}
-	
 	
 	// added 2017/07/14 POIのサイズを属性値から設定させる
 	private double getPOIsize( Object sValue , double attrMin , double attrMax , double sizeMin , double sizeMax ){
@@ -2412,7 +2100,7 @@ public class Shape2SVGMap19 {
 	double outlineAttrMax = -9e99;
 	double outlineAttrMin = 9e99;
 	
-	// addrd 2017.7.14
+	// added 2017.7.14
 	double sizeAttrMax = -9e99;
 	double sizeAttrMin = 9e99;
 	double sizeRangeMax = 24;
