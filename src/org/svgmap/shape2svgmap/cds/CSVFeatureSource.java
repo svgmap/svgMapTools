@@ -3,6 +3,7 @@
 package org.svgmap.shape2svgmap.cds;
 
 import java.io.IOException;
+import java.util.HashSet;
 
 import org.geotools.data.FeatureReader;
 import org.geotools.data.Query;
@@ -101,7 +102,17 @@ public class CSVFeatureSource extends ContentFeatureSource {
             builder.add("the_geom", Point.class );
             
        		int k = 0;
+       		int dblCnt = 0;
+	       	HashSet<String> dblCheck = new HashSet<String>();
             for( String column : reader.getHeaders() ){
+            	
+            	if ( dblCheck.contains(column) ){ // Patch 2018.2.13 S.Takagi Check and Fix Duplicated Feature Type Name
+            		++ dblCnt;
+            		System.out.println("WARNING:  Duplicate Column Name: "+column +".  Rename to :"+ column + dblCnt);
+            		column = column + dblCnt;
+            	} else {
+            		dblCheck.add(column);
+            	}
             	
             	System.out.println("buildFeatureType: column: " + column);
                 if( "lat".equalsIgnoreCase(column) || "latitude".equalsIgnoreCase(column) || "lati".equalsIgnoreCase(column) || "ˆÜ“x".equalsIgnoreCase(column) ){
