@@ -10,7 +10,8 @@ public class sjisExt{
 		byte[] bts = null;
 		char[] cs = null;
 		try{
-			bts = s.getBytes("Shift_JIS");
+//			bts = s.getBytes("Shift_JIS"); // debug 2018.3.29
+			bts = s.getBytes("Windows-31J");
 			cs = new char [bts.length];
 			for ( int i = 0 ; i < cs.length ; i++ ){
 				int ci = bts[i] & 0xFF;
