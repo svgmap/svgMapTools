@@ -4,7 +4,7 @@ rm *.class
 rm ./org/svgmap/shape2svgmap/*.class
 rm ./org/svgmap/shape2svgmap/cds/*.class
 
-source setcpCompile.sh
+export CLASSPATH
 
 javac -encoding sjis HyperBuilder.java
 javac -encoding sjis Shape2ImageSVGMap.java
