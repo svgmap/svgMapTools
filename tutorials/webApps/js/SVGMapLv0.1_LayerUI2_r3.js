@@ -35,7 +35,9 @@
 // 2017/02/17 : レイヤ固有UIのクローズボタン位置の微調整
 // 2017/02/21 : svg文書のdata-controller-srcに直接レイヤ固有UIのhtmlを書ける機能を拡張。requiredWidth/Heightについてはdata-controllerに#から始まる記法で書くことで対応
 // 2017/03/02 : Rev.3: レイヤーのOffに連動して、レイヤ固有UIのインスタンスが消滅する処理など、レイヤ固有UIのインスタンス管理に矛盾が生じないようにする。レイヤ固有UIインスタンスはレイヤーがvisibleである限り存続する(他のレイヤの固有UIが出現しても隠れるだけで消えない。消えるタイミングはレイヤがinvisibleになった時。またこの時はcloseFrameイベントが発行され、100ms後にインスタンスが消滅する。
+// 2017/08/25 : 凡例（画像）表示時においてサイズ未指定の場合は元画像のサイズでフレームをリサイズする様追加
 // 2017/09/08 : data-controllerに、#exec=appearOnLayerLoad,hiddenOnLayerLoad,onClick(default)
+// 2018/04/02 : layerListmessage に選択レイヤ名称をtextで設定する処理を追加
 //
 // ISSUES, ToDo:
 //	(FIXED?) IE,Edgeでdata-controller-src動作しない
@@ -98,6 +100,8 @@ function setLayerTable(tb){
 	var lps = svgMap.getRootLayersProps();
 //	console.log(lps);
 	var visibleLayers=0;
+	var visibleLayersNameArray=[];
+	const visibleNum=5;  // 表示レイヤ名称数
 	for ( var i = lps.length -1 ; i >=0  ; i-- ){
 		var tr = getLayerTR(lps[i].title, lps[i].id, lps[i].visible , false , lps[i].groupName);
 		syncLayerSpecificUiExistence( lps[i].id, lps[i].visible );
@@ -129,11 +133,29 @@ function setLayerTable(tb){
 		} else { // グループに属さない場合、単に項目追加
 			tb.appendChild(tr);
 		}
-		if (lps[i].visible){++visibleLayers;}
+		if (lps[i].visible){
+			++visibleLayers;
+			if ( visibleLayers <= visibleNum ){ visibleLayersNameArray.push(lps[i].title); }
+			else if ( visibleLayers == visibleNum+1 ){ visibleLayersNameArray.push("..."); }
+		}
 	}
-	document.getElementById("layerListmessage").innerHTML="Layer List: "+visibleLayers+" layers visible";
+	document.getElementById("layerListmessage").innerHTML = layerListmessageHead + visibleLayers + layerListmessageFoot;
+	document.getElementById("layerListmessage").title = visibleLayersNameArray;
 	checkLayerList();
 	window.setTimeout(setLayerTableStep2,30);
+}
+
+layerListmessageHead = "Layer List: ";
+layerListmessageFoot = " layers visible";
+	
+function setLayerListmessage( head , foot ){ // added 2018.2.6
+	layerListmessageHead = head;
+	layerListmessageFoot = foot;
+	/**
+	if ( document.getElementById("layerListmessage")){
+		document.getElementById("layerListmessage").innerHTML = layerListmessageHead + visibleLayers + layerListmessageFoot;
+	}
+	**/
 }
 
 function setLayerTableStep2(){
@@ -449,8 +471,14 @@ function initLayerList(){
 	layerSpecificUI = document.getElementById("layerSpecificUI");
 	var lps = svgMap.getRootLayersProps();
 	var visibleLayers=0;
+	var visibleLayersNameArray=[];
+	const visibleNum=5;  // 表示レイヤ名称数
 	for ( var i = lps.length -1 ; i >=0  ; i-- ){
-		if (lps[i].visible){++visibleLayers;}
+		if (lps[i].visible){
+			++visibleLayers;
+			if ( visibleLayers <= visibleNum ){ visibleLayersNameArray.push(lps[i].title); }
+			else if ( visibleLayers == visibleNum+1 ){ visibleLayersNameArray.push("..."); }
+		}
 	}
 	
 	var llUItop = document.createElement("div");
@@ -458,6 +486,7 @@ function initLayerList(){
 	var llUIlabel = document.createElement("label");
 	llUIlabel.id="layerListmessage";
 	llUIlabel.setAttribute("for","layerListOpenButton");
+	llUIlabel.setAttribute("title", visibleLayersNameArray);
 //	layerList.appendChild(llUIlabel);
 	llUItop.appendChild(llUIlabel);
 	
@@ -496,7 +525,7 @@ function initLayerList(){
 	
 	llUIdiv.appendChild(llUItable);
 	
-	llUIlabel.innerHTML="Layer List:  "+visibleLayers+" layers visible";
+	llUIlabel.innerHTML = layerListmessageHead + visibleLayers + layerListmessageFoot;
 	
 	initLayerSpecificUI();
 	
@@ -569,6 +598,8 @@ function initLayerSpecificUI(){
 	lsUIbtn = document.createElement("input");
 	lsUIbtn.type="button";
 	lsUIbtn.value="x";
+	lsUIbtn.style.webkitTransform ="translateZ(10)";
+	lsUIbtn.style.zIndex ="3";
 	lsUIbtn.id="layerSpecificUIclose";
 	lsUIbtn.style.position="absolute";
 	lsUIbtn.style.right="0px";
@@ -682,18 +713,27 @@ function showLayerSpecificUI(e){
 		
 		if ( document.getElementById( targetIframeId ) ){ // すでに対象iframeが存在している場合、表示を復活させる
 			console.log("alreadyCreated iframe");
-			document.getElementById( targetIframeId ).style.display="block";
-			testIframeSize( document.getElementById(targetIframeId), reqSize);
+			var trgIframe = document.getElementById( targetIframeId );
+			if(trgIframe.tagName == "IMG"){
+				//画像（凡例）の場合は画像を常にリサイズしてスクロールせずに見れるように処理追加
+				imgResize(trgIframe, document.getElementById("layerSpecificUI"), reqSize);
+			}else{
+				trgIframe.style.display="block";
+				testIframeSize( document.getElementById(targetIframeId), reqSize);
+			}
 			dispatchCutomIframeEvent( appearFrame ,targetIframeId);
 		} else {
 	//		console.log("create new iframe");
 			if ( controllerURL.indexOf(".png")>0 || controllerURL.indexOf(".jpg")>0 || controllerURL.indexOf(".jpeg")>0 || controllerURL.indexOf(".gif")>0){ // 拡張子がビットイメージの場合はimg要素を設置する
 				var img = document.createElement("img");
 				img.src=controllerURL;
-				img.style.display="block";
 				img.id = targetIframeId;
-				img.setAttribute("width","100%");
+				//画像サイズを指定した場合div(layerSpecificUI)のサイズを変更して画像１枚を表示させる
+				var resLayerSpecificUI = document.getElementById("layerSpecificUI");
+				resLayerSpecificUI.addEventListener("mousewheel" , MouseWheelListenerFunc, false);
+				resLayerSpecificUI.addEventListener("DOMMouseScroll" , MouseWheelListenerFunc, false);
 				document.getElementById("layerSpecificUIbody").appendChild(img);
+				setTimeout(imgResize, 100, img, resLayerSpecificUI, reqSize); 
 				setTimeout(setLsUIbtnOffset,100,img);
 			} else {
 				initIframe(layerId,controllerURL,svgMap,reqSize);
@@ -705,6 +745,30 @@ function showLayerSpecificUI(e){
 	}
 }
 
+//layerSpecificUIがIMGのみであった場合のリサイズ処理
+function imgResize(img, parentDiv, size){
+	if(size.width != -1 && size.height != -1){
+		console.log(parentDiv.style.width+"/"+parentDiv.style.height);
+		img.style.width=size.width+"px";
+		img.style.height=size.height+"px";
+		parentDiv.style.width = size.width+"px";
+		parentDiv.style.height = size.height+"px";
+		console.log("change designation size.");
+	}else{
+		if(img.width && img.height){
+			img.style.width=img.width;
+			img.style.height=img.height;
+			parentDiv.style.width = img.width+"px";
+			parentDiv.style.height = img.height+"px";
+		}else{
+			img.style.width="100%";
+			img.style.height="auto";
+			layerSpecificUI.style.width = layerSpecificUiDefaultStyle.width;
+			layerSpecificUI.style.height = layerSpecificUiDefaultStyle.height;
+		}
+	}
+	img.style.display="block";
+}
 
 var openFrame = "openFrame";
 var closeFrame = "closeFrame";
@@ -751,6 +815,7 @@ function initIframe(lid,controllerURL,svgMap,reqSize){
 		
 		iframe.srcdoc = sourceDoc;
 		if ( !iframe.getAttribute("srcdoc") ) { // patch for IE&Edge
+			sourceDoc = sourceDoc.replace(/&quot;/g,'"');
 			iframe.contentWindow.document.write(sourceDoc );
 		}
 		
@@ -808,14 +873,17 @@ function pxNumb( pxval ){
 }
 
 var btnOffset = 0;
-function setLsUIbtnOffset( targetElem ){ // 2017.2.17 レイヤ固有UIのクローズボタン位置の微調整
+function setLsUIbtnOffset( targetElem , isRetry ){ // 2017.2.17 レイヤ固有UIのクローズボタン位置の微調整
+	// スクロールバーがある場合、それが隠れるのを抑止する
+	// targetElem：レイヤ固有UIに配置されるimg要素もしくはiframeのdocumentElement
 //	console.log("setLsUIbtnOffset:", targetElem, targetElem.offsetWidth);
 //	console.log("targetElem.~Width:",targetElem,targetElem.clientWidth,targetElem.offsetWidth, ":::" , lsUIbdy.clientWidth, layerSpecificUI.clientWidth);
+	
 	if ( targetElem.offsetWidth == 0 ){
 		lsUIbtn.style.right="0px";
 	} else if ( layerSpecificUI.clientWidth - targetElem.offsetWidth != btnOffset ){
 		btnOffset = layerSpecificUI.clientWidth - targetElem.offsetWidth;
-		if ( btnOffset ){
+		if ( btnOffset>0 ){ // iOS safariでは0以下になることが・・・妙なスペック
 //			console.log("btnOffset:",btnOffset);
 			lsUIbtn.style.right=btnOffset+"px";
 		} else {
@@ -823,8 +891,8 @@ function setLsUIbtnOffset( targetElem ){ // 2017.2.17 レイヤ固有UIのクロ
 		}
 	}
 	
-	if ( targetElem.offsetWidth > 0 ){
-		setTimeout(setLsUIbtnOffset , 1000 , targetElem );
+	if ( !isRetry &&  layerSpecificUI.clientWidth == targetElem.offsetWidth ){ // 一回だけやるように変更
+		setTimeout(setLsUIbtnOffset , 1000 , targetElem , true);
 	}
 	
 }
@@ -919,7 +987,8 @@ function syncLayerSpecificUiExistence( layerId, visivility ){
 
 
 return { // svgMapLayerUI. で公開する関数のリスト
-	layerSpecificUIhide : layerSpecificUIhide
+	layerSpecificUIhide : layerSpecificUIhide,
+	setLayerListmessage : setLayerListmessage
 }
 
 })();

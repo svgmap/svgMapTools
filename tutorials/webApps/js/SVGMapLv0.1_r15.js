@@ -1,12 +1,19 @@
 // 
 // Description:
+//  Web Mapping Framework based on SVG
 //  SVG Map Level0.1 Implementation
 //  evolved from SVG Map Level0
 //  
-//  Programmed by Satoru Takagi
+// Programmed by Satoru Takagi
 //  
-//  Copyright (C) 2012-2016 by Satoru Takagi @ KDDI CORPORATION
+// Copyright (C) 2012-2018 by Satoru Takagi @ KDDI CORPORATION
 //  
+// Contributors:
+//  jakkyfc
+//
+// Home Page: http://svgmap.org/
+// GitHub: https://github.com/svgmap/svgMapLv0.1
+//
 // License: (GPL v3)
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License version 3 as
@@ -119,17 +126,46 @@
 //              表示非表示レイヤはカンマ区切りで複数指定可能,またレイヤ名にハッシュをつけて文字列を入れると、そのレイヤーのsvgコンテナのlocation.hashにそれが追加される(その際"="は"%3D",&は"%26"でエンコード必要)
 //              ex:http://svg2.mbsrv.net/devinfo/devkddi/lvl0.1/developing/SVGMapper_r14.html#visibleLayer=csv textArea#hello%3D2%26good%3Dday&hiddenLayer=csv layer#hellox%3D2x%26goodx%3Ddayx&svgView(viewBox(global,135,35,1,1))
 // 2017/03/16 : イベントを精密化 zoomPanMapはviewPort変化時のみ、 screenRefreshedを新設しこちらはvp変化しなかったとき　これでrefreshScreen()に纏わる無限ループリスクを抑制した。
+// 2017/08/14 : centerSightを用いたオブジェクト選択機能を拡張し、POIもベクタもtickerに複数出現・選択可にする　ただしうcheckTicker()での二重パースの課題あり
+// 2017/08/15 : iOS safariでgeolocationAPIがなぜか動かないので・・パッチ
+// 2017/08/16 : URLフラグメントのvisibleLayer,hiddenLayerに、ワイルドカード"*"を指定可能に
+// 2017/08/17 : 動的レイヤーのF/Wの大BUGを改修(svgMapの内部関数が露出していた・・・)
+// 2017/08/22 : Property表示パネルにタイトル表示可能に
+// 2017/08/?? : ページのhashが変更された場合、それに追従する。
+// 2017/08/?? : svgImagesProps[].metaSchema, .script.transform,getCanvaSize,geoViewBox,location
+// 2017/08/?? : レイヤーリストUIのサイズが収まるようにする
+// 2017/09/29 : ルートにあるレイヤー限定だが、anim要素にdata-nocache（常に更新）属性での処理追加
+// 2018/01/18 : checkTicker()での二重パース防止処理　これでようやくまともな路線に復帰したと思う　そろそろrev15正規リリース近いか？
+// 2018/01/18 : from rev14 update: 2017/08/21 : defaultShowPoiPropertyをリッチなUIへ変更
+// 2018/01/18 : from rev14 update: 2017/08/25 : Bug Fixed. ZoomUp/ZoomDownボタンが未定義の際、エラーで停止しない様変更
+// 2018/01/18 : from rev14 update: 2017/08/25 : updateCenterPosをユーザが書き換えることができるよう変更
+// 2018/01/18 : from rev14 update: 2017/08/29 : smoothZoomInterval,smoothZoomTransitionTimeを設定できるよう変更,getVerticalScreenScaleを外部よりcallできるよう公開
+// 2018/01/17 : add parseEscapedCsvLine(),gpsCallback(),getTickerMetadata(),checkSmartphone(),reLoadLayer()
+// 2018/01/29 : from rev14 update: レイヤーのパスを指定する際ドメインなしのフルパスで指定できるよう変更
+// 2018/01/29 : from rev14 update: data-controllerをルートコンテナのレイヤー要素から指定できるよう機能追加
+// 2018/02/02 : オブジェクトクリック機能のリファクタリング：testClickの機能とgetObjectAtPointをrev15で大幅拡張したtestTickerに統合 testClick, POItargetSelectionはこれにより不要となったので廃止、これに伴いPOI(img要素)に設置していた testClick EventListenerを全撤去
+// 2018/02/05 : Rev15 Release クリーンナップ
+// 2018/02/26 : captureGISgeometriesでビットイメージタイルも取得可能とした　ただし、captureGISgeometriesOptionで設定した場合
+// 2018/03/02 : useではなく直接imageで設置したnonScaling bitImageもPOIとして扱うようにした　結構大きい影響のある改修
+// 2018/04/06 : Edge対応ほぼ完了したかな これに伴いuaProp新設　今後isIE,verIE,isSPをこれに統合したうえで、IE10以下のサポートを完全に切る予定
+// 
 //
 //
 // Issues:
+// 2018/3/5 Vector2DのcircleがcaptureGISで正しい値が取れてない？
+// 2018/3/5 visibility hiddenのVector2Dがヒットテストにかかってしまうらしい？imageも要確認
 // (probably FIXED) 2016/06 Firefoxでヒープが爆発する？(最新48.0ではそんなことはないかも？　たぶんfixed？)
 // 2016/12 ほとんどすべてのケースでtransformが使えない実装です (transform matrix(ref))とか特殊なものとCRSのみ
-// 2016/12 EdgeでOpacityが機能してない(たぶんIE専用Opacity処理が影響してると思う・・・)
+// 2016/12 FIXED EdgeでOpacityが機能してない(たぶんIE専用Opacity処理が影響してると思う・・・)
 // (probably FIXED) 2016/12 Resumeのレイヤ選択レジュームが遅い回線で動かない(非同期の問題か)
 // (probably FIXED) 2016/12 初回ロード時のhtml DOMクリーンナップができていない
-// 2017/01 Authoring Tools Ext.で編集中にResumeが動かない
-// 2017/01 レイヤーがOffになっているときに、レイヤ特化UIが出たまま(これは本体の問題ではないかも)
-// 2017/02 getElementByIdNoNSの問題が再び。　plane XMLとなっている文書では、IEもgetElementById使えない。.querySelector('[id="hoge"]'));は使えるので・・・対策したが、そもそもXML:IDの機能(重複しないID)を満たした機能を提供していない
+// 2017/01 FIXED? Authoring Tools Ext.で編集中にResumeが動かない
+// 2017/01 FIXED? レイヤーがOffになっているときに、レイヤ特化UIが出たまま(これは本体の問題ではないかも)
+// 2017/02 FIXED? getElementByIdNoNSの問題が再び。　plane XMLとなっている文書では、IEもgetElementById使えない。.querySelector('[id="hoge"]'));は使えるので・・・対策したが、そもそもXML:IDの機能(重複しないID)を満たした機能を提供していない
+// 2017/08 FIXED? ズームアップボタンを連打すると拡大アニメが崩れる？(Firefox 54.01 only? グラフィックスバッファのオーバーフローか?)
+// 2017/08 FIXED centerSightのオブジェクト検索(の特に2D Vector)がスクロール＆レンダリング後必ず動くようになった。(checkTickerが起動)これは全ドキュメントのパース処理を伴い、レンダリングとダブっていて重い・非効率と思う・・　あらかじめhitPointを指定してレンダリングとオブジェクト検索を一回のループで実現できないだろうか？
+// 2017/09 FIXED LandSlideのベクトルが表示された状態で、最初のパース後透明度が設定されてない　もしくは二重書き？　Active Faultでも同じだった　二重書きの様子が濃厚
+// 2017/08/29 FIXED ERR404が発生すると、その後レイヤーのON/OFFしても伸縮スクロールしない限り表示がされないなど　動きがおかしく
 //
 // ToDo:
 // 各要素のdisplay,visibilityがcss style属性で指定しても効かない
@@ -142,7 +178,7 @@
 // devNote:
 // http://svg2.mbsrv.net/devinfo/devkddi/lvl0.1/airPort_r4.html#svgView(viewBox(global,135,35,1,1))
 // isPointInPath plolygonのばあいはそのまま、lineの場合は、このルーチンで生成したpathHitPoitnに小さなポリゴン(rect)を生成し、そこだけで、hittestする　これならばHTMLDOMへの影響が無いので、改修範囲が広範囲にならないかと思う。
-// testClickedは何のためのもの？
+// testClickedは何のためのもの？ 2018.2.2 のtestClickの廃止とともにこの変数及びセッター関数も廃止した
 // 
 // 重複が疑われる関数  (getSymbolProps, getImageProps)
 // rootContainerでvector2Dが入ると破綻する 2014.7.25
@@ -170,8 +206,12 @@ var mapx=138;
 var mapy=37;
 var mapCanvas; // 地図キャンバスとなる、おおもとのdiv要素
 var mapCanvasSize; // そのサイズ
+
 var isIE = false; // IE11で互換性があがったので、ロジックにいろいろと無理が出ています・・
-var isSP = false;
+var isSP = false; // スマホの場合設定される
+var verIE = 100; // IEの場合にそのバージョンが設定される。それ以外は100...　そろそろ IE10以下をObsoluteする予定
+var uaProp; // 上の三つのパラメータをそろそろ整理統合しようと思っています Edge対応に際して導入 2018/4/6
+	
 var loadingTransitionTimeout = 7000; // LODの読み込み遷移中のホワイトアウト防止処理のタイムアウト[msec]
 
 var resume = false; // 2016/10/26 resume機能
@@ -180,16 +220,16 @@ var resumeSpan = 3; // resumeの有効期限 (日)
 var rootViewBox; // aspectを加味し実際に開いているルートSVGのviewBox
 var rootCrs; // ルートSVGのCRS ( geo->rootのsvg )
 var root2Geo; //上の逆 ( rootのsvg - > geo )
-var geoViewBox = { x:0, y:0, wifth:1, height:1}; // と、それを使って出したgeoのviewBox
+var geoViewBox = { x:0, y:0, width:1, height:1}; // と、それを使って出したgeoのviewBox
 
 var prevGeoViewBox; // ワンステップ前のgeoViewBox(dynamicLoad("root")で設定。今のところ専らhandleScript()専用) : added 2016.10.7 for deleting action val  ++  2017.3.16 viewbox変化によって出るイベントが変わる処理のために追加使用 ::  viewBoxChanged()関数
 
 
 var svgImages = new Array(); // svg文書群(XML) arrayのハッシュキーはimageId("root"以外は"i"+連番)
-var svgImagesProps = new Array(); // 同svg文書群の .Path,.CRS,.script,.editable,.editing,.isClickable,.parentDocId,.childImages,.controller
+var svgImagesProps = new Array(); // 同svg文書群の .Path,.CRS,.script,.editable,.editing,.isClickable,.parentDocId,.childImages,.controller,.metaSchema
 
-var ticker; // Ticker文字
-
+var ticker; // Ticker文字のdiv要素
+var tickerTable // 同 table要素
 
 var ignoreMapAspect = false; // 地図のアスペクト比を、rootSVGのvireBox( or hashのviewBox)そのものにする場合true
 
@@ -207,11 +247,42 @@ addEvent(window,"load",function(){
 	initLoad();
 });
 
+addEvent(window,"hashchange",function(){
+	resumeFirstTime = true;
+	refreshScreen();
+	if ( typeof updateLayerListUIint == "function" ){ // レイヤリストUIが不整合起こす場合がある(レイヤをon/of指示するケース)。さらにそれに連動してUI自動起動も起きない
+		setTimeout(updateLayerListUIint,300);
+	}
+});
+
 function initLoad(){
+// load時に"一回だけ"呼ばれる
 //	console.log("fragment:" , location.hash, "\n" ,getFragmentView(location.hash));
 //	console.log("url:     " , document.URL);
 //	console.log("location:" , document.location);
 //	console.log("loc.href:" , document.location.href);
+	
+	if ( uaProp){
+		console.log( "Already initialized. Exit...");
+	}
+	
+	mapCanvas=document.getElementById("mapcanvas");
+	if ( !mapCanvas ){
+		console.log("NO id:mapcanvas div exit..");
+		return;
+	}
+	var rootSVGpath;
+	if ( mapCanvas.dataset.src ){
+		// data-src属性に読み込むべきSVGの相対リンクがある 2017.3.6
+		rootSVGpath = mapCanvas.dataset.src;
+	} else if ( mapCanvas.title ){
+		// title属性に読み込むべきSVGの相対リンクがあると仮定(微妙な・・) 最初期からの仕様
+		rootSVGpath = mapCanvas.title;
+	} else{
+		console.log("NO id:mapcanvas data-src for root svg container exit..");
+		return;
+	}
+	
 	
 //	console.log("AppName:",navigator.appName,"  UAname:",navigator.userAgent);
 //	if ( navigator.appName == 'Microsoft Internet Explorer' && window.createPopup )
@@ -220,21 +291,10 @@ function initLoad(){
 		configIE();
 	}
 	isSP = checkSmartphone();
+	uaProp = checkBrowserName();
+//	console.log("isIE,verIE,isSP,uaProp:",isIE,verIE,isSP,uaProp);
 	
-	mapCanvas=document.getElementById("mapcanvas");
-	if ( !mapCanvas ){
-		return;
-	}
-	initNavigationButtons(isSP);
 	
-	var rootSVGpath;
-	if ( mapCanvas.dataset.src ){
-		// data-src属性に読み込むべきSVGの相対リンクがある 2017.3.6
-		rootSVGpath = mapCanvas.dataset.src;
-	} else if ( mapCanvas.title ){
-		// title属性に読み込むべきSVGの相対リンクがあると仮定(微妙な・・) 最初期からの仕様
-		rootSVGpath = mapCanvas.title;
-	}
 	mapCanvas.title = ""; // titleにあると表示されてしまうので消す
 //	console.log(mapCanvas);
 	
@@ -243,9 +303,12 @@ function initLoad(){
 	mapCanvasSize = getCanvasSize();
 	if (!mapCanvasSize){
 		console.log("retry init....");
+		uaProp = null; 
 		setTimeout(initLoad,50);
 		return; // どうもwindow.openで作ったときに時々失敗するので、少し(30ms)ディレイさせ再挑戦する
 	}
+	
+	initNavigationUIs(isSP);
 	
 	setMapCanvasCSS(mapCanvas); // mapCanvasに必要なCSSの設定 2012/12
 	
@@ -308,7 +371,7 @@ function getMouseXY( evt ){
 }
 
 function startPan( evt ){
-//	console.log("startPan:", evt , " mouse:" + evt.button + " testClicked?:"+testClicked);
+//	console.log("startPan:", evt , " mouse:" + evt.button + " testClicked?:"+testClicked,  "  caller:",startPan.caller);
 	prevX = 0;
 	prevY = 0;
 	if ( evt && evt.button && evt.button == 2 ){
@@ -336,9 +399,7 @@ function startPan( evt ){
 	difX = 0;
 	difY = 0;
 	
-	if ( ticker ){
-		ticker.style.display="none";
-	}
+	hideTicker();
 	
 	/** このコードって何のため？
 	var el = document.elementFromPoint(mouseX0, mouseY0);
@@ -354,11 +415,7 @@ function startPan( evt ){
 	}
 	**/
 	
-	if ( !testClicked ){
-		panning = true ;
-	} else {
-		testClicked = false;
-	}
+	panning = true ;
 	
 	var mouseGeoPos = screen2Geo( mouseX0 , mouseY0 );
 //	console.log("mouse:"+mouseX0+","+mouseY0+" : geo["+mouseGeoPos.lat+","+mouseGeoPos.lng+"]");
@@ -405,6 +462,7 @@ function endPan( ){
 				refreshScreen();
 			}
 		} else {
+//			console.log("endPan,getObjectAtPoint",mouseX0, mouseY0);
 			getObjectAtPoint(mouseX0, mouseY0);
 		}
 	}
@@ -544,6 +602,23 @@ var additionalZoom = 0;
 
 var smoothZoomInterval = 20;
 
+//ズームイン／アウト時の遷移時間
+function setSmoothZoomTransitionTime(zoomTransitionTime){
+	if(Number(zoomTransitionTime) > 0){
+		smoothZoomTransitionTime = Number(zoomTransitionTime);
+	}else{
+		smoothZoomTransitionTime = 300;
+	}
+}
+
+//ズームイン／アウト後のタイル読み込み開始タイマー(ms)
+function setSmoothZoomInterval(zoomInterval){
+	if(Number(zoomInterval) > 0){
+		smoothZoomInterval = Number(zoomInterval);
+	}else{
+		smoothZoomInterval = 20;
+	}
+}
 
 function smoothZoom(zoomFactor , startDate , doFinish , startZoom ){ // 2013.9.4 外部呼び出し時は、zoomFactorだけでOK
 //	console.log("called smoothZoom:",zoomFactor,startDate,doFinish,startZoom);
@@ -715,6 +790,7 @@ function refreshWindowSize(){
 	setMapCanvasCSS(mapCanvas);
 	
 	refreshScreen();
+	setLayerListSize();
 	setCenterUI();
 }
 
@@ -733,30 +809,68 @@ function handleClick( evt ){
 	shiftMap(-30,-30);
 }
 
+function setLayerDivProps( id, parentElem, parentSvgDocId ){ // parseSVGから切り出した関数 2017.9.29
+	if ( parentSvgDocId ){
+		if ( parentSvgDocId == "root" ){
+			// 現在対象としているsvgImagesPropsではなく子供のpropsに書き込んでいる点に注意！
+			(svgImagesProps[id]).rootLayer = id;
+			parentElem.setAttribute("class" , "rootLayer:"+ id);
+//				console.log("parentElem:",parentElem);
+			if ( parentElem.getAttribute("data-nocache") ){ // ルートレイヤに対するnoCacheしか見ないことにする 2017.9.29
+				(svgImagesProps[id]).noCache = true; 
+			}
+		} else {
+			svgImagesProps[id].rootLayer = svgImagesProps[parentSvgDocId].rootLayer;
+			parentElem.setAttribute("class" , "rootLayer:"+ svgImagesProps[parentSvgDocId].rootLayer);
+		}
+	}
+}
 
-// loadSVG(this)[XHR] -> handleResult[buildDOM] -> dynamicLoad[updateMap] -> parseSVG[parseXML & set/chgImage2Canvas] -> (if Necessary) ( (if Unloaded child) loadSVG(child)... || (if already loaded child) parseSVG(child)... )
+// loadSVG(this)[XHR] -(非同期)-> handleResult[buildDOM] -> dynamicLoad[updateMap] -> parseSVG[parseXML & set/chgImage2Canvas] -> (if Necessary) ( (if Unloaded child) loadSVG(child)-(非同期)->... || (if already loaded child) parseSVG(child)... )
+// なお、起動時はloadSVGからだが、伸縮,スクロール,レイヤON/OFFなどでの読み込み表示処理の起点はdynamicLoadから(rootの文書は起動時に読み込み済みで変わらないため)
 function loadSVG( path , id , parentElem , parentSvgDocId) {
 //	console.log("called loadSVG  id:",id, " path:",path);
 	if ( !svgImages[id] ){ 
 //		console.log("call loadSVG");
 		svgImagesProps[id] = new function(){}; //  2014.5.27
+		
+		// 2014.5.27 canvas統合用に、rootLayerPropに、"root"のレイヤーのidを子孫のレイヤーに追加
+		// 2017.9.29 nocache処理のため、こちらに移動
+		setLayerDivProps( id, parentElem, parentSvgDocId );
+		
 //		var httpObj = createXMLHttpRequest( function(){ return handleResult(id , path , parentElem , this); } );
 		var httpObj = createXMLHttpRequest( function(){ handleResult(id , path , parentElem , this , parentSvgDocId ) } );
+		
 		if ( httpObj ) {
 //			console.log(" path:" + path);
 			loadingImgs[id] = true;
 			
+			// 強制的にキャッシュを除去するオプションを実装 2017.9.29
+			// rootLayersProps[thisDoc's rootLayer=].noCacheがtrueの場合に発動する
+			var rPath = path;
+			if ( svgImagesProps[id].rootLayer && svgImagesProps[svgImagesProps[id].rootLayer].noCache ){
+//				console.log("NO CACHE GET REQUEST");
+				rPath = path;
+				if (path.lastIndexOf("?")>0){
+					rPath += "&";
+				} else {
+					rPath += "?";
+				}
+				rPath += "linuxTime=" + (new Date()).getTime();
+			}
+			
 			if ( typeof getUrlViaProxy == "function" ){ // original 2014.2.25 by konno (たぶん)サイドエフェクトが小さいここに移動 s.takagi 2016.8.10
-				var pxPath = getUrlViaProxy(path);
+				var pxPath = getUrlViaProxy(rPath);
 				httpObj.open("GET", getSvgReq(pxPath) , true );
 			} else {
-				httpObj.open("GET", getSvgReq(path) , true );
+				httpObj.open("GET", getSvgReq(rPath) , true );
 			}
 			httpObj.send(null);
 		}
 //		console.log("make XHR : ", id);
 	} else { // 過去にロードしていて、svgImagesに残っている場合(editableレイヤー)はそれを使う(handleResultを飛ばしてdynamicLoadする) 2013/7/2x
 		delete loadingImgs[id];
+		setLayerDivProps( id, parentElem, parentSvgDocId ); // 2017.10.04
 		dynamicLoad( id , parentElem );
 		
 	}
@@ -799,6 +913,8 @@ function handleResult( docId , docPath , parentElem , httpRes , parentSvgDocId )
 		if ( httpRes.status == 403 || httpRes.status == 404 || httpRes.status == 500 || httpRes.status == 503 ){
 			delete loadingImgs[docId]; // debug 2013.8.22
 			console.log( "File get failed: Err:",httpRes.status," Path:",docPath);
+			svgImagesProps[docId].Path = "ERR"; // ERR404例外処理 2017.8.29
+			checkLoadCompleted();
 			return;
 		}
 //		console.log("called HandleResult id,path:" + docId+" , " +docPath);
@@ -808,8 +924,9 @@ function handleResult( docId , docPath , parentElem , httpRes , parentSvgDocId )
 //		console.log(printProperties(httpRes));
 
 // Firefox 28において、httpRes.responseやresponseTextはあるにも関わらず、responseXMLが取得できない場合に、(httpRes.responseXML != null)も評価しておかないと、データが表示されなくなる。responseXMLのみがnullの場合は、responseTextを利用して表示すればよい。
-		if ((httpRes.responseXML != null) && httpRes.responseXML.documentElement && !isIE && verIE >= 100 && isSvg( httpRes.responseXML ) && httpRes.responseText.indexOf("<script>")<0){ 
+		if ((httpRes.responseXML != null) && httpRes.responseXML.documentElement && !uaProp.MS && verIE >= 100 && isSvg( httpRes.responseXML ) && httpRes.responseText.indexOf("<script>")<0){
 			// 2016.11.1 動的コンテンツの場合はすべてプリプロセッサ通す処理に変更
+			// 2018.4.6 Edge対応のため !isIEを!uaProp.MSに変更した(Edgeでもsvgネームスペース時、SVGベクタデータの数値丸め誤差甚大の被害が出る・・)
 //			console.log("parse by native parser...");
 			svgImages[docId] = httpRes.responseXML;
 		} else { // responseXMLが無いブラウザ用(IE用ね)
@@ -850,7 +967,7 @@ function handleResult( docId , docPath , parentElem , httpRes , parentSvgDocId )
 		svgImagesProps[docId].Path = docPath;
 		svgImagesProps[docId].CRS = getCrs( svgImages[docId] );
 		svgImagesProps[docId].refresh = getRefresh( svgImages[docId] );
-		setController( svgImages[docId] , docPath , svgImagesProps[docId] ); // 2016.10.14
+		updateMetaSchema(docId); // added 2017.8.10  2018.2.26 関数化
 //		if ( !svgImagesProps[docId].CRS  ){
 //			// 文書は地図として成り立っていないので消去し、終了する
 //			delete (svgImagesProps[docId]);
@@ -869,6 +986,7 @@ function handleResult( docId , docPath , parentElem , httpRes , parentSvgDocId )
 			svgImagesProps[docId].isClickable = true;
 		}
 		
+		setController( svgImages[docId] , docPath , svgImagesProps[docId] ); // 2016.10.14
 		// ルートコンテナSVGのロード時専用の処理です・・・ 以下は基本的に起動直後一回しか通らないでしょう
 		if ( docId =="root"){
 			rootCrs = svgImagesProps[docId].CRS;
@@ -887,6 +1005,9 @@ function handleResult( docId , docPath , parentElem , httpRes , parentSvgDocId )
 //		console.log("call getScript");
 		svgImagesProps[docId].script = getScript( svgImages[docId] ); 
 		if ( svgImagesProps[docId].script ){
+			var zoom = getZoom(getRootSvg2Canvas( rootViewBox , mapCanvasSize )); 
+			var child2root = getConversionMatrixViaGCS( svgImagesProps[docId].CRS, rootCrs );
+			svgImagesProps[docId].script.scale =  zoom * child2root.scale; // patch 2018.5.18 なんか汚い・・・
 			svgImagesProps[docId].script.CRS = svgImagesProps[docId].CRS;
 			svgImagesProps[docId].script.location = getSvgLocation( svgImagesProps[docId].Path );
 			svgImagesProps[docId].script.verIE = verIE;
@@ -895,6 +1016,11 @@ function handleResult( docId , docPath , parentElem , httpRes , parentSvgDocId )
 			svgImagesProps[docId].script.refreshScreen = refreshScreen; // 2015.5.26 add utility function for asynchronous software picture refreshing
 			svgImagesProps[docId].script.linkedDocOp = linkedDocOp; // 2017.3.9 子文書に対しての操作を許可してみる・・・
 			svgImagesProps[docId].script.childDocOp = childDocOp; // 2017.3.9 子文書に対しての操作を許可してみる・・・
+			svgImagesProps[docId].script.transform = transform;
+			svgImagesProps[docId].script.getCanvasSize = getCanvasSize;
+			svgImagesProps[docId].script.geoViewBox = geoViewBox;
+			svgImagesProps[docId].script.initialLoad = true;  // レイヤのロード時はonzoomを発動させるという過去の仕様を継承するためのフラグ・・あまり筋が良くないと思うが互換性を考え 2018.6.1
+			svgImagesProps[docId].script.initObject();
 			if ( svgImagesProps[docId].script.onload ){
 //				console.log("call First onload() for dynamic content");
 				svgImagesProps[docId].script.onload();
@@ -911,7 +1037,7 @@ function dynamicLoad( docId , parentElem ){ // アップデートループのル
 		docId ="root";
 		parentElem = mapCanvas;
 	}
-//	console.log("called dynamicLoad  id:",docId);
+//	console.log("called dynamicLoad  id:",docId, "  caller:",dynamicLoad.caller);
 	
 	svgDoc = svgImages[docId];
 //	console.log( "dynamicLoad:", svgDoc );
@@ -920,17 +1046,17 @@ function dynamicLoad( docId , parentElem ){ // アップデートループのル
 //	console.log("svgDoc-FC:",svgDoc.firstChild);
 //	console.log(parentElem);
 	
-	parentElem.setAttribute("property",getMetaSchema(svgDoc)); // added 2012/12
+	parentElem.setAttribute("property",svgImagesProps[docId].metaSchema); // added 2012/12
 	var symbols = getSymbols(svgDoc); // シンボルの登録を事前に行う(2013.7.30)
 	if ( docId == "root" ){
+		setCentralVectorObjectsGetter(); // 2018.1.18 checkTicker()の二重パースの非効率を抑制する処理を投入
+		
 //		console.log("called root dynamicLoad");
 		
 		if ( summarizeCanvas ){
 			resetSummarizedCanvas();
 		}
-		if ( ticker ){
-			ticker.style.display="none";
-		}
+		hideTicker();
 		updateCenterPos();
 		prevGeoViewBox = { x: geoViewBox.x , y: geoViewBox.y , width: geoViewBox.width , height: geoViewBox.height }; // 2016.10.7
 		geoViewBox = getTransformedBox( rootViewBox , root2Geo );
@@ -967,27 +1093,23 @@ function dynamicLoad( docId , parentElem ){ // アップデートループのル
 		}
 //		console.log("checkDeletedNodes", existNodes);
 		checkDeletedNodes( mapCanvas );
-		if ( ticker ){ // isSP
-			checkTicker();
+		if ( ticker && !pathHitTest.enable ){ // スマホなどでクリックしやすくするためのティッカー ただし単なるpathHitTestのときは無限ループが起きるのでパスする 2017.7.31 pathHitTest.enableチェックせずとも無限ループは起きなくなったはず 2018.1.18
+			checkTicker(); // ここで呼び出しただけでは、ロード中のレイヤのオブジェクトは拾えないので、スクロール・伸縮などで新たに出現するオブジェクトはTicker表示されない(ちょっとスクロールするとかしないと表示されない) バグに近いです
 		}
 //		console.log("call checkLoadCompleted : ending dynamicLoad");
 //		checkLoadCompleted(); // 読み込みがすべて完了したらtoBeDelのデータを消去する
 	}
-	checkLoadCompleted(); // 読み込みがすべて完了したらtoBeDelのデータを消去する
-	
-	
-//	console.log("end dynamic load");
-/**
-	if ( docId=="root" ){
-		console.log("end ROOT dynamic load");
-	} else {
-		console.log("end dynamic load");
+	if ( !pathHitTest.enable ){ // 2017.8.18 debug pathHitTestのときは"画面の描画完了"確認もやってはまずい・・ geojsonの獲得に関しても同様と思うが、こちらはscreenrefreshedイベントを起点に処理しているのでできない・・ pathHitTestとgeojson取得でロジックが違うのが気になる・・・
+		checkLoadCompleted(); // 読み込みがすべて完了したらtoBeDelのデータを消去する
 	}
-**/
+	
+	
 }
 
 function handleScript( docId , zoom , child2root ){
+	svgImagesProps[docId].script.location = getSvgLocation( svgImagesProps[docId].Path ); // added 2017.9.5 ハッシュが書き換わる可能性を加味
 	svgImagesProps[docId].script.scale = zoom * child2root.scale;
+//	console.log("set scale:",svgImagesProps[docId].script.scale,"  docId:",docId,"   svgImageProps:",svgImagesProps[docId]);
 	svgImagesProps[docId].script.actualViewBox = getTransformedBox( rootViewBox , getInverseMatrix( child2root ) ); // *ViewBoxは間違い・viewportが正しい・・互換のために残す・・・
 	svgImagesProps[docId].script.geoViewBox = geoViewBox;
 	svgImagesProps[docId].script.viewport = svgImagesProps[docId].script.actualViewBox; // debug 2014.08.06
@@ -995,12 +1117,15 @@ function handleScript( docId , zoom , child2root ){
 //	console.log(docId + " : scale:" + svgImagesProps[docId].script.scale + " actualViewBox:" );
 //	console.log(svgImagesProps[docId].script.actualViewBox);
 //	console.log(svgImagesProps[docId].script.CRS);
-	var vc = viewBoxChanged()
-	if ( vc =="zoom" ){ // zooming
+	var vc = viewBoxChanged();
+	svgImagesProps[docId].script.handleScriptCf(); // ここで、上記の値をグローバル変数にセットしているので、追加したらhandleScriptCfにも追加が必要です！ 2017.8.17
+//	console.log("handleScript: vc:",vc);
+	if ( vc =="zoom" || svgImagesProps[docId].script.initialLoad ){ // zooming
+		svgImagesProps[docId].script.initialLoad  = false;
 		if ( svgImagesProps[docId].script.onzoom ){
 			svgImagesProps[docId].script.onzoom();
 		}
-	} else { // scrollもzoomもしてないonrefreshscreenみたいなものがあるのではないかと思うが・・・ 2017.3.16
+	} else if ( vc=="scroll") { // scrollもzoomもしてないonrefreshscreenみたいなものがあるのではないかと思うが・・・ 2017.3.16
 		if ( svgImagesProps[docId].script.onscroll ){
 			svgImagesProps[docId].script.onscroll();
 		}
@@ -1027,7 +1152,7 @@ function viewBoxChanged(){
 // for childCategory
 var EMBEDSVG = 0 , BITIMAGE = 1 , POI = 2 , VECTOR2D = 3 , GROUP = 4 , TEXT = 5 , NONE = -1;
 // for childSubCategory
-var PATH = 0 , POLYLINE = 1 , POLYGON = 2 , RECT = 3 , CIRCLE = 4 , ELLIPSE = 5 , HYPERLINK = 10 , SYMBOL = 11 , SVG2EMBED = 100;
+var PATH = 0 , POLYLINE = 1 , POLYGON = 2 , RECT = 3 , CIRCLE = 4 , ELLIPSE = 5 , HYPERLINK = 10 , SYMBOL = 11 , USEDPOI = 12 , DIRECTPOI = 13 , SVG2EMBED = 100;
 
 // for layerCategory
 var EXIST = 1 , CLICKABLE = 2;
@@ -1039,6 +1164,15 @@ function getDocDir( docPath ){  // 2016.10.14 関数化
 	docDir = pathWoQF.substring(0,pathWoQF.lastIndexOf("/")+1);
 //	docDir = docPath.substring(0,docPath.lastIndexOf("/")+1);
 	return ( docDir );
+}
+
+function updateMetaSchema(docId){
+	var metaSchema = getMetaSchema(svgImages[docId]);
+	if ( metaSchema ){
+		svgImagesProps[docId].metaSchema = metaSchema;
+	} else {
+		svgImagesProps[docId].metaSchema = "";
+	}
 }
 
 function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas , pStyle , dontChildResLoading ){ 
@@ -1054,6 +1188,9 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 	
 	var clickable = svgImagesProps[docId].isClickable;
 	
+	if ( svgElem.nodeName=="svg"){
+		updateMetaSchema(docId); // 2018.2.28 metaSchemaがDOM操作で変更されることがある・・・
+	}
 	
 	var beforeElem = null;
 	var s2c = getRootSvg2Canvas( rootViewBox , mapCanvasSize ); // ルートSVG⇒画面変換マトリクス
@@ -1113,7 +1250,12 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 			}
 			break;
 		case "image":
-			childCategory = BITIMAGE;
+			if ( getNonScalingOffset(svgNode).nonScaling ){ // 2018.3.2 imageでもnonScalingのものをPOIとする。getNonScalingOffsetをstyleパース時と都合二回呼んでるのがね。最初に読んでstyleのほうに受け渡したほうがキレイかと・・
+				childCategory = POI;
+				childSubCategory = DIRECTPOI;
+			} else {
+				childCategory = BITIMAGE;
+			}
 			break;
 		case "use": // use要素の場合 2012/10
 			useHref = svgNode.getAttribute("xlink:href"); // グループタイプのシンボルを拡張 2017.1.17
@@ -1121,11 +1263,12 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 				useHref = svgNode.getAttribute("href");
 			}
 			if ( symbols[useHref] ){
-				if (symbols[useHref].type == "group"){
+				if (symbols[useHref].type == "group"){ // 2DベクタのシンボルはgetGraphicsGroupSymbolでGROUP扱いしている
 					childCategory = GROUP;
 					childSubCategory = SYMBOL;
 				} else {
 					childCategory = POI;
+					childSubCategory = USEDPOI;
 				}
 			} else { // リンク切れ
 			}
@@ -1196,6 +1339,9 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 			
 			var ip = getImageProps( svgNode , childCategory , pStyle , childSubCategory , GISgeometry); // x,y,w,h,href等読み込み
 			var imageRect = transformRect(ip , child2root ); // root座標系における、図形のbbox
+			if ( ip.nonScaling ){
+				imageRect.nonScaling = true;
+			}
 //			console.log( "c2rs:" + imageRect.c2rScale );
 			/**
 			console.log("--  " + docId);
@@ -1208,6 +1354,9 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 			}
 //				console.log( "c2rs:" + imageRect.c2rScale );
 			if ( !eraseAll && isIntersect( imageRect , rootViewBox ) && inZoomRange( ip , zoom ,  imageRect.c2rScale ) && isVisible(ip ) ){ // ロードすべきイメージの場合
+				
+//				console.log(svgNode.nodeName," intersect?: imageRect:",imageRect,"   rootViewBox:",rootViewBox,"   ip:",ip);
+				
 //			console.log("opa:" + ip.opacity);
 //				if ( docId == "root" ){			console.log ( svgNode );		}
 				
@@ -1242,7 +1391,7 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 				} else { // ないとき
 				
 					var imgBox = getTransformedBox( imageRect , s2c ); // canvas座標系における bbox(transformが無い場合はこれが使える)
-					if ( childCategory == POI ){ // ICON表示
+					if ( childCategory == POI && childSubCategory == USEDPOI){ // ICON表示
 						var symb = symbols[ip.href];
 						if( symb.d ){
 							// ベクタ図形のシンボル... toDo 2015.3.31
@@ -1286,6 +1435,9 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 					} else { // animation|iframe要素の場合
 						img = document.createElement("div");
 						if ( docId == "root"){
+							if ( svgNode.getAttribute("data-nocache") ){ // 2017.9.29
+								img.setAttribute("data-nocache","true");
+							}
 							img.setAttribute("data-layerNode","true"); // 2016.12.8
 //							console.log("create:",img);
 						}
@@ -1296,7 +1448,7 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 						if ( ip.opacity ){
 //							console.log( "opacity: isIE,verIE", isIE,verIE);
 //							console.log("set div opacity: ","Filter: Alpha(Opacity=" + ip.opacity * 100 + ");");
-							if ( !isIE){
+							if ( !uaProp.MS){ // if ( !isIE)からチェンジ (Edge対策)
 								img.setAttribute("style" , "Filter: Alpha(Opacity=" + ip.opacity * 100 + ");opacity:" + ip.opacity + ";"); // IEではこれでは設定できない
 							} else {
 //								console.log("verIE:" + verIE);
@@ -1306,11 +1458,11 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 								}
 								
 								img.style.filter="alpha(opacity=" + ip.opacity * 100 + ")"; // IEではこれだけでは効かない
-								img.style.position="absolute";
+								img.style.position="absolute"; 
 //								img.style.width=xd.span;
 //								img.style.height=yd.span;
-								img.style.width=mapCanvasSize.width;
-								img.style.height=mapCanvasSize.height;
+//								img.style.width=mapCanvasSize.width+"px"; // width/heightがdivに設置されると、クリッカブルができなくなる問題発見 2017.11.1
+//								img.style.height=mapCanvasSize.height+"px";
 //								img.style.top=yd.p0;
 //								img.style.left=xd.p0;
 								img.style.top=0;
@@ -1362,15 +1514,8 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 //						console.log("call loadSVG:",imageId, ip.href);
 						var childSVGPath = getImageURL(ip.href , docDir ); // 2016.10.14 関数化＆統合化
 						loadSVG( childSVGPath , imageId , img , docId);
-						if ( docId == "root" ){ // 2014.5.27 canvas統合用に、rootLayerPropに、"root"のレイヤーのidを子孫のレイヤーに追加
-							// 現在対象としているsvgImagesPropsではなく子供のpropsに書き込んでいる点に注意！
-							(svgImagesProps[imageId]).rootLayer = imageId;
-							img.setAttribute("class" , "rootLayer:"+ imageId);
-						} else {
-							svgImagesProps[imageId].rootLayer = svgImagesProps[docId].rootLayer;
-							img.setAttribute("class" , "rootLayer:"+ svgImagesProps[docId].rootLayer);
-						}
 						
+						//  この部分の処理は、setLayerDivProps 関数に切り出しloadSVG側に移設 2017.9.29 (noCache処理のため)
 					}
 					
 					if ( isIE){ // IEではw,hの書き込みに失敗する場合がある。その対策。　imgエレメントのDOM登録タイミングによる？
@@ -1395,6 +1540,11 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 //						console.log("id:" + imageId );
 //						console.log( " ISsvgImages:" + svgImages[imageId]);
 //						console.log( " isDocElem:" + svgImages[imageId].documentElement );
+						var childSVGPath = getImageURL(ip.href , docDir );
+						if ( svgImagesProps[imageId] && svgImagesProps[imageId].Path && svgImagesProps[imageId].Path != childSVGPath ){
+							console.log("change SVG's path. this has issues....");
+							svgImagesProps[imageId].Path = childSVGPath; // added 2017.9.5 : ハッシュが更新されることがあり、それを更新する必要があると思われる・・・　ISSUE:　ただ完全にURLが刷新されるケース(hrefがsetattributeされる)もあり、今のルーチンはそれを検出し再ロードできないのではないか？
+						}
 						parseSVGwhenLoadCompleted(svgImages , imageId , imgElem , 0 );
 						// documentElemの生成(読み込み)が完了してないとエラーになる。生成を待つ必要があるため
 //						var symbols =  getSymbols(svgImages[imageId]);
@@ -1404,7 +1554,7 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 					beforeElem = imgElem;
 				}
 				
-				if ( childCategory == POI ){
+				if ( childCategory == POI ){ // 2018.3.2 変更はないが、use使わないがnonScalingのもの(DIRECTPOI)も追加
 //					visiblePOIs.push({id:imageId, x: xd.p0, y: yd.p0, width: xd.span, height: yd.span });
 					visiblePOIs[imageId] = { x: xd.p0, y: yd.p0, width: xd.span, height: yd.span };
 				}
@@ -1538,16 +1688,7 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 						inCanvas.setAttribute("hasdrawing","false");
 //						console.log("new canvas:" + inCanvas.id );
 					} else {
-						/** resetSummarizedCanvasに移動
-						if ( inCanvas.style.left != "0px"){ // もう少し適切な方法があると思う
-							inCanvas.style.left = "0px";
-							inCanvas.style.top = "0px";
-						}
-						if ( inCanvas.width != mapCanvasSize.width ){ // なんでこれが変わったまま？
-							inCanvas.width = mapCanvasSize.width;
-							inCanvas.height = mapCanvasSize.height;
-						}
-						**/
+						// inCanvas.styleの初期化系はresetSummarizedCanvasに移動
 					}
 					if ( pStyle ){
 						setCanvasStyle(pStyle , inCanvas.getContext('2d'));
@@ -1560,11 +1701,17 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 			
 			var cStyle = getStyle(  svgNode , pStyle );
 //			console.log("thisObj's style:",cStyle, "   parent's style:",pStyle);
-			if ( GISgeometry && GISgeometry.type ==="TBD"){ // 2016.12.1 for GIS: TBD要素は塗りがあるならPolygonにする
-				if ( cStyle["fill"] && cStyle["fill"]!="none"){
-					GISgeometry.type = "Polygon";
-				} else {
-					GISgeometry.type = "MultiLineString";
+			if ( GISgeometry ){
+				if (GISgeometry.type ==="TBD"){ // 2016.12.1 for GIS: TBD要素は塗りがあるならPolygonにする
+					if ( cStyle["fill"] && cStyle["fill"]!="none"){
+						GISgeometry.type = "Polygon";
+					} else {
+						GISgeometry.type = "MultiLineString";
+					}
+				}
+				if (cStyle.usedParent ){ // 2018.3.5 useによって2D Vectorを使用した場合、そのuse要素の値が欲しいでしょう
+					GISgeometry.usedParent = cStyle.usedParent;
+					GISgeometry.type = "Point"; // transform(svg,,)のときのみの気はするが・・
 				}
 			}
 //			console.log(cStyle);
@@ -1618,7 +1765,7 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 //						var ret = setSVGpathPoints( pathNode ,  context , child2canvas , clickable , repld , vectorEffectOffset);
 
 					}
-					if ( pathHitTest.enable && bbox.hitted ){
+					if ( (pathHitTest.enable || pathHitTest.centralGetter ) && bbox.hitted ){
 						pathHitTest.hittedElements.push(svgNode);
 						pathHitTest.hittedElementsBbox.push(bbox);
 						pathHitTest.hittedElementsUsedParent.push(cStyle.usedParent);
@@ -1632,7 +1779,15 @@ function parseSVG( svgElem , docId , parentElem , eraseAll , symbols , inCanvas 
 		}
 		
 		if ( GISgeometry && onViewport ){ // ひとまずviewportにあるオブジェクトだけを収集する機能を検証2016.12.7
-			GISgeometries[docId].push(GISgeometry);
+			if (GISgeometry.href){ // 2018/2/27 debug
+				GISgeometry.href = getImageURL(GISgeometry.href,docDir);
+				if ( imgElem.naturalHeight > 0 ){ // ロードできてないイメージは外す。 cesiumのimageryではerr404imgで動作が停止する・・　何とかしてよねぇ‥
+					// ただし、ロード済みでないとこの値はセットされないので・・　ロード中にgisgeomを呼ぶパターンでは使えないはず・・ 2018.2.27
+					GISgeometries[docId].push(GISgeometry);
+				}
+			} else {
+				GISgeometries[docId].push(GISgeometry);
+			}
 //			console.log("GISgeometry::",GISgeometry);
 //			console.log("GISgeometries_::",GISgeometries);
 		}
@@ -1648,6 +1803,9 @@ function getImageURL(href , docDir ){
 	if ( href.lastIndexOf("http://", 0) == 0 || href.lastIndexOf("https://", 0) == 0 ){ // 2016.5.10 debug
 //	if ( href.indexOf("http://") == 0  ){}
 		imageURL = href;
+	} else if ( href.indexOf("/") == 0 ){
+		imageURL = href;
+//		imageURL = location.protocol + "//" + document.domain + href; // doain書いてあるとCORS規制掛けるブラウザあった気もするので、それを確認してからですかね・・・
 	} else {
 		imageURL = docDir + href;
 	}
@@ -1663,12 +1821,15 @@ function getSvgReq( href ){ // ハッシュなどの扱いをきちんとした 
 // svgの読み込みが完了したらparseSVGするしょり
 // documentElemの生成(読み込み)が完了してないとエラーになる。生成を待つ必要があるため 2013.8.21
 function parseSVGwhenLoadCompleted(svgImages , imageId , imgElem , ct){
-//	console.log("parseSVGwhenLoadCompleted",imageId);
-	loadingImgs[imageId]=true;
-	if ( svgImages[imageId] ){
-		var symbols =  getSymbols(svgImages[imageId]);
-		parseSVG( svgImages[imageId].documentElement , imageId , imgElem , false , symbols , null , null );
-		delete loadingImgs[imageId];
+//	console.log("parseSVGwhenLoadCompleted",imageId , "  svgImagesProps:", svgImagesProps[imageId], "  svgImages:", svgImages[imageId], " count:",ct);
+	if ( svgImages[imageId] && svgImagesProps[imageId] ){
+		
+		if ( svgImagesProps[imageId].Path !="ERR"){
+			loadingImgs[imageId]=true;
+			var symbols =  getSymbols(svgImages[imageId]);
+			parseSVG( svgImages[imageId].documentElement , imageId , imgElem , false , symbols , null , null );
+			delete loadingImgs[imageId];
+		}
 	} else {
 		if ( ct < 20 ){
 			++ct;
@@ -1689,9 +1850,9 @@ function checkDeletedNodes( parentNode ){
 		var oneNode = parentNode.childNodes.item(i);
 		if ( oneNode.nodeType == 1 ){
 //			console.log(oneNode.id , existNodes[oneNode.id] , oneNode.nodeName);
-			if ( oneNode.nodeName == "IMG" && oneNode.id && oneNode.id.indexOf("toBeDel") == -1){
+			if ( (oneNode.nodeName == "IMG" || oneNode.nodeName == "SPAN") && oneNode.id && oneNode.id.indexOf("toBeDel") == -1){ // 2018.2.23 text(はspanに入ってる)もimg同様にする
 //				console.log("id:", oneNode.id, existNodes[oneNode.id]);
-				if ( ( ! existNodes[oneNode.id] ) ){ // img要素に対してのみ
+				if ( ( ! existNodes[oneNode.id] ) ){ // img||text要素に対してのみ
 //					console.log("dynamicDel:",oneNode);
 //					console.log("remove:", oneNode);
 					toBeDelNodes.push(oneNode);
@@ -1768,6 +1929,8 @@ function checkEmptySpans( parentNode ){
 function getScript( svgDoc ){
 	// SVGコンテンツに設置されているjavascriptを読み込み、クロージャを生成
 	// 2013/1/24 rev10 動的レイヤーに対応する（かなり冒険的）
+	// evalは使うべきではないと思う。以下を参考に Function()のほうがまだ良いのでは？
+	// http://qiita.com/butchi_y/items/d6024f81a9eda826fea0
 	
 	var script = svgDoc.getElementsByTagName("script")[0] ;
 	var testF = null;
@@ -1784,20 +1947,37 @@ function getScript( svgDoc ){
 		// .textContent? .data? 本当はどっちが正しいの？
 //		console.log( "scriptTxt:" , scriptTxt );
 		
+		
+		// 問題を改修・・ svgMapのローカルスコープに全部アクセスできてしまう、これはまずい 2017/8/17
+		// 間接evalに変更する　これでグローバルスコープに・・　ただこれでもwindowは見えてしまうが・・
+		// http://qiita.com/omatoro/items/fa5edb72a5da4e40fadb
 		// クロージャの生成
-		eval(
+		(0, eval)( // 間接evalでsvgMap内部が露出しなくなる
 			"function outer(document){ " + 
+			"	console.log('outer:this',this); " + 
 			"	var onload, onzoom, onscroll; " + 
-				scriptTxt +
+//			"	var transform, getCanvasSize; " +  // あると同じ変数があった場合エラー出る？ グローバルなので不要か？
+			"	var svgMap = null; " +
+			"	var window = null; " +
+			// 以下のように追加してinitObject()すればthisなしで利用できるようになりました
+			"	function initObject(){ transform = this.transform; getCanvasSize = this.getCanvasSize; refreshScreen = this.refreshScreen; linkedDocOp = this.linkedDocOp; childDocOp = this.childDocOp; CRS = this.CRS; verIE = this.verIE; docId = this.docId; geoViewBox = this.geoViewBox;scale = this.scale;}" +
+			"	function handleScriptCf(){ scale = this.scale; actualViewBox = this.actualViewBox; geoViewBox = this.geoViewBox; viewport = this.viewport; geoViewport = this.geoViewport; }" +
+				scriptTxt + 
 			"	return{ " + 
-			"		onload : onload , " +
-			"		onzoom : onzoom , " +
-			"		onscroll : onscroll " +
+			"		initObject : initObject , " + 
+			"		handleScriptCf : handleScriptCf , " + 
+			"		onload : onload , " + 
+			"		onzoom : onzoom , " + 
+			"		onscroll : onscroll " + 
 			"	} " +
 			"}"
 		);
 //		console.log("=========eval OK");
+		
+//		console.log("CALL outer:::::");
 		testF = outer(svgDoc); // documentのカプセル化
+//		testF = outer.call({},svgDoc); // これでも 宣言された関数の中でwindowが見えてしまうのは同じ・・ bindも同様か・・
+		
 //		console.log("=========Build Obj");
 //		testF.onload();
 //		testF.onzoom();
@@ -2020,20 +2200,10 @@ function getImgElement( x, y, width, height, href , id , opacity , category , me
 	}
 	
 	if ( category == POI ){ // POI (set Event Handler)
-		img.style.zIndex = "10"; // POIがcanvasより下だとクリックできない問題への対策(POIの重ね順が間違ったことになる場当たり対策だが・・ 2013.9.12)
-//		img.setAttribute("onclick","testClick(this)");
+		img.style.zIndex = "10"; // POIがcanvasより下だとクリックできない問題への対策(POIの重ね順が間違ったことになる場当たり対策だが・・ 2013.9.12) 　ヒットテストを独自実装したので、2018.3.2コメント マウスオーバー時のticker表示がないがクリックできるようにはなりました
 		
-		addEvent(img,"mousedown",testClick);
+//		addEvent(img,"mousedown",testClick); // このイベントハンドラは廃止(かなり大きな変更) 2018.2.2
 		
-		
-		/**
-		if ( isIE ){
-			img.attachEvent('onclick',testClick);
-		} else {
-//			img.addEventListener("click",testClick,false); // タッチデバイスでは、これでもPOIが選べない？？(2013/4/4)
-			img.addEventListener("mousedown",testClick,false); // mousedownに統一したい・・
-		}
-		**/
 		img.style.cursor="pointer";
 		img.setAttribute("content", meta);
 		if ( title ){
@@ -2253,6 +2423,14 @@ function setController( svgDoc , docPath , svgImageProps){
 		if ( cntPath ){
 			svgImageProps.controller =  getImageURL(cntPath , getDocDir(docPath));
 		} else {
+			//ルートコンテナの該当レイヤ要素にdata-controllerが指定されていた場合、該当のレイヤーにコントローラを設定する
+			//コントローラの強さは右記の通り：レイヤーの最上位コンテナ > ルートコンテナ
+			if(svgImageProps['parentDocId'] == 'root'){
+				cntPath = getLayer(svgImageProps['rootLayer']).getAttribute('data-controller');
+				if(!(cntPath === null || cntPath === undefined || cntPath === "")) {
+					svgImageProps.controller =  getImageURL(cntPath , getDocDir(docPath));
+				}
+			}
 		}
 	}
 }
@@ -2262,16 +2440,12 @@ function getViewBox( svgDoc ){
 //	console.log(svgDoc.documentElement);
 //	console.log(svgDoc.getElementsByTagName("animation")[0]);
 //	console.log(svgDoc.firstChild);
-//	var vb = svgDoc.documentElement.getAttribute("viewBox").split(" ");
-//	if(vb.length !=4){
-//		vb = svgDoc.documentElement.getAttribute("viewBox").split(",");
-//	}
 	var va = svgDoc.documentElement.getAttribute("viewBox");
 	if ( va ){
 		if ( va.indexOf("#") == 0 ){
 			return (va.substring(1));
 		} else {
-			var vb = va.replace(/^\s+|\s+$/g, "").split(/[\s,]+/);
+			var vb = trim(va).split(/[\s,]+/);
 			return {
 				x : Number(vb[0]),
 				y : Number(vb[1]),
@@ -2468,9 +2642,6 @@ function getInverseMatrix( matrix ){
 // 指定した要素がzoomrange内にあるかどうかを返事する
 function inZoomRange( ip , zoom , c2rScale ){
 //	console.log("c2rs:" + c2rScale );
-//	if ( ip.minZoom || ip.maxZoom ){
-//		console.log("check zoom range:: zoom:" , zoom * c2rScale , " min:" , ip.minZoom , " max:" ,ip.maxZoom);
-//	}
 	if ( !ip || (!ip.minZoom && !ip.maxZoom) ){
 		// プロパティない場合はtrue
 		return ( true );
@@ -2509,13 +2680,17 @@ function setDevicePixelRatio( dpr ){
 	}
 }
 
-// POI,タイル(use,image要素)のプロパティを得る
+// POI,タイル(use,image要素)のプロパティを得る DIRECTPOI,USEDPOIの処理に変更2018.3.2
 function getImageProps( imgE , category , parentProps , subCategory , GISgeometry){
 	var x, y, width, height, meta, title, elemClass, href, transform, text , cdx , cdy , href_fragment ;
 	var nonScaling = false;
 	cdx = 0;
 	cdy = 0;
-	if ( category == EMBEDSVG || category == BITIMAGE ){
+	if ( !subCategory && category == POI){ // subCategory無しで呼び出しているものに対するバックワードコンパチビリティ・・・ 2018.3.2
+//		console.log("called no subCategory  imgE:",imgE);
+		subCategory = USEDPOI;
+	}
+	if ( category == EMBEDSVG || category == BITIMAGE || subCategory == DIRECTPOI ){
 		if ( category == EMBEDSVG && subCategory == SVG2EMBED ){ // svg2のsvgインポート
 //			console.log(imgE);
 			href = imgE.getAttribute("src");
@@ -2550,9 +2725,9 @@ function getImageProps( imgE , category , parentProps , subCategory , GISgeometr
 				height= 60000;
 			}
 //			console.log("clip:" , clip ,x,y,width,height,href);
-		} else { // svg1のsvgインポート及び svg1,svg2のビットイメージインポート
-			var tf = getPoiPos(imgE);
-			if ( tf.x && tf.y ){
+		} else { // svg1のsvgインポート及び svg1,svg2のビットイメージ(含DIRECTPOI)インポート
+			var tf = getNonScalingOffset(imgE);
+			if ( tf.nonScaling ){
 				nonScaling = true;
 				x = tf.x;
 				y = tf.y;
@@ -2577,17 +2752,41 @@ function getImageProps( imgE , category , parentProps , subCategory , GISgeometr
 						f : Number(trv[5])
 					}
 				}
+				
+				
 			}
-			width = Number(imgE.getAttribute("width"));
+			width = Number(imgE.getAttribute("width")); // nonScalingではwidth,heightの値はisIntersectでは0とみなして計算するようにします
 			height = Number(imgE.getAttribute("height"));
 			href = imgE.getAttribute("xlink:href");
 			if ( ! href ){
 				href = imgE.getAttribute("href");
 			}
-			
+			if ( ! href ){
+				href = "";
+			}
 			if ( href.indexOf("#")>0 && href.indexOf("xywh=", href.indexOf("#") )>0){ // 2015.7.3 spatial fragment
 				href_fragment = (href.substring( 5+href.indexOf("xywh=" ,  href.indexOf("#") ) ));
 				href = href.substring(0,href.indexOf("#")); // ブラウザが#以下があるとキャッシュ無視するのを抑止
+			}
+			
+			if ( GISgeometry){
+				if ( category == BITIMAGE && !nonScaling ){ // 2018.2.26
+					// transformのあるものはまだうまく処理できてないです・・　まぁこの最初のユースケースのcesiumでも非対角ありtransformのあるイメージはうまく処理できないので・・
+					// さらに、 nonScalingはPOIとして処理して良いと思うが・・ 2018.3.2 まず、parse*側でnonScalingなimageをPOIに改修
+					GISgeometry.svgXY = [];
+					GISgeometry.svgXY[0] = [x,y];
+					GISgeometry.svgXY[1] = [x+width,y+height];
+					GISgeometry.transform = transform; 
+					GISgeometry.href = href; 
+					//				console.log("Set Coverage geometry",GISgeometry);
+				} else if ( subCategory == DIRECTPOI ){ // 2018.3.2 上の話を改修した部分
+					GISgeometry.svgXY = [x,y];
+				}
+			}
+			
+			if ( subCategory == DIRECTPOI){ // 2018.3.2
+				meta = imgE.getAttribute("content");
+				title = imgE.getAttribute("xlink:title");
 			}
 			
 			// このルーチンはもっとサイドエフェクトが小さいところ(実際にXHRしている場所)に移動 s.takagi 2016.8.10
@@ -2597,9 +2796,9 @@ function getImageProps( imgE , category , parentProps , subCategory , GISgeometr
 //			}
 		}
 		elemClass = imgE.getAttribute("class");
-	} else if ( category == POI ){ // POI
-		var tf = getPoiPos(imgE);
-		if ( tf.x && tf.y ){ // non scaling POI
+	} else if ( subCategory == USEDPOI ){ // USEDによるPOI
+		var tf = getNonScalingOffset(imgE);
+		if ( tf.nonScaling ){ // non scaling POI
 			nonScaling = true;
 			x = tf.x;
 			y = tf.y;
@@ -2615,7 +2814,7 @@ function getImageProps( imgE , category , parentProps , subCategory , GISgeometr
 			x = Number(imgE.getAttribute("x"));
 			y = Number(imgE.getAttribute("y"));
 		}
-		width = 0; // ??? そうなの？ 2014.7.25
+		width = 0; // ??? そうなの？ 2014.7.25  nonScalingのときのみの気がする・・
 		height = 0;
 		meta = imgE.getAttribute("content");
 		title = imgE.getAttribute("xlink:title");
@@ -2625,8 +2824,8 @@ function getImageProps( imgE , category , parentProps , subCategory , GISgeometr
 			GISgeometry.svgXY = [x,y];
 		}
 	} else if ( category == TEXT ){
-		var tf = getPoiPos(imgE);
-		if ( tf.x && tf.y ){
+		var tf = getNonScalingOffset(imgE);
+		if ( tf.nonScaling ){
 			nonScaling = true;
 			x = tf.x;
 			y = tf.y;
@@ -2641,11 +2840,14 @@ function getImageProps( imgE , category , parentProps , subCategory , GISgeometr
 			x = Number(imgE.getAttribute("x"));
 			y = Number(imgE.getAttribute("y"));
 		}
-		height = 16; // きめうちです　最近のブラウザは全部これ？
+		height = 16; // きめうちです　最近のブラウザは全部これ？ 
 		if (imgE.getAttribute("font-size")){
 			height = Number(imgE.getAttribute("font-size"));
 		}
-		width = height; // 適当・・
+		if (nonScaling){
+			height = 0; // 2018.2.23 上の決め打ちはnon-scalingの場合まずい・・・ 拡大すると常にビューポートに入ってしまうと誤解する。これならたぶん0にした方がベター
+		}
+		width = height; // 適当・・ 実際は文字列の長さに応じた幅になるはずだが・・・ ISSUE
 		text = imgE.textContent;
 //		console.log("txtProp:",x,y,cdx,cdy,height,nonScaling);
 	}
@@ -2766,8 +2968,20 @@ function getCanvasSize(){ // 画面サイズを得る
 	}
 }
 
-function isIntersect( sec1 , sec2 ){
-//	console.log( sec1 , sec2 );
+function isIntersect( rect1 , rect2 ){
+//	console.log( rect1 , rect2 );
+	var sec1, sec2;
+	if ( rect1.nonScaling ){ // nonScaling設定の時はサイズ０として判断するようにする 2018.3.2
+		sec1 = { x:rect1.x,y:rect1.y,width:0,height:0 }
+	} else {
+		sec1 = rect1;
+	}
+	if ( rect2.nonScaling ){
+		sec2 = { x:rect2.x,y:rect2.y,width:0,height:0 }
+	} else {
+		sec2 = rect2;
+	}
+	
 	var ans = false;
 	if ( sec1.x > sec2.x + sec2.width || sec2.x > sec1.x + sec1.width 
 	 || sec1.y > sec2.y + sec2.height || sec2.y > sec1.y + sec1.height ){
@@ -2790,31 +3004,116 @@ function getBBox( x , y , width , height ){
 function removeChildDocs( imageId ){
 	if ( svgImages[imageId] && !svgImagesProps[imageId].editable){
 //		console.log("remove:" + imageId);
-//		var anims = Array.prototype.slice.call(svgImages[imageId].documentElement.getElementsByTagName("animation"));
-//		anims = anims.concat(Array.prototype.slice.call(svgImages[imageId].documentElement.getElementsByTagName("iframe")));
 		var anims = getLayers(imageId);
 		for ( var i = 0 ; i < anims.length ; i++ ){
 			removeChildDocs( anims[i].getAttribute("iid") );
 		}
 //		console.log("delete",svgImage[imageId]);
-//		svgImages[imageId] = null;
-//		svgImagesProps[imageId] = null;
 		delete svgImages[imageId];
 		delete svgImagesProps[imageId];
 	}
 }
 
-function initNavigationButtons( isSP ){
-	if ( isSP ){
-		document.getElementById("zoomupButton").width = "60";
-		document.getElementById("zoomupButton").height = "60";
-		document.getElementById("zoomdownButton").width = "60";
-		document.getElementById("zoomdownButton").height = "60";
-		document.getElementById("zoomdownButton").style.top = "70px";
+function setLayerListSize(){
+	var llElem = document.getElementById("layerList");
+	// id:layerList 要素はwidthが"px"で指定されていなければならない・・　とりあえず
+	var llElemSize = llElem.style.width;
+	if ( ! llElemSize || llElemSize.indexOf("px")<0 ){
+		llElem.style.width = ( mapCanvasSize.width * 0.5 - spButtonSize - 5 ) + "px";
+		llElemSize = llElem.style.width;
 	}
+	llElemSize = Number ( llElemSize.substring(0,llElemSize.indexOf("px")));
+	if ( ! llElem.dataset.originalSize ){
+		llElem.dataset.originalSize = llElemSize;
+	}
+//	console.log("llElem.dataset.originalSize:",llElem.dataset.originalSize);
+	if ( spButtonSize + 5 + Number(llElem.dataset.originalSize) > mapCanvasSize.width ){
+		var modSize = mapCanvasSize.width - (spButtonSize + 7);
+		llElem.style.width = modSize + "px";
+//		llElem.style.right = (spButtonSize + 5) + "px";
+	} else {
+		llElem.style.width = llElem.dataset.originalSize + "px";
+	}
+}
+
+var spButtonSize = 50;
+function initNavigationUIs( isSP ){
 	
-	document.getElementById("zoomupButton").style.cursor = "pointer";
-	document.getElementById("zoomdownButton").style.cursor = "pointer";
+	// 2017.8.15 Add scroll bar on iOS safari scrollable elements :: なぜかinsertRuleはerrorで動かない・・
+	// see https://stackoverflow.com/questions/3845445/how-to-get-the-scroll-bar-with-css-overflow-on-ios
+	var stylesheet = document.createElement("style");
+	stylesheet.innerHTML="::-webkit-scrollbar{-webkit-appearance:none;width:7px;}::-webkit-scrollbar-thumb{border-radius:4px;background-color:rgba(0,0,0,.5);-webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);}";
+	document.documentElement.appendChild(stylesheet);
+	
+	// 2017.8.15 iPhone Safari landscape mode issue fix 
+	// see: https://stackoverflow.com/questions/33039537/ios9-mobile-safari-landscape-css-bug-with-positionabsolute-bottom0
+	var htmlStyle = document.documentElement.style;
+	htmlStyle.position="fixed";
+	htmlStyle.width="100%";
+	htmlStyle.height="100%";
+	htmlStyle.overflow="hidden";
+	
+	
+	var zub = document.getElementById("zoomupButton");
+	var zdb = document.getElementById("zoomdownButton");
+	var gpsb = document.getElementById("gpsButton");
+	var llElem = document.getElementById("layerList");
+	var customBtns=document.getElementsByClassName("customButton");
+//	console.log("customBtns:",customBtns);
+	if ( isSP ){
+		var topCrd = 0;
+		if ( zub ){
+			zub.width = spButtonSize;
+			zub.height = spButtonSize;
+			zub.style.top = topCrd  + "px";
+			topCrd += spButtonSize + 5;
+		}
+		
+		if ( zdb ){
+			zdb.width = spButtonSize;
+			zdb.height = spButtonSize;
+			zdb.style.top = topCrd  + "px";
+			topCrd += spButtonSize + 5;
+		}
+		
+		if ( gpsb ){
+			gpsb.width = spButtonSize;
+			gpsb.height = spButtonSize;
+			gpsb.style.top = topCrd  + "px";
+			topCrd += spButtonSize + 5;
+		}
+		
+		
+		if (customBtns){
+			for ( var i = 0 ; i < customBtns.length ; i++ ){
+				customBtns[i].width = spButtonSize;
+				customBtns[i].height = spButtonSize;
+				customBtns[i].style.top = topCrd  + "px";
+				topCrd += spButtonSize + 5;
+			}
+		}
+		
+		if ( topCrd>0 && llElem ){ // いずれかのボタンがある場合(topCrd>0)はレイヤUIをボタン横に移動
+			llElem.style.left = (spButtonSize + 5 ) + "px";
+		}
+	}
+	if ( llElem ){
+		setLayerListSize();
+	}
+	if ( zub ){
+		zub.style.cursor = "pointer";
+	}
+	if ( zdb ){
+		zdb.style.cursor = "pointer";
+	}
+	if ( gpsb ){
+		gpsb.style.cursor = "pointer";
+	}
+	if (customBtns){
+		for ( var i = 0 ; i < customBtns.length ; i++ ){
+			customBtns[i].style.cursor = "pointer";
+		}
+	}
 	
 }
 
@@ -2913,7 +3212,6 @@ function testWheel( evt ){
 }
 
 
-var verIE = 100;
 function configIE(){
 	var apv = navigator.appVersion.toLowerCase();
 	if ( apv.indexOf('msie')>-1 ){
@@ -2993,6 +3291,46 @@ function checkSmartphone(){ // Mobile Firefox & Firefox OS 2012/12
 	}
 }
 
+function checkBrowserName(){
+	var name;
+	var MS = false;
+	var IE = false;
+	var Blink = false;
+	var old = false;
+	var smartPhone = checkSmartphone();
+	if ( navigator.userAgent.indexOf("Trident")>=0 ){
+		name = "IE";
+		MS = true;
+		IE = true;
+	} else if ( navigator.userAgent.indexOf("MSIE")>=0 ){
+		name = "IE";
+		MS = true;
+		IE = true;
+		old = true;
+	} else if ( navigator.userAgent.indexOf("Edge")>=0 ){
+		name = "Edge";
+		MS = true;
+	} else if ( navigator.userAgent.indexOf("Firefox")>=0 ){
+		name = "Firefox";
+	} else if ( navigator.userAgent.indexOf("Opera")>=0 ){
+		name = "Opera";
+		Blink = true;
+	} else if ( navigator.userAgent.indexOf("Safari")>=0 && navigator.userAgent.indexOf("Chrome")<0){ // これも要注意・・
+		name = "Safari";
+	} else if ( navigator.userAgent.indexOf("Chrome")>=0 ){ // ChromeはEdgeにも文字列含まれてるので要注意・・
+		name = "Chrome";
+		Blink = true;
+	}
+	
+	return{
+		name: name,
+		MS: MS,
+		IE: IE,
+		Blink: Blink,
+		smartPhone: smartPhone,
+		old : old,
+	}
+}
 
 // 中心座標を提供するUIのオプション(2012/12/7)
 function setCenterUI(){
@@ -3005,15 +3343,7 @@ function setCenterUI(){
 		initTicker(); // 照準があるときは、Ticker機能をONにする 2013/1/11
 		
 		// 照準をクリックするとオブジェクトを問い合わせる機能を実装(2013/12/05)
-		addEvent(centerSight, "mousedown", testCSclick);
-		/**
-		if ( isIE ){
-			centerSight.attachEvent('onclick',testCSclick);
-//			ticker.setAttribute("onclick", "testPOIclick()");
-		} else {
-			centerSight.addEventListener("click",testCSclick,false);
-		}
-		**/
+//		addEvent(centerSight, "mousedown", testCSclick); // Obsolute 2018.01.31
 		
 	}
 	if (document.getElementById("centerPos") ){
@@ -3038,13 +3368,21 @@ function putCmt( cmt ){
 // 中心緯経度書き換え
 function updateCenterPos() {
 	if ( centerPos ){
-		var cent = getCentralGeoCoorinates()
+		var cent = getCentralGeoCoorinates();
 //		console.log("centralGeo:", cent.lat , cent.lng);
 		centerPos.innerHTML = round(cent.lat,6) + " , " + round(cent.lng,6);
 	}
 	if ( vScale ){ // 50pxのたてスケールに相当する長さをKmで表示
 		vScale.innerHTML = round(getVerticalScreenScale( 50 ), 3 ) + "Km";
 	}
+}
+
+// ユーザ定義を可能とする中心座標書き換え
+function setUpdateCenterPos(func){
+	if ( func ){
+		updateCenterPos = func;
+	}
+	
 }
 
 // 小数点以下の丸め関数です
@@ -3181,31 +3519,49 @@ function getrootViewBoxFromGeoArea( lat, lng, latSpan , lngSpan , ignoreMapAspec
 	return ( ans );
 }
 
-
+	var gpsif; // 2017.8.15 for iOS safari issues? 
 function setGps(){
 	var gpsb = document.getElementById("gpsButton");
 	if (gpsb) {
 		if ( navigator.geolocation){
 //			alert( "I can use GPS!");
-			if ( isSP ){
-				gpsb.width = "60";
-				gpsb.height = "60";
-				gpsb.style.top = "135px";
+			//* move to initNavigationUIs() gpsb.styling
+			
+			// for safari issue hack
+			// なぜかiOS SafariはsvgMapが動いているとgeolocationAPIがまともに動かないので、別window(iframe)でgoelocationさせるHackを実装 2017.6
+			if ( isSP && navigator.userAgent.indexOf("Safari") > 0 && navigator.userAgent.indexOf("Chrome") < 0){
+				gpsif = document.createElement("iframe");
+				document.documentElement.appendChild(gpsif);
+				console.log( "contentWindow:",gpsif.contentWindow.document );
+				var ifd = gpsif.contentWindow.document.documentElement;
+				var script = gpsif.contentWindow.document.createElement("script");
+				gpsif.style.display="none";
+				script.innerHTML='function gps(){navigator.geolocation.getCurrentPosition( gpsSuccess );}function gpsSuccess(position){window.parent.svgMap.gpsCallback(position)}';
+				ifd.appendChild(script);
 			}
+			
 		} else {
 			gpsb.style.display="none";
 //			alert( "I can NOT use GPS..");
 		}
+		/** move to initNavigationUIs()
 		gpsb.style.cursor = "pointer";
+		**/
 	}
 }
 
 function gps(){
-	navigator.geolocation.getCurrentPosition( gpsSuccess );
+	if ( isSP && navigator.userAgent.indexOf("Safari") > 0 && navigator.userAgent.indexOf("Chrome") < 0){
+//	console.log(gpsif.contentWindow);
+		gpsif.contentWindow.gps();
+	} else {
+		navigator.geolocation.getCurrentPosition( gpsSuccess );
+	}
 }
 
 function gpsSuccess(position){
 //	alert("lat:" + position.coords.latitude + " lng:" + position.coords.longitude + " acc:" + position.coords.accuracy);
+//	console.log("Callback from iframe lat:" + position.coords.latitude + " lng:" + position.coords.longitude + " acc:" + position.coords.accuracy);
 	setGeoCenter( position.coords.latitude , position.coords.longitude , position.coords.accuracy * 10 / 100000  );
 
 }
@@ -3265,7 +3621,8 @@ function getLayer(layerID_Numb_Title){
 function getLayerId( layerKey ){
 	var ans = null;
 	if ( layerKey.getAttribute ){
-		ans = layerElement.getAttribute("iid") 
+//		ans = layerElement.getAttribute("iid"); // これバグ？？
+		ans = layerKey.getAttribute("iid");
 	} else {
 		var layer = getLayer( layerKey );
 		if ( layer ){
@@ -3310,12 +3667,6 @@ function isEditingLayer( layer ){
 			if ( svgImagesProps[key].editing == true ){
 				var rootdoc = svgImages["root"].documentElement;
 //				console.log(rootdoc.nodeName,rootdoc.childNodes.length, getElementByImgIdNoNS( svgImages["root"] , key));
-//				for ( var i = 0 ; i < rootdoc.childNodes.length ; i++){
-//					console.log(rootdoc.childNodes[i].nodeName,rootdoc.childNodes[i].nodeType);
-//					if ( rootdoc.childNodes[i].nodeType==1){
-//						console.log(rootdoc.childNodes[i].getAttribute("id"),rootdoc.childNodes[i].id);
-//					}
-//				}
 				return ( getElementByImgIdNoNS( svgImages["root"] , key) );
 			}
 		}
@@ -3350,16 +3701,6 @@ function isEditableLayer( layer ) {
 			return ( false );
 		}
 	}
-//	var eLayers = getEditableLayers();
-//	console.log("isEditable?",eLayers);
-//	for ( var i = 0 ; i < eLayers.length ; i++ ){
-//		if ( eLayers[i] == layer ){
-//			console.log("true");
-//			return ( true );
-//		}
-//	}
-//	console.log("false");
-//	return ( false );
 }
 
 function getEditableLayers(){
@@ -3446,15 +3787,6 @@ function getSwLayers( cat ){
 		}
 	}
 	
-	/**
-	console.log("LIST UP : hasCat?:" , cat );
-	for ( var i in swLayers ){
-		console.log("group:",i);
-		for ( var j = 0 ; j < swLayers[i].length ; j++){
-			console.log(swLayers[i][j].getAttribute("title"));
-		}
-	}	
-	**/
 	return ( swLayers );
 	
 }
@@ -3508,10 +3840,6 @@ function checkLayerSwitch( selectedLayer ){
 				}
 			}
 			
-//			console.log( "invisibleLayers:" );
-//			for ( var i = 0 ; i < invisibleLayers.length ; i++ ){
-//				console.log( invisibleLayers[i].getAttribute("title") );
-//			}
 			delete swLayers;
 			
 			return ( invisibleLayers );
@@ -3545,34 +3873,6 @@ function getLayers( id ){
 	}
 	
 	
-	/**
-	var layers;
-	if (  verIE > 8  ){
-		layers = Array.prototype.slice.call(svgImages[id].getElementsByTagName(param1));
-		layers = layers.concat(Array.prototype.slice.call(svgImages[id].getElementsByTagName(param2)));
-	} else {
-		layers = new Array();
-		var anims = svgImages[id].getElementsByTagName(param1);
-		for ( var i = 0 ; i < anims.length ; i++ ){
-			layers.push(anims[i]);
-		}
-		var iframes = svgImages[id].getElementsByTagName(param2);
-		for ( var i = 0 ; i < iframes.length ; i++ ){
-			layers.push(iframes[i]);
-		}
-	}
-	**/
-	/**
-	console.log("total:" + layers.length + " Layers");
-	for ( var i = 0 ; i < layers.length ; i++ ){
-		console.log( "layer:" + i + " : " + layers[i].id + " : " + layers[i].getAttribute("xlink:href") );
-		if (svgImagesProps[layers[i].id]){
-			console.log( svgImagesProps[layers[i].id]);
-		} else {
-			console.log( "not Loaded" );
-		}
-	}
-	**/
 	return ( layers );
 }
 
@@ -3621,13 +3921,13 @@ function getRootLayersProps(){
 		layersProps[i] = new Object();
 		layersProps[i].id = layers[i].getAttribute("iid");
 		layersProps[i].number = i;
-		if ( svgImagesProps[layersProps[i].id] ){
+		if ( svgImagesProps[layersProps[i].id] && svgImages[layersProps[i].id] && !loadingImgs[layersProps[i].id]){
 			layersProps[i].hasDocument = true;
 //			layersProps[i].url = svgImagesProps[layersProps[i].id].Path; // これはドキュメントがまだ読み終わっていないのでないのではないか？
 		} else {
 			layersProps[i].hasDocument = false;
 		}
-		layersProps[i].href = layers[i].getAttribute("xlink:href"); // (docPathがないので・・)これは.urlとは違う(ISSUE 2016.10.26
+		layersProps[i].href = layers[i].getAttribute("xlink:href"); // (docPathがないので・・)これは.urlとは違う(ISSUE 2016.10.26)
 		layersProps[i].svgImageProps = svgImagesProps[layersProps[i].id];
 		
 		layersProps[i].title = getLayerName( layers[i] );
@@ -3754,7 +4054,8 @@ function setRootLayersProps(layerID_Numb_Title, visible , editing , hashOption )
 			url = layer.getAttribute("src");
 		}
 		if ( url.indexOf("#") >0){
-			url = url + "&" + hashOption.substring(1);
+//			url = url + "&" + hashOption.substring(1); // これはハッシュのアーキテクチャと違うと思うのでサイドエフェクトあるかもしれないが外す 2017.9.5
+			url = url.substring(0,url.indexOf("#"))  + hashOption;
 		} else {
 			url = url + hashOption;
 		}
@@ -3779,8 +4080,8 @@ function setRootLayersProps(layerID_Numb_Title, visible , editing , hashOption )
 // setRootLayersPropsの簡単版　ただし、layerListUIのアップデートも行ってくれる
 function setLayerVisibility( layerID_Numb_Title, visible ){
 	setRootLayersProps(layerID_Numb_Title, visible , false );
-	if ( typeof updateLayseListUI == "function" ){
-		updateLayseListUI();
+	if ( typeof updateLayerListUIint == "function" ){
+		updateLayerListUIint();
 	}
 	refreshScreen();
 }
@@ -3800,6 +4101,12 @@ function getLayerName( layer ){
 }
 
 
+function MouseWheelListenerFunc(e){
+	//ホイールスクロールで地図の伸縮を抑制する
+//	e.preventDefault();
+	e.stopPropagation();
+}
+
 
 function initTicker(){
 //	console.log("INIT Ticker UI");
@@ -3815,41 +4122,208 @@ function initTicker(){
 		ticker.style.opacity="0.5";
 		ticker.id="ticker";
 		ticker.style.cursor="pointer";
+		ticker.style.overflowX="hidden";
+		ticker.style.overflowY="auto";
+		ticker.addEventListener("mousewheel" , MouseWheelListenerFunc, false);
+		ticker.addEventListener("DOMMouseScroll" , MouseWheelListenerFunc, false);
+		
+		
+		tickerTable = document.createElement("table");
+		tickerTable.style.borderCollapse="collapse";
+		tickerTable.style.border="solid 1px black";
+		tickerTable.setAttribute("border","1");
+		ticker.appendChild(tickerTable);
 	}
-	ticker.style.left = (mapCanvasSize.width / 2) + "px";
-	ticker.style.top = (mapCanvasSize.height / 2 + centerSight.height / 2) + "px";
+	setTickerPosition();
 	ticker.style.fontSize = "110%";
 	ticker.style.fontWeight = "bolder";
 //	ticker.innerHTML = "TEST!!!";
 }
 
-
-function checkTicker(){
-//	console.log("Check Ticker");
-	document.getElementById("centerSight").style.display="none";
-	var el = document.elementFromPoint(mapCanvasSize.width / 2, mapCanvasSize.height / 2);
-	document.getElementById("centerSight").style.display="";
-	
-//	console.log(el.title);
-	
-	if ( el.title ){
+function showTicker(){
+	if ( ticker ){
 		ticker.style.display="";
-		ticker.innerHTML = el.title;
-//		console.log("Attach event:" + el.title);
-		addEvent(ticker, "mousedown", testPOIclick);
-		/**
-		if ( isIE ){
-			ticker.attachEvent('onclick',testPOIclick);
-//			ticker.setAttribute("onclick", "testPOIclick()");
-		} else {
-			ticker.addEventListener("click",testPOIclick,false);
-		}
-		**/
-	} else {
+	}
+}
+
+function hideTicker(){
+//	console.log("hideTicker   caller:",hideTicker.caller);
+	if ( ticker ){
 		ticker.style.display="none";
 	}
 }
+
+function setTickerPosition( px , py ){
+	if ( ticker ){
+		if (!px && !py){
+			px = mapCanvasSize.width / 2;
+			py = mapCanvasSize.height / 2;
+		}
+		ticker.style.left = px + 2 + "px";
+		ticker.style.top = (py + centerSight.height / 2) + "px";
+	}
+}
+
+function fixTickerSize(){
+//	var px = Number(ticker.style.left.replace("px",""));
+	var py = Number(ticker.style.top.replace("px","")); // tickerの位置がいろいろ動くようになったので 2018.2.2
+	ticker.style.height="";
+	var th = ticker.offsetHeight;
+	var tw = ticker.offsetWidth;
+	console.log( "fixTickerSize:", ticker, ticker.offsetHeight , ticker.offsetWidth);
+	console.log("tickerSize: w:",tw," h:",th);
+	if ( mapCanvasSize.height - py< th ){
+//		ticker.style.height="100px";
+		ticker.style.height=mapCanvasSize.height - py -8 +"px";
+	}
+}
+
+var tickerTableMetadata;
+
+function getTickerMetadata(){
+	for ( var i = 0 ; i < tickerTableMetadata.length ; i++ ){
+		var tm = tickerTableMetadata[i];
+		if ( tm.img ){ // POI
+			var svgTarget = getSvgTarget(tm.img).element;
+			var crs = svgImagesProps[getDocumentId(svgTarget)].CRS;
+			var iprops = getImageProps(svgTarget,POI);
+			var geoloc = SVG2Geo(iprops.x , iprops.y , crs );
+			tm.geoBbox = { x: geoloc.lng , y:geoloc.lat , width:0, height:0 };
+//			console.log(geoloc);
+			tm.metadata = svgTarget.getAttribute("content");
+			tm.element = svgTarget;
+			tm.metaSchema = svgTarget.ownerDocument.firstChild.getAttribute("property");
+		} else { // 2D Vector
+			// already set!
+		}
+		
+	}
 	
+	console.log("getTickerMetadata:",tickerTableMetadata);
+	
+	return ( tickerTableMetadata );
+}
+
+function checkTicker(px,py){
+	// 地図中心の照準に合わせたオブジェクトを選択するUIの2017.8刷新版
+	// 引数がないときは画面中央のオブジェクトの自動探索(伸縮とともに自動で探索するモード)
+	// 引数があるときは、あえてクリックして探索するモード　探索結果が一個の時に違いがある
+	// 2018.2.2 すべてのオブジェクトプロパティ表示UIをこの関数に統合
+	//
+	// FIXED : ISSUEあり（getVectorObjectsAtPointでのDOMトラバーサ二重起動の非効率）->FIXED 2018.1.18
+	//
+	// getObjectAtPointの機能を吸収 2018.1.31
+	// testClickの機能も(getObjectAtPoint経由で)吸収 2018.2.2
+	
+//	console.log("checkTicker start"," caller:",checkTicker.caller);
+	
+	var hittedObjects; // ベクタでヒットしたモノ
+	var hittedPoiObjects; // ラスタPOIでヒットしたモノ
+	
+	if ( px && py ){
+		hittedObjects = getVectorObjectsAtPoint( px , py ); // マウスによる指定では中心でないので、この呼び出しが必要　重たいDOMトラバーサが同期で動きます
+		hittedPoiObjects = getPoiObjectsAtPoint( px , py ); 
+	} else {
+		hittedObjects = getHittedObjects( ); // 2018.1.18 setCentralVectorObjectsGetterと組み合わせ、getVectorObjectsAtPointを代替して効率化 : ベクタでヒットしたモノ
+		hittedPoiObjects = getPoiObjectsAtPoint( mapCanvasSize.width / 2, mapCanvasSize.height / 2 ); // ラスタPOIでヒットしたモノ
+	}
+	
+	if ( hittedPoiObjects.length == 0 && px && py && checkAndKickEditor( hittedObjects , px, py ) ){ // POIがヒットしていない場合に限り、ベクタを対象にオーサリングツールのキック可能性をチェックし、キックされたならそのまま終了する
+		return;
+	}
+	
+	
+//	console.log ( "hitted Vector:",hittedObjects , "  POI:",hittedPoiObjects, " TickerElem;",ticker);
+	removeChildren(tickerTable);
+	tickerTableMetadata = new Array();
+	if ( (hittedObjects && hittedObjects.elements.length > 0) || hittedPoiObjects.length > 0 ){
+		var lastCallback; // 候補１つだったときに自動起動させるコールバック保持用
+			setTimeout( fixTickerSize , 300 );
+		// for raster POI
+		for ( var i = 0 ; i < hittedPoiObjects.length ; i++){
+			var poip = getPropsOfPoi( hittedPoiObjects[i].id );
+			var el = poip.imgElement;
+//			console.log(el.title);
+			var cbf = function(targetElem){
+				return function(){
+					poiSelectProcess( targetElem ); // オーサリングツールのチェックがPOIはこちらで行われていてベクタとは別なのが気持ち悪すぎる。後ほど・・・ 2018.2.1
+				}
+			}(el);
+			lastCallback = cbf;
+//			console.log("addTickerItem:", hittedPoiObjects[i].id ," title:",el.title, " layerNm:",poip.layerName);
+			addTickerItem( el.title , cbf , tickerTable , poip.layerName );
+			tickerTableMetadata.push(
+				{ 
+					title:el.title, 
+					layerName:poip.layerName, 
+					img:el
+				}
+			);
+		}
+		// for vector objects
+		if ( hittedObjects ){
+			for ( var i = 0 ; i < hittedObjects.elements.length ; i++ ){
+				var vMeta = getVectorMetadata( hittedObjects.elements[i],hittedObjects.parents[i],hittedObjects.bboxes[i]);
+				var meta = getMetadataObject( vMeta.metadata , vMeta.metaSchema , vMeta.title );
+				console.log(vMeta.geolocMin, vMeta.geolocMax, meta , meta.title, vMeta.layerName);
+				
+				var vcbf = function(elem,parent,bbox){
+					return function(){
+//						hitVectorObject(elem,parent,bbox);
+						vectorDataWrapperForShowPoiProperty(elem, bbox, parent);
+					}
+				}(hittedObjects.elements[i],hittedObjects.parents[i],hittedObjects.bboxes[i]);
+				lastCallback = vcbf;
+				addTickerItem( meta.title, vcbf , tickerTable , vMeta.layerName );
+				tickerTableMetadata.push(
+					{
+						title: meta.title,
+						layerName:vMeta.layerName,
+						element:hittedObjects.elements[i],
+						parent:hittedObjects.parents[i],
+						bbox:hittedObjects.bboxes[i],
+						metadata:vMeta.metadata,
+						geoBbox:{
+							x:vMeta.geolocMin.lng,
+							y:vMeta.geolocMin.lat,
+							width:vMeta.geolocMax.lng-vMeta.geolocMin.lng,
+							height:vMeta.geolocMax.lat-vMeta.geolocMin.lat
+						},
+						metaSchema:vMeta.metaSchema
+					}
+				);
+				
+			}
+		}
+		
+		if ( px && py && tickerTableMetadata.length == 1 ){ // クリックモードで候補が一つだったら直接コールバック呼び出して、ティッカーは出現させない
+			hideTicker(); // これは不要かな
+			lastCallback();
+		} else {
+			setTickerPosition(px,py);
+			showTicker();
+		}
+		console.log ( " TickerElem;",ticker, "   tickerTableMetadata:",tickerTableMetadata,"  tickerDisplay:",ticker.style.display);
+	} else {
+		hideTicker();
+	}
+}
+
+function addTickerItem( title, callBack , table , subTitle){
+	var tr = document.createElement("tr");
+	var td = document.createElement("td");
+	var spn = document.createElement("span");
+	if ( subTitle ){
+		spn.innerHTML = title + "<font size='-2'>/"+ subTitle+"</font>";
+	} else {
+		spn.innerHTML = title;
+	}
+	td.appendChild(spn);
+	tr.appendChild(td);
+	table.appendChild(tr);
+	addEvent(spn, "mousedown", callBack);
+}
+
 // ビットイメージのspatial fragmentに応じて、img要素の処理を実装 2015.7.3実装,2015.7.8 改修
 function setImgViewport(target, href_fragment){
 	var imgBox = href_fragment.split(/\s*,\s*|\s/);
@@ -3918,7 +4392,7 @@ var delContainerId = 0;
 function requestRemoveTransition( imgElem , parentElem2 ){ // 2013.7.31 debug まだバグがあると思う・・
 	var parentElem = imgElem.parentNode;
 	// 遅延削除処理のph1
-//	console.log(imgElem , parentElem , parentElem2 == imgElem.parentNode);
+//	console.log("requestRemoveTransition:", imgElem , parentElem , parentElem2 == imgElem.parentNode,"    caller:",requestRemoveTransition.caller);
 	var delContainer = null; // テンポラリspan要素
 	if ( parentElem.childNodes ){ // すでにtoBeDel* idの要素があればそれをdelContainerとする
 		for ( var i = 0 ; i < parentElem.childNodes.length ; i++ ){ // 普通は0で終わりのはず・・・
@@ -3953,7 +4427,7 @@ function checkLoadCompleted( forceDel ){ // 読み込み完了をチェックし
 	var hl = getHashLength(loadingImgs);
 //	if (! forceDel ){console.log("checkLoadCompleted::  hashLen:", hl," caller:",arguments.callee.caller);}
 //	if (! forceDel ){console.log("checkLoadCompleted::  hashLen:", hl);}
-//	console.log("hashLen:", hl, " loadCompl:" , loadCompleted);
+//	console.log("checkLoadCompleted    hashLen:", hl, " loadCompl:" , loadCompleted, "   caller:",checkLoadCompleted.caller);
 	if ( hl == 0  || forceDel ){
 //		console.log("do LoadComletion process forceDel:",forceDel);
 		//遅延img削除処理を動かす
@@ -3967,14 +4441,17 @@ function checkLoadCompleted( forceDel ){ // 読み込み完了をチェックし
 		delContainerId = 0;
 		removeEmptyTiles(  mapCanvas ); // added 2013.9.12
 		
+		// zoomPanMap||screenRefreshed イベントを発行する
 //		if ( !forceDel &&  !loadCompleted ){} // forceDelの時もイベントだすべきでは？
-		if ( !loadCompleted ){ // forceDelの時もイベントだすべきでは？
+//		if ( !loadCompleted ){ // forceDelの時もイベントだすべきでは？
+//		console.log("LoadComletion..... loadCompleted:", loadCompleted,"  pathHitTest", pathHitTest.enable);
+		if ( !loadCompleted && !pathHitTest.enable ){ // forceDelの時もイベントだすべきでは？ ただしpathHitTest.enableのサーチで出すのはおかしいのでは？
 //			console.log("loading Completed");
 //			loadCompleted = true; // これ意味ない
 			if ( viewBoxChanged() ){ // 2017.3.16 本当にviewboxが変化したときのみzoomPanMap ev出す
 				var customEvent = document.createEvent("HTMLEvents");
 				customEvent.initEvent("zoomPanMap", true , false );
-	//			console.log("dispatchEvent zoomPanMap");
+//				console.log("dispatchEvent zoomPanMap");
 				document.dispatchEvent(customEvent);
 				for ( var key in svgImagesProps ){ // 2017.3.9 scriptを持つsvg文書にもzpmイベントを送る 同じ仕組みで他のイベント的なものにも本物のイベントを送れる
 					if ( svgImagesProps[key].script ){
@@ -3985,7 +4462,7 @@ function checkLoadCompleted( forceDel ){ // 読み込み完了をチェックし
 			// それ以外では新設のscreenRefreshed ev 出す
 				var customEvent2 = document.createEvent("HTMLEvents");
 				customEvent2.initEvent("screenRefreshed", true , false );
-	//			console.log("dispatchEvent screenRefreshed");
+//				console.log("dispatchEvent screenRefreshed");
 				document.dispatchEvent(customEvent2);
 				for ( var key in svgImagesProps ){ // 2017.3.9 scriptを持つsvg文書にもzpmイベントを送る 同じ仕組みで他のイベント的なものにも本物のイベントを送れる
 					if ( svgImagesProps[key].script ){
@@ -4045,29 +4522,14 @@ function getHashLength(arr){ // Arrayの個数を調べる( hashのため )
 	return cnt;
 }
 
-
-function testPOIclick(){
-//	console.log("TEST dispatch Mouse Event");
-	var evt = document.createEvent("MouseEvents");
-	
-	document.getElementById("centerSight").style.display="none"; // 一瞬消して検索するしかないの？
-	var el = document.elementFromPoint(mapCanvasSize.width / 2, mapCanvasSize.height / 2);
-	if ( el.title ){
-		document.getElementById("centerSight").style.display="";
-//		console.log(el);
-
-		evt.initMouseEvent("mousedown", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
-		el.dispatchEvent( evt );
-	}
-}
-
-function testCSclick(){
+/**
+function testCSclick(){ // Obsolute 2018.1.31
 	testPOIclick();
 	
 	getObjectAtPoint(mapCanvasSize.width / 2, mapCanvasSize.height / 2);
 	
 }
-
+**/
 
 
 
@@ -4092,30 +4554,38 @@ function numberFormat( number , digits ){
 	return ( Math.round(number * base)/base);
 }
 
-function getPoiPos( svgPoiNode ){
+function getNonScalingOffset( svgPoiNode ){ // getPoiPosから改称 2018.3.2
 	// vectorEffect,transform(ref ノンスケールのための基点座標取得
 	try {
-//		console.log("getPoiPos:",svgPoiNode,svgPoiNode.getAttribute("transform"));
+//		console.log("getNonScalingOffset:",svgPoiNode,svgPoiNode.getAttribute("transform"));
 		var pos = svgPoiNode.getAttribute("transform").replace("ref(svg,","").replace(")","").split(",");
-//		console.log(svgPoiNode, pos);
-		return {
-			x : Number ( pos[0] ),
-			y : Number ( pos[1] )
+		var x = Number ( pos[0] );
+		var y = Number ( pos[1] );
+		if ( !isNaN(x) && !isNaN(y) ){
+			return {
+				x : Number ( pos[0] ),
+				y : Number ( pos[1] ),
+				nonScaling : true
+			}
+		} else {
+			return{
+				x : null,
+				y : null,
+				nonScaling : false
+			}
 		}
+//		console.log(svgPoiNode, pos);
 	} catch (e){
 		return{
 			x : null,
-			y : null
+			y : null,
+			nonScaling : false
 		}
 	}
 }
 
-function getNonScalingOffset ( svgGroupNode ){ // 上と同じもの・・・ 2014.5.12
-	return ( getPoiPos( svgGroupNode ) );
-}
 
-
-function showSerialize( poi ){
+function showSerialize( poi ){ // 使われていない 2018.3.2確認
 //	console.log(xml2Str(poi.ownerDocument.documentElement));
 //	console.log(svgPoi2csv(poi.ownerDocument.documentElement));
 //	console.log("parent",poi.parentNode);
@@ -4205,24 +4675,13 @@ function getDocumentId( svgelement ){
 	return ( svgelement.ownerDocument.documentElement.getAttribute("about") );
 }
 
-var testClicked = false;
-function testClick( obj , forceSelection ){ // html:img要素によるPOI(from use要素)に設置するクリックイベント
-	console.log("testClick",obj, forceSelection,"  typeof svgMapAuthoringTool:",typeof svgMapAuthoringTool);
-	testClicked = true;
-	if ( forceSelection ){
-		testClicked = false;
-	}
-	var target = obj.target || obj.srcElement ; 
-	if ( forceSelection != true ){
-		var coll = isCollided( target.id );
-		if ( coll ){
-//			console.log( "collided POI",coll );
-			POItargetSelection(coll, obj);
-			return;
-		}
-	}
+
+
+function poiSelectProcess( obj ){ // html:img要素によるPOI(from use要素)を１個だけの選択まで決定したあとに実行するプロセス
+// testClick()に元々あった機能を切り分け　今はtestClick()を代替したcheckTicker()から呼ばれている
+	console.log("poiSelectProcess",obj,"  typeof svgMapAuthoringTool:",typeof svgMapAuthoringTool, "  typeOf origin:",typeof obj);
+	var target = obj.target || obj.srcElement || obj; 
 //	console.log("testClick:",target.parentNode.getAttribute("id"),target, obj.button);
-//	console.log("testClick:",target);
 	var el = isEditingLayer();
 	var svgTargetObj = getSvgTarget(target);
 	var svgTarget = svgTargetObj.element;
@@ -4232,23 +4691,28 @@ function testClick( obj , forceSelection ){ // html:img要素によるPOI(from u
 //	console.log("EDITING LAYER",target,svgTarget);
 		svgMapAuthoringTool.setTargetObject(svgTargetObj);
 	} else {
-		if ( getHyperLink( svgTarget ) &&  !svgTarget.getAttribute("content")){ // アンカーが付いていて且つメタデータが無い場合
+		processShowUse( svgTargetObj );
+	}
+}
+
+function processShowUse( svgTargetObj ){
+	var svgTarget = svgTargetObj.element;
+	if ( getHyperLink( svgTarget ) &&  !svgTarget.getAttribute("content")){ // アンカーが付いていて且つメタデータが無い場合
 //			console.log("showPage:",getHyperLink( svgTarget ).href  );
 //			console.log("ownerDocPath:",svgImagesProps[svgTargetObj.docId].Path  );
 //			console.log("ownerDoc:",svgTarget.ownerDocument  );
-			
+		
 //			showPage( getHyperLink( svgTarget ) , svgImagesProps[svgTargetObj.docId].Path ); // Pathは不要かな・・
-			showPage( getHyperLink( svgTarget )  );
-		} else if ( getHyperLink( svgTarget ) &&  svgTarget.getAttribute("content")){ // アンカーもあってメタデータもある場合
-			POIviewSelection(svgTarget);
-		} else { // アンカーが無い場合
-			showUseProperty(svgTarget);
-		}
+		showPage( getHyperLink( svgTarget )  );
+	} else if ( getHyperLink( svgTarget ) &&  svgTarget.getAttribute("content")){ // アンカーもあってメタデータもある場合
+		POIviewSelection(svgTarget);
+	} else { // アンカーが無い場合
+		showUseProperty(svgTarget);
 	}
 }
 
 function showPage( hyperLink ){
-	var href = hyperLink.href.replace(/^\s+|\s+$/g, "");
+	var href = trim(hyperLink.href);
 	
 	if ( href.indexOf("#")==0){ // ハッシュだけの場合は viewPort変化をさせる
 		var vb = getFragmentView( href );
@@ -4323,46 +4787,23 @@ function POIviewSelection(poi){
 	
 }
 
-function POItargetSelection(pois, eventOriginObj){
-//	console.log("call POItagerSelection:",pois);
-	var pts = initModal("POItargetSelection");
-	var ptsSelect = document.getElementById("ptsSelect");
-	var opts="";
-	for ( var i = 0; i < pois.length ; i++ ){
-		var screenPOIimg = document.getElementById(pois[i].id);
-		var layerName;
-		if ( screenPOIimg.parentNode.getAttribute("class") ){ //  2015.11.14 debug rootのPOIでは所属レイヤーなし
-			var layer = getLayer((screenPOIimg.parentNode.getAttribute("class")).substring(10)); // htmlのdiv(レイヤ相当)のclassには、ルートのレイヤー名が10文字目から入っている 2014.12.15
-			layerName = getLayerName( layer );
-		} else {
-			layerName ="/";
-		}
-		opts+= "<option value=\"" + pois[i].id + "\">" + layerName + "/" + screenPOIimg.title + "</option>";
+function getPropsOfPoi( poiId ){
+	var screenPOIimg = document.getElementById(poiId);
+	var layerName;
+	if ( screenPOIimg.parentNode.getAttribute("class") ){ //  2015.11.14 debug rootのPOIでは所属レイヤーなし
+		var layerId = (screenPOIimg.parentNode.getAttribute("class")).substring(10);
+		var layer = getLayer(layerId); // htmlのdiv(レイヤ相当)のclassには、ルートのレイヤーIDが10文字目から入っている 2014.12.15
+		layerName = getLayerName( layer );
+	} else {
+		layerName ="/";
 	}
-	ptsSelect.innerHTML=opts;
-	
-	var chCallFunc =  function (e) {
-//		console.log("evt:",e.target.selectedIndex, ptsSelect.options[e.target.selectedIndex].value);
-		var eobj = new Object();
-		eobj.target = document.getElementById(ptsSelect.options[e.target.selectedIndex].value);
-		eobj.button = eventOriginObj.button;
-//		console.log("evtObj:",eobj);
-		initModal();
-//		pts.removeEventListener("change", arguments.callee, false);
-		pts.removeEventListener("change", chCallFunc, false);
-		document.getElementById("ptsClose").removeEventListener("click", clCallFunc, false);
-		testClick(eobj,true);
-	} 
-	
-	var clCallFunc =  function (e) {
-		initModal();
-		pts.removeEventListener("change", chCallFunc, false);
-		document.getElementById("ptsClose").removeEventListener("click", clCallFunc, false);
-	}
-	
-	pts.addEventListener("change", chCallFunc , false );
-	document.getElementById("ptsClose").addEventListener("click", clCallFunc , false );
+	return {
+		layerId : layerId,
+		layerName : layerName,
+		imgElement  : screenPOIimg
+	};
 }
+
 
 function initModal( target ){
 	var modalUI;
@@ -4397,22 +4838,6 @@ function initModal( target ){
 		mask.style.opacity="0.5";
 		modalUI.appendChild(mask);
 //		console.log(modalUI  , mapCanvasSize);
-		
-		
-		// POI表示の選択肢(メタデータ or リンク)を生成する
-		var pts =  document.createElement("div");
-		pts.style.opacity="1";
-		// 幅を自動にしつつ真ん中に表示するのはできないのかな・・
-//		pts.style.margin="0 auto";
-		pts.style.position = "absolute";
-//		pts.style.width="80%";
-//		pts.style.height="80%";
-		pts.style.backgroundColor = "white";
-		pts.id = "POItargetSelection";
-		pts.innerHTML='<span>Multiple candidates are overwrapped please select one.</span><br/><select id="ptsSelect" size="8" value="view Property"></select><br/><input type="button" id="ptsClose" value="Close"/>';
-		
-		pts.style.display="none";
-		modalUI.appendChild(pts);
 		
 		
 		// POI表示の選択肢(メタデータ or リンク)を生成する
@@ -4540,7 +4965,7 @@ function xml2Str(xmlNode) {
 	return false;
 }
 
-function svgPoi2csv(svgDocElement){
+function svgPoi2csv(svgDocElement){ // 使われていないshowSerializeからしか呼ばれていないので使われていない(2018.3.2確認)
 	var ans ="";
 	var docId = getDocumentId(svgDocElement);
 	var schema = getMetaSchema(svgDocElement.ownerDocument);
@@ -4548,7 +4973,7 @@ function svgPoi2csv(svgDocElement){
 	ans += "latitude,longitude,iconClass,iconTitle,"+schema+"\n";
 	var pois = svgDocElement.getElementsByTagName("use");
 	for ( var i = 0 ; i < pois.length ; i++ ){
-		var poiProp = getImageProps( pois[i] , 2 );
+		var poiProp = getImageProps( pois[i] , POI );
 		var geoPos=SVG2Geo(poiProp.x ,poiProp.y , crs );
 		ans += numberFormat(geoPos.lat) + "," + numberFormat(geoPos.lng) + "," + poiProp.href + "," + poiProp.title + "," + poiProp.metadata+"\n";
 	}
@@ -4587,10 +5012,16 @@ function setSVGcirclePoints( pathNode ,  context , child2canvas , clickable , ca
 	var repld = "M"+ (cx - rx) + "," + cy + "A" + rx + "," + ry + " 0 0 1 " + (cx + rx ) + "," + cy + "A" + rx + "," + ry + " 0 0 1 " + (cx - rx ) + "," + cy +"z";
 	
 	var ret = setSVGpathPoints( pathNode ,  context , child2canvas , clickable , repld , vectorEffectOffset , GISgeometry );
-	var csize = transform( rx , ry , child2canvas , true );
-	ret.y -= csize.y;
-	ret.height = csize.y * 2;
+	if ( vectorEffectOffset ){ // non scaling circle support 2018.3.6
+		ret.y -= ry;
+		ret.height = ry * 2;
+	} else {
+		var csize = transform( rx , ry , child2canvas , true );
+		ret.y -= csize.y;
+		ret.height = csize.y * 2;
+	}
 //	console.log("repld:"+repld,  " ret:",ret , " csize:" , csize);
+	console.log("circle ret:",ret , " csize:" , csize);
 	
 	return ( ret );
 
@@ -4706,10 +5137,11 @@ function setSVGpathPoints( pathNode ,  context , child2canvas , clickable , repl
 		GISgeometry.svgXY = new Array();// PolygonもMultiLineStringもsvgXYに[[x,y],[x,y],[x,y]],[[x,y],[x,y],[x,y]]というのが入る ただし、vectorEffectOffsetがあったら、それは全体で一個のPoint化するので注意
 	}
 	
-	if ( GISgeometry && vectorEffectOffset ){
+	if ( GISgeometry && vectorEffectOffset ){ // vectorEffectOffsetがあったら、それは全体で一個のPoint化
 		var svgP = [vectorEffectOffset.x,vectorEffectOffset.y];
-		var svgPs = [svgP];
-		GISgeometry.svgXY.push( svgPs );
+		GISgeometry.svgXY = svgP; // bug fix 2018.3.5
+//		var svgPs = [svgP];
+//		GISgeometry.svgXY.push( svgPs );
 	}
 	
 //	console.log(d);
@@ -4930,7 +5362,7 @@ function setSVGpathPoints( pathNode ,  context , child2canvas , clickable , repl
 	}
 	var hitted=false;
 	
-	if ( clickable && !canvasNonFillFlag && pathHitTest.enable){ // ヒットテスト要求時の面の場合　且つ　面検索
+	if ( clickable && !canvasNonFillFlag && ( pathHitTest.enable || pathHitTest.centralGetter ) ){ // ヒットテスト要求時の面の場合　且つ　面検索
 		if( context.isPointInPath(pathHitTest.x,pathHitTest.y) ){ // テストしヒットしてたら目立たせる
 //			console.log("HIT:",pathNode,":",svgImagesProps[getDocumentId(pathNode)]);
 			hitted = true;
@@ -4955,7 +5387,7 @@ function setSVGpathPoints( pathNode ,  context , child2canvas , clickable , repl
 		context.arc(hitPoint.x,hitPoint.y,3,0,2*Math.PI,true);
 		context.fill();
 		
-		if (pathHitTest.enable){ // ヒットテスト要求時の線検索
+		if (pathHitTest.enable || pathHitTest.centralGetter ){ // ヒットテスト要求時の線検索
 			if( context.isPointInPath(pathHitTest.x,pathHitTest.y) ){ // テストしヒットしてたら目立たせる
 				context.arc(hitPoint.x,hitPoint.y,6,0,2*Math.PI,true);
 				context.fill();
@@ -5018,6 +5450,10 @@ function initGISgeometry( cat, subCat , svgNode ){
 		break;
 	case BITIMAGE:
 		// nothing
+		if ( BitImageGeometriesCaptureFlag ){
+			GISgeometry = new Object();
+			GISgeometry.type = "Coverage"; 
+		}
 		break;
 	case POI:
 		GISgeometry = new Object();
@@ -5263,7 +5699,7 @@ function getCollidedImgs(imgs){
 //	console.log(collidedPOIs);
 }
 
-function isCollided( POIelemId ){
+function isCollided( POIelemId ){ // この機能はtestClickのcheckTickerへの吸収使われなくなったが、有用かもしれないので残置 2018.2.1
 //	console.log( "call isCollided lazy ");
 	// とりあえず選ばれたアイコンにだけ重なっているものを取り出す
 	try{ // 2016.6.15 isCollided関数がからの状態のoverwrappedPOIsを返すことがある？
@@ -5297,7 +5733,7 @@ function isCollided( POIelemId ){
 	}
 }
 
-function isCollided1( POIelemId ){
+function isCollided1( POIelemId ){ // こちらはもっと以前から使われていないが、アルゴリズム的に有用かもしれないので残置(たぶんGISに移動するのが良い) 2018.2.1
 	// RDS法を用いて重なっているものすべてを取り出す
 //	console.log("call isCollided",visiblePOIs , POIelemId);
 	var collidedPOIs = getCollidedImgs(visiblePOIs);
@@ -5396,13 +5832,65 @@ function getHyperLink(svgNode){
 	return ( null );
 }
 
+function getPoiObjectsAtPoint( x, y ){
+	var hittedPOIs = new Array();
+	for ( var i in visiblePOIs ){
+		if ( x < visiblePOIs[i].x ||
+			x > visiblePOIs[i].x + visiblePOIs[i].width ||
+			y < visiblePOIs[i].y ||
+			y > visiblePOIs[i].y + visiblePOIs[i].height ) {
+				// none
+		} else {
+			visiblePOIs[i].id = i;
+			hittedPOIs.push(visiblePOIs[i]);
+		}
+	}
+	return ( hittedPOIs );
+}
 
 // VECTOR2Dの線や面をヒットテストする機能 2013/11/29
 var pathHitTest = new Object();
+// .enable:  X,Yを指定してヒットテストするときに設置する
+// .centralGetter: 通常の描画時に画面の中心にあるオブジェクトを拾う機能を設置する added 2018.1.18
+// .x,.y ヒットテストする場所を設置
+// .hittedElements* ヒットした情報が返却される　親の要素も返る
 
-function getObjectAtPoint( x, y ){
-	console.log("called getObjectAtPoint:",x,y);
+
+function setCentralVectorObjectsGetter(){ // checkTicker()(画面中心のデフォルトヒットテスト)での二重パースを防止するための関数 2018.1.18
+	if ( !pathHitTest.enable ){ // getVectorObjectsAtPoint(x,y)が要求されていた時はこの機能を発動させてはまずい
+		pathHitTest.enable = false;
+		pathHitTest.centralGetter = true;
+		pathHitTest.x = mapCanvasSize.width / 2;
+		pathHitTest.y = mapCanvasSize.height / 2;
+		pathHitTest.hittedElements = new Array();
+		pathHitTest.hittedElementsBbox = new Array();
+		pathHitTest.hittedElementsUsedParent = new Array();
+		if (typeof svgMapAuthoringTool == "object" && svgMapAuthoringTool.isEditingGraphicsElement() ){ // オブジェクトを編集中には、ジェネラルなヒットテストは実施しない
+			console.log("now object editing..");
+			pathHitTest.enable = false;
+			return ( false );
+		} else {
+			return ( true );
+		}
+	} else {
+		return ( false );
+	}
+}
+
+function getHittedObjects(){ // 2018.1.17 setCentralVectorObjectsGetter用にgetVectorObjectsAtPointの一部を関数化
+	pathHitTest.enable = false;
+	pathHitTest.centralGetter = false;
+	return {
+		elements : pathHitTest.hittedElements,
+		bboxes   : pathHitTest.hittedElementsBbox,
+		parents  : pathHitTest.hittedElementsUsedParent
+	}
+}
+
+function getVectorObjectsAtPoint( x, y ){
+//	console.log("called getVectorObjectsAtPoint:",x,y," caller:",getVectorObjectsAtPoint.caller);
 	pathHitTest.enable = true;
+	pathHitTest.centralGetter = false; // 2018.1.18
 	pathHitTest.x = x;
 	pathHitTest.y = y;
 	pathHitTest.hittedElements = new Array();
@@ -5411,83 +5899,202 @@ function getObjectAtPoint( x, y ){
 	if (typeof svgMapAuthoringTool == "object" && svgMapAuthoringTool.isEditingGraphicsElement() ){ // オブジェクトを編集中には、ジェネラルなヒットテストは実施しない
 		console.log("now object editing..");
 		pathHitTest.enable = false;
-		return ( pathHitTest.targetObject );
+		return ( null );
 	}
-	refreshScreen(); // 本来この関数は非同期の動きをするのでこの呼び方はまずいけれど・・・（ロードさえ生じなければ同期してるはずなので大丈夫だと思う）この呼び出しケースの場合、原理的にはロード生じないはず
+	refreshScreen(); // 本来この関数は非同期の動きをするのでこの呼び方はまずいけれど・・・（ロードさえ生じなければ同期してるはずなので大丈夫だと思う）この呼び出しケースの場合、原理的にはロード生じないはずなのでオーケー・・でもなかった　リドロー完了形のイベントがまともに動かなくなってしまう2017.8.18
+	return ( getHittedObjects() );
+}
+
+function getVectorMetadata( element , parent , bbox ){
+	console.log("called getVectorMetadata: ",element , parent , bbox, "  caller:",getVectorMetadata.caller);
+	var geolocMin = screen2Geo(bbox.x , bbox.y + bbox.height );
+	var geolocMax = screen2Geo(bbox.x + bbox.width , bbox.y  );
+	var metadata = "";
+	var title ="";
+	if ( parent && parent.getAttribute("content") ){
+		metadata = parent.getAttribute("content");
+	} else if ( element.getAttribute("content") ){
+		metadata = element.getAttribute("content");
+	}
 	
-	var el = isEditingLayer();
+	if ( parent && parent.getAttribute("xlink:title") ){ // xlink:titleをとれるようにした 2018.1.30
+		title = parent.getAttribute("xlink:title");
+	} else if ( element.getAttribute("xlink:title") ){
+		title = element.getAttribute("xlink:title");
+	}
 	
-	if ( pathHitTest.hittedElements.length > 0 ){ // ヒットしている場合
-		console.log("hit Object:", pathHitTest.hittedElements);
-//		console.log( pathHitTest.hittedElements[0].ownerDocument.documentElement);
-		
-		//編集システムがあり、編集中であり、編集中のレイヤのオブジェクトが選択されているかどうかの判別 (debug 2017.2.23 [0]がそうとは限らない)
-		var editingTarget = -1;
-		if (typeof svgMapAuthoringTool == "object" && el ){
-			for ( var i = 0 ; i < pathHitTest.hittedElements.length ; i++ ){
-				if ( el.getAttribute("iid") == getDocumentId(pathHitTest.hittedElements[i]) ){
-					editingTarget = i;
+	var metaSchema ="";
+	
+	var layerName = getLayerName(getLayer(svgImagesProps[element.ownerDocument.firstChild.getAttribute("about")].rootLayer));
+	if ( element.ownerDocument.firstChild.getAttribute("property") ){
+		metaSchema = element.ownerDocument.firstChild.getAttribute("property");
+	}
+	return {
+		geolocMin: geolocMin,
+		geolocMax: geolocMax,
+		metadata: metadata,
+		metaSchema: metaSchema,
+		layerName: layerName,
+		title: title
+	}
+}
+
+function parseEscapedCsvLine( csv ){
+	// ' や " でエスケープされたcsvの1ラインをパースして配列に格納する。(高級split(","))
+	var metaData = csv.split(",");
+	for ( var j = 0 ; j < metaData.length ; j++ ){
+		metaData[j]=trim(metaData[j]);
+		if (metaData[j].indexOf("'")==0 || metaData[j].indexOf('"')==0){
+			var countss = 0;
+//				console.log("test:",metaData[j]," ::: ",metaData[j].substr(metaData[j].length-1,1));
+			while(metaData[j].substr(metaData[j].length-1,1) !="'" && metaData[j].substr(metaData[j].length-1,1) !='"'){
+				metaData[j]=metaData[j]+","+metaData[j+1];
+				metaData.splice(j+1,1);
+//					console.log(countss,metaData[j]);
+				++countss;
+				if ( countss > 5 ){
 					break;
 				}
 			}
-//			console.log("editingTarget:",editingTarget);
-		}
-		
-		if ( editingTarget>=0 ){ //編集中レイヤのオブジェクトが選択されている場合
-			svgMapAuthoringTool.setTargetObject(
-				{
-					element: pathHitTest.hittedElements[editingTarget],
-					docId: getDocumentId(pathHitTest.hittedElements[editingTarget]) 
-				}
-			);
-		} else { // 
-			// 本来はPOI同様にターゲットを選択するボックスが出てくるのが良いと思う・・・
-			for ( var i = 0 ; i < pathHitTest.hittedElements.length ; i++ ){
-				var target = pathHitTest.hittedElements[i];
-				var targetBbox = pathHitTest.hittedElementsBbox[i];
-				var usedParent = pathHitTest.hittedElementsUsedParent[i];
-		//		var crs = svgImagesProps[getDocumentId(target)].CRS;
-				var geolocMin = screen2Geo(targetBbox.x , targetBbox.y );
-				var geolocMax = screen2Geo(targetBbox.x + targetBbox.width , targetBbox.y + targetBbox.height );
-				
-//				var d = target.getAttribute("d");
-				
-				var contentMeta = target.getAttribute("content"); // useの場合 use先のメタデータにはたいてい意味がない
-				if ( usedParent && usedParent.getAttribute("content") ){
-					target.setAttribute("content", usedParent.getAttribute("content"));
-				}
-				
-				// showPoiPropertyWrapper()が想定しているオブジェクト形式に無理やり合わせて、呼び終わったら戻している・・・微妙
-//				target.removeAttribute("d");
-				target.setAttribute("lat",geolocMin.lat + ","+geolocMax.lat);
-				target.setAttribute("lng",geolocMin.lng +","+geolocMax.lng);
-				showPoiPropertyWrapper(target);
-//				target.setAttribute("d",d);
-				if ( contentMeta){
-					target.setAttribute("content", contentMeta);
-				} else {
-					target.setAttribute("content", "");
-				}
-				target.removeAttribute("lat");
-				target.removeAttribute("lng");
-			}
-		}
-	} else { // ヒットしてない場合
-		if ( typeof svgMapAuthoringTool == "object" && el ){ // 編集システムがあり、編集中の場合(ただし編集中オブジェクトはない)
-			// 新しいオブジェクト作成系
-			svgMapAuthoringTool.editPoint(x , y);
-		} else { // 編集中でない場合
-			// do nothing
+			metaData[j]=metaData[j].replace(/['"]/g,"");
 		}
 	}
-	
-	
-	
-	
-	pathHitTest.enable = false;
-	return ( pathHitTest.targetObject );
+	return ( metaData );
 }
 
+// svgMapのcsv型のメタデータをオブジェクトに変換　もしもスキーマがない場合は配列だけが返却
+// titleはデフォルトのものを設定可能とした
+function getMetadataObject( dataCsv , schemaCsv , title ){
+	var data = parseEscapedCsvLine(dataCsv);
+	var obj;
+	if ( schemaCsv ){
+		var schema = parseEscapedCsvLine(schemaCsv);
+		if ( data.length == schema.length ){
+			obj = new Object();
+			for ( var i = 0 ; i < data.length ; i++ ){
+				obj[schema[i]] = data[i];
+			}
+			if ( ! title ){
+				if ( obj.name ){
+					title = obj.name;
+				} else if ( obj.title ){
+					title = obj.title;
+				} else if ( obj["名前"] ){
+					title = obj["名前"];
+				} else if ( obj["名称"] ){
+					title = obj["名称"];
+				} else if ( obj["タイトル"] ){
+					title = obj["タイトル"];
+				}
+			}
+		}
+	}
+	if ( ! title ){
+		title = data[0];
+	}
+	return {
+		object: obj,
+		title: title,
+		array: data
+	};
+}
+
+
+
+// ヒットした2Dベクタオブジェクトがオーサリングシステムをキックするべきものかどうかを調べて必要であればキックする
+// getObjectAtPoint()に元々あった機能を切り分け　今はgetObjectAtPoint()を代替したcheckTicker()から呼ばれている
+function checkAndKickEditor(hittedVectorObjects , x , y){
+	var el = isEditingLayer();
+	var ans = false;
+	if ( typeof svgMapAuthoringTool == "object" && el ){ // オーサリングシステムがあり、オーサリング中のレイヤがある場合
+		if ( hittedVectorObjects && hittedVectorObjects.elements.length > 0 ){ // ヒットしている場合
+			var editingObject = getEditingObject(hittedVectorObjects , el );
+			if ( editingObject ){ //編集中レイヤのオブジェクトが選択されている場合
+				svgMapAuthoringTool.setTargetObject(
+					{
+						element: editingObject,
+						docId: getDocumentId(editingObject) 
+					}
+				);
+				ans = true;
+			}
+		} else { // 編集システムがあり、編集中の場合(ただし編集中オブジェクトはない)
+			// 新しいオブジェクト作成系
+//			console.log("call svgMapAuthoringTool.editPoint:",x,y);
+			svgMapAuthoringTool.editPoint(x , y);
+			ans = true ;
+		}
+	}
+	return ( ans );
+}
+	
+// 入力したオブジェクトの中から初めに見つかった編集中レイヤーのオブジェクトを返却する
+// 最初に見つかったものに決め打ちしているのが果たしていいのかどうかは要検討
+// getObjectAtPoint()に元々あった機能を切り分け　上のcheckAndKickEditor()から呼ばれている
+function getEditingObject(hittedObjects , editingLayer ){
+	var editingTarget = -1;
+	if (typeof svgMapAuthoringTool == "object" && editingLayer ){
+		for ( var i = 0 ; i < hittedObjects.elements.length ; i++ ){
+			if ( editingLayer.getAttribute("iid") == getDocumentId(hittedObjects.elements[i]) ){
+				editingTarget = i;
+				break;
+			}
+		}
+//			console.log("editingTarget:",editingTarget);
+	}
+	
+	if ( editingTarget>=0 ){
+		return ( hittedObjects.elements[editingTarget] );
+	} else {
+		return ( null );
+	}
+}
+
+// 指定した2Dベクタ要素のプロパティ表示画面をキックするためのプリプロセッサ
+// getObjectAtPoint()に元々あった機能を切り分け
+function vectorDataWrapperForShowPoiProperty(targetElement , targetBbox , usedParent ){
+	var vMeta = getVectorMetadata( targetElement,usedParent,targetBbox);
+	var meta = getMetadataObject( vMeta.metadata , vMeta.metaSchema , vMeta.title );
+//		var crs = svgImagesProps[getDocumentId(targetElement)].CRS;
+	var geolocMin = screen2Geo(targetBbox.x , targetBbox.y + targetBbox.height );
+	var geolocMax = screen2Geo(targetBbox.x + targetBbox.width , targetBbox.y );
+	
+//				var d = targetElement.getAttribute("d");
+	
+	var contentMeta = targetElement.getAttribute("content"); // useの場合 use先のメタデータにはたいてい意味がない
+	if ( usedParent && usedParent.getAttribute("content") ){
+		targetElement.setAttribute("content", usedParent.getAttribute("content"));
+	}
+	
+	// showPoiPropertyWrapper()が想定しているオブジェクト形式に無理やり合わせて、呼び終わったら戻している・・・微妙
+//				targetElement.removeAttribute("d");
+	targetElement.setAttribute("lat",geolocMin.lat + ","+geolocMax.lat);
+	targetElement.setAttribute("lng",geolocMin.lng +","+geolocMax.lng);
+	targetElement.setAttribute("data-title",meta.title);
+	showPoiPropertyWrapper(targetElement);
+//				targetElement.setAttribute("d",d);
+	if ( contentMeta){
+		targetElement.setAttribute("content", contentMeta);
+	} else {
+		targetElement.setAttribute("content", "");
+	}
+	targetElement.removeAttribute("data-title");
+	targetElement.removeAttribute("lat");
+	targetElement.removeAttribute("lng");
+}
+
+// 2D Vector及び、ラスターのPOI(html img要素)のための、クリックなどによるオブジェクト検索機能。 関数名を除き、すべての機能をcheckTickerに集約した 2018.1.31
+function getObjectAtPoint( x, y ){
+//	console.log("called getObjectAtPoint:",x,y," caller:",getObjectAtPoint.caller);
+	checkTicker( x, y );
+	
+	/**
+	
+	return ( pathHitTest.targetObject ); // こんなプロパティは存在しない null. TBD
+	**/
+}
+
+// ビットイメージPOI要素のためのshowPoiPropertyWrapper呼び出し用プリプロセッサ
 function showUseProperty( target ){
 	var crs = svgImagesProps[getDocumentId(target)].CRS;
 	var iprops = getImageProps(target,POI);
@@ -5496,6 +6103,8 @@ function showUseProperty( target ){
 //	var useY = target.getAttribute("y");
 //	var useTf = target.getAttribute("transform");
 	
+	var title = document.getElementById(target.getAttribute("iid")).title; // Added title 2017.8.22
+	
 	// showPoiPropertyWrapper()が想定しているオブジェクト形式に無理やり合わせて、呼び終わったら戻している・・・微妙
 	// 2017.2.28　x,y,transformを除去する処理はバグを誘発するので中止
 //	target.removeAttribute("x");
@@ -5503,11 +6112,13 @@ function showUseProperty( target ){
 //	target.removeAttribute("transform");
 	target.setAttribute("lat",geoloc.lat);
 	target.setAttribute("lng",geoloc.lng);
+	target.setAttribute("data-title",title);
 //	console.log("showUseProperty",target , target.ownerDocument);
 	showPoiPropertyWrapper(target);
 //	target.setAttribute("x",useX);
 //	target.setAttribute("y",useY);
 //	target.setAttribute("transform",useTf);
+	target.removeAttribute("data-title");
 	target.removeAttribute("lat");
 	target.removeAttribute("lng");
 }
@@ -5595,6 +6206,9 @@ function showPoiPropertyWrapper(target){
 	var docId = getDocumentId(target);
 	var layerId = svgImagesProps[docId].rootLayer;
 	
+	var layerName = getLayerName(getLayer(layerId));
+	target.setAttribute("data-layername",layerName); // 2017.8.22 added
+	
 	var ans = true;
 	if ( specificShowPoiPropFunctions[docId] ){ // targeDoctに対応するshowPoiProperty処理関数が定義されていた場合、それを実行する。
 		ans = specificShowPoiPropFunctions[docId](target);
@@ -5615,6 +6229,8 @@ function showPoiPropertyWrapper(target){
 			defaultShowPoiProperty(target);
 		}
 	}
+	
+	target.removeAttribute("data-layername");
 }
 
 // setShowPoiProperty: 特定のレイヤー・svg文書(いずれもIDで指定)もしくは、全体に対して別のprop.表示関数を指定できる。
@@ -5639,78 +6255,141 @@ function setShowPoiProperty( func , docId ){
 }
 
 function defaultShowPoiProperty(target){
+	// 何も設定されていない場合のデフォルトパネル
 	console.log ( "Target:" , target , "  parent:", target.parentNode );
-	
+
 //	var metaSchema = target.parentNode.getAttribute("property").split(",");
 	var metaSchema = null;
 	if ( target.ownerDocument.firstChild.getAttribute("property") ){
 		metaSchema = target.ownerDocument.firstChild.getAttribute("property").split(","); // debug 2013.8.27
 	}
+
+
+	var message="<table border='1' style='word-break: break-all;table-layout:fixed;width:100%;border:solid orange;border-collapse: collapse'>";
 	
+	var titleAndLayerName ="";
+	if ( target.getAttribute("data-title")){
+		titleAndLayerName = target.getAttribute("data-title") + "/" + target.getAttribute("data-layername") + "\n";
+	}
 	
-	var message="";
 	if ( target.getAttribute("content") ){ // contentメタデータがある場合
-		var metaData = target.getAttribute("content").split(",");
-		for ( var j = 0 ; j < metaData.length ; j++ ){
-			metaData[j]=metaData[j].replace(/^\s+|\s+$/g,'');
-			if (metaData[j].indexOf("'")==0 || metaData[j].indexOf('"')==0){
-				var countss = 0;
-//				console.log("test:",metaData[j]," ::: ",metaData[j].substr(metaData[j].length-1,1));
-				while(metaData[j].substr(metaData[j].length-1,1) !="'" && metaData[j].substr(metaData[j].length-1,1) !='"'){
-					metaData[j]=metaData[j]+","+metaData[j+1];
-					metaData.splice(j+1,1);
-//					console.log(countss,metaData[j]);
-					++countss;
-					if ( countss > 5 ){
-						break;
-					}
-				}
-				metaData[j]=metaData[j].replace(/['"]/g,"");
-			}
+		
+		var metaData = parseEscapedCsvLine(target.getAttribute("content"));
+		
+		message += "<tr><th style='width=25%'>name</th><th>value</th></tr>";
+		if ( titleAndLayerName != ""){
+			message += "<tr><td>title/Layer</td><td> " + titleAndLayerName + "</td></tr>";
 		}
 		
 		if ( metaSchema && metaSchema.length == metaData.length ){
-			message = "[name] , [value]\n";
 			for ( var i = 0 ; i < metaSchema.length ; i++ ){
 				var data = "--";
 				if ( metaData[i]!=""){
 					data = metaData[i];
 				}
-				message += metaSchema[i] + " , " + data + "\n";
+				message += "<tr><td>"+metaSchema[i] + " </td><td> " + data + "</td></tr>";
 			}
 		} else {
-			message = "[number] , [value]\n";
 			for ( var i = 0 ; i < metaData.length ; i++ ){
 				var data = "--";
 				if ( metaData[i]!=""){
 					data = metaData[i];
 				}
-				message += i + " , " + data + "\n";
+				message += "<tr><td>"+ i + " </td><td> " + data + "</td></tr>";
 			}
 		}
-		
-		if ( getHyperLink(target) ){
-			message += "link , " + getHyperLink(target).href + "\n";
-		}
-		if ( target.getAttribute("lat") ){
-			message += "\n"+ "緯度, " + target.getAttribute("lat") + "\n経度, " + target.getAttribute("lng");
-		}
+
 	} else { // 無い場合
-		message = getAttributes( target );
+		var nm = target.attributes;
+		for ( var i = 0 ; i < nm.length ; i++ ){
+			message += "<tr><td>" + nm.item(i).nodeName + " </td><td> " + domElement.getAttribute(nm.item(i).nodeName) + "</td></tr>";
+		}
 	}
-	alert("POI CLICKED!\nイベント元要素のメタデータは、\n" + message + "です。");
 	
+	if ( getHyperLink(target) ){
+		message += "<tr><td>link</td> <td><a href='" + getHyperLink(target).href + "' target=`_blank'>" +  getHyperLink(target).href + "</a></td></tr>";
+	}
+	
+	if ( target.getAttribute("lat") ){
+		message += "<tr><td>latitude</td> <td>" + getFormattedRange(target.getAttribute("lat")) + "</td></tr>";
+		message += "<tr><td>longitude</td> <td>" + getFormattedRange(target.getAttribute("lng")) + "</td></tr>";
+	}
+	
+	message += "</table>";
+	console.log(message);
+	showModal(message,400,600);
+
 }
 
-function getAttributes( domElement ){
-	var nm = domElement.attributes;
-	var ans ="";
-	for ( var i = 0 ; i < nm.length ; i++ ){
-		ans += nm.item(i).nodeName + " , " + domElement.getAttribute(nm.item(i).nodeName) + "\n";
+function getFormattedRange( prop ){
+	var rangeStr = prop.split(",");
+	var ans = "";
+	for ( var i = 0 ; i < rangeStr.length ; i++ ){
+		ans += numberFormat(Number(rangeStr[i]),6);
+		if ( i < rangeStr.length - 1 ){
+			ans += ",";
+		}
 	}
 	return ( ans );
 }
 
+function showModal( htm , maxW, maxH ){
+	var modalDiv;
+	if ( document.getElementById("modalDiv") ){
+		modalDiv = document.getElementById("modalDiv")
+		modalDiv.parentNode.removeChild(modalDiv);
+		modalDiv=document.createElement("div");
+	} else {
+		modalDiv=document.createElement("div");
+	}
+	if ( window.innerWidth -100 < maxW ){
+		maxW = window.innerWidth -100;
+	}
+	if ( window.innerHeight -140 < maxH ){
+		maxH = window.innerHeight -100;
+	}
+	modalDiv.style.height= (maxH +36) + "px";
+	modalDiv.style.width= (maxW +10) + "px";
+	modalDiv.style.backgroundColor="rgba(180, 180, 180, 0.4)";
+	modalDiv.style.zIndex="1000";
+	modalDiv.style.position="absolute";
+	modalDiv.style.top="40px";
+	modalDiv.style.left="40px";
+	modalDiv.style.overflowY="hidden";
+	modalDiv.style.overflowX="hidden";
+	modalDiv.id="modalDiv";
+
+	var infoDiv=document.createElement("div");
+	infoDiv.style.height= maxH + "px";
+	infoDiv.style.width= maxW + "px";
+	infoDiv.style.backgroundColor="rgba(255,240,220,0.7)";
+	infoDiv.style.position="absolute";
+	infoDiv.style.top="5px";
+	infoDiv.style.left="5px";
+	infoDiv.style.overflowY="scroll";
+	infoDiv.style.overflowX="hidden";
+	infoDiv.id="infoDiv";
+	modalDiv.appendChild(infoDiv);
+
+	infoDiv.innerHTML = htm;
+
+	var btn=document.createElement("button");
+	var txt=document.createTextNode("CLOSE");
+	btn.appendChild(txt);
+	btn.onclick=function(){
+		modalDiv.parentNode.removeChild(modalDiv);
+	};
+	btn.style.position="absolute";
+	btn.style.width="30%";
+	btn.style.bottom="5px";
+	btn.style.right="40px";
+
+	modalDiv.appendChild(btn);
+
+	modalDiv.addEventListener("mousewheel" , function(e){e.stopPropagation();}, false); //chrome
+	modalDiv.addEventListener("DOMMouseScroll" , function(e){e.stopPropagation();}, false); //firefox
+	document.getElementsByTagName("body")[0].appendChild(modalDiv);
+}
 
 
 
@@ -5952,7 +6631,7 @@ function checkResume(documentElement, symbols){
 //				resumeFirstTime = false; // 下(setGeoViewPort)でもう一回checkが通ってバグる・・10/27 これは5番目の引数により不要になった 2017.1.31
 				setGeoViewPort(vbLat,vbLng,vbLatSpan,vbLngSpan , true); // set geoviewport without refresh
 				
-				console.log("Resume setGeoViewPort:", vbLat,vbLng,vbLatSpan,vbLngSpan );
+//				console.log("Resume setGeoViewPort:", vbLat,vbLng,vbLatSpan,vbLngSpan );
 				saveResumeData();
 				
 			}
@@ -5972,16 +6651,35 @@ function checkResume(documentElement, symbols){
 				vb = { x: Number(gvb[0]), y: Number(gvb[1]), width: Number(gvb[2]), height: Number(gvb[3]) , global: true };
 				console.log(" global view by Media Fragments: ",  vb);
 			}
+			
+			var passVL = false;
+			if ( lh.visibleLayer && lh.visibleLayer.indexOf("*")>=0){
+				// ワイルドカード*が設定されていたら、まずは全レイヤーをvisibleにする
+				var layers = getLayers();
+				for ( var i = 0 ; i < layers.length ; i++ ){
+					var layerId = layers[i].getAttribute("iid");
+					setRootLayersProps(layerId, true, false);
+				}
+			}
+			
 			if ( lh.hiddenLayer ){
-//				var hl = decodeURI(lh.hiddenLayer).split(",");
-				var hl = decodeURIComponent(lh.hiddenLayer).split(",");
-				for ( var i = 0 ; i < hl.length ; i++ ){
-					hl[i]=getUrlOptions(hl[i]);
-					var layerId = getLayerId(hl[i].name);
-//					console.log( "visible layer name:",hl[i], " is?:",layerId);
-					if ( layerId ){
-//						console.log("set visible:",hl[i],layerId);
-						setRootLayersProps(layerId, false, false, hl[i].hash);
+				if ( lh.hiddenLayer.indexOf("*")>=0){ // ワイルドカード*が設定されていたら、全レイヤーをhideする　その他のURLは無視する。#オプション部も無視されてしまうが・・
+					var layers = getLayers();
+					for ( var i = 0 ; i < layers.length ; i++ ){
+						var layerId = layers[i].getAttribute("iid");
+						setRootLayersProps(layerId, false, false);
+					}
+				}else {
+	//				var hl = decodeURI(lh.hiddenLayer).split(",");
+					var hl = decodeURIComponent(lh.hiddenLayer).split(",");
+					for ( var i = 0 ; i < hl.length ; i++ ){
+						hl[i]=getUrlOptions(hl[i]);
+						var layerId = getLayerId(hl[i].name);
+	//					console.log( "visible layer name:",hl[i], " is?:",layerId);
+						if ( layerId ){
+	//						console.log("set visible:",hl[i],layerId);
+							setRootLayersProps(layerId, false, false, hl[i].hash);
+						}
 					}
 				}
 			}
@@ -5992,7 +6690,7 @@ function checkResume(documentElement, symbols){
 				for ( var i = 0 ; i < vl.length ; i++ ){
 //					console.log( "visible layer:",vl[i]);
 					vl[i]=getUrlOptions(vl[i]);
-					var layerId = getLayerId(vl[i].name);
+					var layerId = getLayerId(vl[i].name); // "*"が入ったままだとおかしなことが起きるかも？？
 //					console.log( "visible layer name:",vl[i], " is?:",layerId);
 					if ( layerId ){
 //						console.log("set visible:",vl[i],layerId);
@@ -6052,27 +6750,29 @@ function saveResumeData(){
 	var expire = new Date();
 	expire.setTime( expire.getTime() + 1000 * 3600 * 24 * resumeSpan); // 3日の有効期限..
 	setCookie( "resume", resume , expire );
-	setCookie( "vbLng", geoViewBox.x , expire );
-	setCookie( "vbLat", geoViewBox.y , expire );
-	setCookie( "vbLngSpan", geoViewBox.width , expire );
-	setCookie( "vbLatSpan", geoViewBox.height , expire );
-	var lp = getRootLayersProps();
-	// クッキーの個数よりもレイヤーがとても多い場合があるので簡略化
-	var layerStatStr="";
-	for ( var i = 0 ; i < lp.length ; i++ ){
-		if ( i >= 4000 ){ continue; }
-		if ( lp[i].visible ){
-			if ( lp[i].editing ){
-				layerStatStr += "e";
+	if ( resume == true ){ // resumeがfalseの場合は、そもそもこれらは不要
+		setCookie( "vbLng", geoViewBox.x , expire );
+		setCookie( "vbLat", geoViewBox.y , expire );
+		setCookie( "vbLngSpan", geoViewBox.width , expire );
+		setCookie( "vbLatSpan", geoViewBox.height , expire );
+		var lp = getRootLayersProps();
+		// クッキーの個数よりもレイヤーがとても多い場合があるので簡略化
+		var layerStatStr="";
+		for ( var i = 0 ; i < lp.length ; i++ ){
+			if ( i >= 4000 ){ continue; }
+			if ( lp[i].visible ){
+				if ( lp[i].editing ){
+					layerStatStr += "e";
+				} else {
+					layerStatStr += "v";
+				}
 			} else {
-				layerStatStr += "v";
+				layerStatStr += "-";
 			}
-		} else {
-			layerStatStr += "-";
 		}
+		setCookie ( "layerStat" , layerStatStr , expire );
+	//	console.log("save resume data",decodeURIComponent(document.cookie));
 	}
-	setCookie ( "layerStat" , layerStatStr , expire );
-//	console.log("save resume data",decodeURIComponent(document.cookie));
 }
 
 function resumeToggle(evt){
@@ -6123,9 +6823,10 @@ function getFragmentView( URLfragment ){
 	}
 }
 
-var setLayerUI, updateLayseListUI;
+var setLayerUI, updateLayerListUIint;
 
 var GISgeometriesCaptureFlag = false; // for GIS 2016.12.1
+var BitImageGeometriesCaptureFlag = false; // for GIS 2018.2.26
 
 var GISgeometries;
 
@@ -6160,6 +6861,14 @@ function prepareGISgeometries(cbFunc , prop1 , prop2 , prop3 , prop4 , prop5 , p
 				if ( geom.type === "Point" ){
 					geoCrd = SVG2Geo( geom.svgXY[0] , geom.svgXY[1] , null , invCrs );
 					geom.coordinates = [ geoCrd.lng , geoCrd.lat ];
+				} else if ( geom.type === "Coverage" ){
+					geom.coordinates = new Array();
+					geoCrd = SVG2Geo( geom.svgXY[0][0] , geom.svgXY[0][1] , null , invCrs );
+					var geoCrd2 = SVG2Geo( geom.svgXY[1][0] , geom.svgXY[1][1] , null , invCrs );
+					geom.coordinates.push({lat:Math.min(geoCrd.lat,geoCrd2.lat), lng:Math.min(geoCrd.lng,geoCrd2.lng)});
+					geom.coordinates.push({lat:Math.max(geoCrd.lat,geoCrd2.lat), lng:Math.max(geoCrd.lng,geoCrd2.lng)});
+					delete geom.transform; // TBDです・・・
+					
 				} else {
 					geom.coordinates = new Array();
 					if ( geom.svgXY.length == 1 && geom.svgXY[0].length == 1 ){ // Vector EffectのPolygonなどはPointにこの時点で変換する。
@@ -6198,6 +6907,19 @@ function prepareGISgeometries(cbFunc , prop1 , prop2 , prop3 , prop4 , prop5 , p
 	cbFunc( GISgeometries , prop1 , prop2 , prop3 , prop4 , prop5 , prop6 , prop7 );
 }
 
+function reLoadLayer(layerID_Numb_Title){
+// 指定したレイヤー(ルートコンテナのレイヤー)をリロードする 2017.10.3
+// この関数は必ずリロードが起こることは保証できない。
+// なお、確実にリロードさせるには、ルートコンテナの該当レイヤ要素にdata-nocache="true"を
+// 設定する必要がある
+	console.log("called reLoadLayer : ",layerID_Numb_Title);
+	setRootLayersProps(layerID_Numb_Title,false,false);
+	refreshScreen(); // これはロードが発生しないはずなので同期で呼び出してしまう
+	
+	setRootLayersProps(layerID_Numb_Title,true,false);
+	refreshScreen();  // これは非同期動作のハズ
+}
+
 // 同じ関数がSVGMapLv0.1_LayerUI2_r2.jsにもある・・(getHash)
 function getUrlHash(url){
 //	console.log(url);
@@ -6229,77 +6951,20 @@ function getElementByIdUsingQuerySelector(qid){
 	return this.querySelector('[id="' + qid + '"]')
 }
 
+function removeChildren( targetElem ){
+	for (var i =targetElem.childNodes.length-1; i>=0; i--) {
+		targetElem.removeChild(targetElem.childNodes[i]);
+	}
+
+}
+
 return { // svgMap. で公開する関数のリスト 2014.6.6
 	// まだ足りないかも？
 	// http://d.hatena.ne.jp/pbgreen/20120108/1326038899
-	zoomup : zoomup,
-	zoomdown : zoomdown,
-	gps : gps,
-	getLayers : getLayers,
-	getLayer : getLayer,
-	getLayerId : getLayerId,
-	getSwLayers : getSwLayers,
-//	layerControl : layerControl,
-//	contColorSet : contColorSet,
-	linkedDocOp : linkedDocOp,
-	childDocOp : childDocOp,
-	dynamicLoad : dynamicLoad,
-//	mapCanvas : mapCanvas,
-	getMapCanvas : function(){ return (mapCanvas) },
-	setMapCanvas : function( mc ){ mapCanvas = mc },
-//	mapCanvasSize : mapCanvasSize,
-	getMapCanvasSize : function( ){ return (mapCanvasSize) },
-	setMapCanvasSize : function( mcs ){ mapCanvasSize = mcs },
-//	rootViewBox : rootViewBox,
-	getRootViewBox : function( ){ return (rootViewBox) },
-	setRootViewBox : function( rvb ){ rootViewBox = rvb },
-//	geoViewBox : geoViewBox,
-	getGeoViewBox : function( ){ return (geoViewBox) },
-//	rootCrs : rootCrs,
-	getRootCrs : function( ){ return (rootCrs) },
-//	root2Geo : root2Geo,
-	getRoot2Geo : function( ){ return (root2Geo) },
-	getHashByDocPath : getHashByDocPath,
-	getViewBox : getViewBox,
-//	svgImages : svgImages,
-	getSvgImages : function( ){ return (svgImages) },
-//	svgImagesProps : svgImagesProps,
-	getSvgImagesProps : function( ){ return (svgImagesProps) },
-	getSvgTarget : getSvgTarget,
-	getHyperLink : getHyperLink,
-	showPage : showPage,
-	POIviewSelection : POIviewSelection,
-	showUseProperty : showUseProperty,
-	testClick : testClick,
-	setTestClicked : function( ck ) { testClicked = ck},
 	Geo2SVG : Geo2SVG,
+	POIviewSelection : POIviewSelection,
 	SVG2Geo : SVG2Geo,
-	transform : transform,
-	getConversionMatrixViaGCS : getConversionMatrixViaGCS,
-	getTransformedBox : getTransformedBox,
-//	zoomRatio : zoomRatio,
-	setZoomRatio : function( ratio ){ zoomRatio = ratio },
-//	summarizeCanvas : summarizeCanvas,
-	setSummarizeCanvas : function( val ){ summarizeCanvas = val },
-//	loadingTransitionTimeout : loadingTransitionTimeout,
-	setMapCanvasCSS : setMapCanvasCSS,
-	getBBox : getBBox,
-	loadSVG : loadSVG,
-	setGeoCenter : setGeoCenter,
-	setGeoViewPort : setGeoViewPort,
-	handleResult : handleResult,
-	ignoreMapAspect : function(){ ignoreMapAspect = true; },
-	getCentralGeoCoorinates : getCentralGeoCoorinates,
 	addEvent : addEvent,
-	setShowPoiProperty : setShowPoiProperty, 
-	override : function ( mname , mval ){
-//		console.log("override " + mname );
-		eval( mname + " = mval; "); // もっと良い方法はないのでしょうか？
-//		console.log("override " + mname + " : " , this[mname] , showPoiProperty , this.showPoiProperty , this);
-	},
-	getObject : function ( oname ){
-		return ( eval ( oname ) );
-	},
 	callFunction : function ( fname ,p1,p2,p3,p4,p5){
 //		console.log("call callFunc:",fname , p1,p2,p3,p4,p5);
 		eval( "var vFunc = " + fname); // "
@@ -6308,43 +6973,122 @@ return { // svgMap. で公開する関数のリスト 2014.6.6
 //		eval( fname  ).bind(null,p1,p2,p3,p4,p5);
 		return ( ans );
 	},
+	captureGISgeometries: captureGISgeometries,
+	captureGISgeometriesOption: function ( BitImageGeometriesCaptureFlg ){ // 2018.2.26
+		// TBD : ロードできてないイメージは外すかどうか, onViewportのもののみにするかどうか のオプションもね
+		BitImageGeometriesCaptureFlag = BitImageGeometriesCaptureFlg; // ビットイメージをキャプチャするかどうか
+	},
+	checkSmartphone : checkSmartphone, // added on rev15
+	childDocOp : childDocOp,
+	dynamicLoad : dynamicLoad,
+	escape : escape,
+	geo2Screen : geo2Screen,
+	getBBox : getBBox,
+	getCentralGeoCoorinates : getCentralGeoCoorinates,
+	getConversionMatrixViaGCS : getConversionMatrixViaGCS,
+	getElementByImageId : getElementByImgIdNoNS,
+	getGeoViewBox : function( ){ 
+		return {
+			x:geoViewBox.x , 
+			y:geoViewBox.y , 
+			width:geoViewBox.width, 
+			height:geoViewBox.height, 
+			cx: geoViewBox.x + 0.5*geoViewBox.width, 
+			cy:geoViewBox.y + 0.5*geoViewBox.height
+		} 
+	},
+	getHashByDocPath : getHashByDocPath,
 	getHyperLink : getHyperLink,
-	setDevicePixelRatio : setDevicePixelRatio,
-	refreshScreen : refreshScreen,
-	updateLayerListUI : function (){
-		if ( typeof updateLayseListUI == "function" ){
-			updateLayseListUI();
-		}
+	getInverseMatrix : getInverseMatrix,
+	getLayer : getLayer,
+	getLayerId : getLayerId,
+	getLayers : getLayers,
+	getMapCanvas : function(){ return (mapCanvas) },
+	getMapCanvasSize : function( ){ return (mapCanvasSize) },
+	getMouseXY : getMouseXY,
+	getNonScalingOffset : getNonScalingOffset,
+	getObject : function ( oname ){
+		return ( eval ( oname ) );
 	},
+	getPoiPos : getNonScalingOffset, // for backwards comatibility
+	getRoot2Geo : function( ){ return (root2Geo) },
+	getRootCrs : function( ){ return (rootCrs) },
 	getRootLayersProps : getRootLayersProps,
-	setRootLayersProps : setRootLayersProps,
-	setLayerVisibility : setLayerVisibility,
-	registLayerUiSetter : function ( layerUIinitFunc, layerUIupdateFunc ){
-		setLayerUI = layerUIinitFunc;
-		updateLayseListUI = layerUIupdateFunc;
-	},
+	getRootViewBox : function( ){ return (rootViewBox) },
+	getSvgImages : function( ){ return (svgImages) },
+	getSvgImagesProps : function( ){ return (svgImagesProps) },
+	getSvgTarget : getSvgTarget,
+	getSwLayers : getSwLayers,
+	getSymbols : getSymbols,
+	getTickerMetadata : getTickerMetadata, // added on rev15
+	getTransformedBox : getTransformedBox,
 	getUaProp : function (){
 		return {
 			isIE: isIE,
-			isSP: isSP
+			isSP: isSP,
+			uaProp: uaProp
 		}
 	},
-	setResume : function( stat ){
-		resume = stat;
-		saveResumeData();
-	},
-	resumeToggle : resumeToggle,
-	captureGISgeometries: captureGISgeometries,
-	
-	getSymbols : getSymbols,
+	getVerticalScreenScale : getVerticalScreenScale,
+	getViewBox : getViewBox,
+	gps : gps,
+	gpsCallback : gpsSuccess, // added on rev15
+	handleResult : handleResult,
+	ignoreMapAspect : function(){ ignoreMapAspect = true; },
+	initLoad : initLoad,
+	linkedDocOp : linkedDocOp,
+	loadSVG : loadSVG,
 	numberFormat : numberFormat,
-	getPoiPos : getPoiPos,
+	override : function ( mname , mval ){
+//		console.log("override " + mname );
+		eval( mname + " = mval; "); // もっと良い方法はないのでしょうか？
+//		console.log("override " + mname + " : " , this[mname] , showPoiProperty , this.showPoiProperty , this);
+	},
+	parseEscapedCsvLine : parseEscapedCsvLine, // added on rev15
+	refreshScreen : refreshScreen,
+	registLayerUiSetter : function ( layerUIinitFunc, layerUIupdateFunc ){
+		setLayerUI = layerUIinitFunc;
+		updateLayerListUIint = layerUIupdateFunc;
+	},
+	reLoadLayer : reLoadLayer, // added on rev15
+	resumeToggle : resumeToggle,
 	screen2Geo : screen2Geo,
-	geo2Screen : geo2Screen,
-	getMouseXY : getMouseXY,
-	getElementByImageId : getElementByImgIdNoNS,
-	escape : escape,
-	setCustomModal : setCustomModal
+	setCustomModal : setCustomModal,
+	setDevicePixelRatio : setDevicePixelRatio,
+	setGeoCenter : setGeoCenter,
+	setGeoViewPort : setGeoViewPort,
+	setLayerVisibility : setLayerVisibility,
+	setMapCanvas : function( mc ){ mapCanvas = mc },
+	setMapCanvasCSS : setMapCanvasCSS,
+	setMapCanvasSize : function( mcs ){ mapCanvasSize = mcs },
+	setSmoothZoomInterval : setSmoothZoomInterval,
+	setSmoothZoomTransitionTime : setSmoothZoomTransitionTime,
+	setResume : function( stat ){
+//		console.log("setResume:",stat,"   ck:", Object.keys(svgImagesProps).length,svgImagesProps);
+		resume = stat;
+		if ( !resume || Object.keys(svgImages).length > 0 ){ // 2017.8.22 debug 2017.9.29 dbg2: onload直後でsetResume(true)するとエラーアウトしてresumeできない : 2017.10.03 dbg3: svgImagesPropsは作られていてもsvgImagesがない場合エラーするので・・Object.keys(svgImagesProps).length -> Object.keys(svgImages).length に
+			saveResumeData();
+		}
+	},
+	setRootLayersProps : setRootLayersProps,
+	setRootViewBox : function( rvb ){ rootViewBox = rvb },
+	setShowPoiProperty : setShowPoiProperty, 
+	setSummarizeCanvas : function( val ){ summarizeCanvas = val },
+//	setTestClicked : function( ck ) { testClicked = ck}, // Obsolute 2018.2.2
+	setUpdateCenterPos : setUpdateCenterPos,
+	setZoomRatio : function( ratio ){ zoomRatio = ratio },
+	showModal : showModal,
+	showPage : showPage,
+	showUseProperty : showUseProperty,
+//	testClick : testClick, // Obsolute 2018.2.2
+	transform : transform,
+	updateLayerListUI : function (){
+		if ( typeof updateLayerListUIint == "function" ){
+			updateLayerListUIint();
+		}
+	},
+	zoomdown : zoomdown,
+	zoomup : zoomup
 }
 
 })();

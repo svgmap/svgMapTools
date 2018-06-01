@@ -2,16 +2,18 @@
 CSVデータからインタラクティブ地図を作製する方法のチュートリアル
 > 2014.03.03 1st rev. By Satoru Takagi<br>
 > 2017.12.07 OSS化に対応した更新<br>
-> 2018.01.11 markdown化 
+> 2018.01.11 markdown化 <br>
+> 2018.06.01 SVGMap*.jsを更新、-Xmx追加 
 
 ## Notes:
 ### 実行環境について
 * データの作成のために、jreもしくはjava がインストールされている環境が必要です。
 * なお、動作チェックはWindows10とJAVA8で行っています。
-* 生成したコンテンツはFirefox(57.0.2で動作確認)で利用可能です。なお、Chrome,IE(9以降)でも以下の設定で利用可能です。
+* 生成したコンテンツはFirefox(60.0.1で動作確認)で利用可能です。Edgeでも動作可能です。一方、Chrome,IE11では以下の条件で利用可能です。
   * ChromeはローカルファイルへのAJAXに制限がかかっているため、 --allow-file-access-from-filesオプションをつけて起動する必要があります（ショートカットを作成すると良い）<br>
   `"C:\Program Files\Google\Chrome\Application\chrome.exe" --allow-file-access-from-files`
-  * IEも同様の制限があります。（双方とも、イントラネット上のWebサーバ上に設置して利用するのが好ましい）
+  * IEも同様の制限があります。
+  * 以上より、双方ともWebサーバ上にコンテンツを設置すれば利用できます。
 * 生成したコンテンツは、背景地図としてインターネット上のコンテンツ(OpenStreetMapや電子国土)を参照しているため、一般的なインターネットWebサイトに接続できる環境で利用する必要があります（別途背景地図をローカルに用意すればスタンドアロン環境でも利用可能）
 
 ### サンプルデータについて
@@ -46,11 +48,11 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
      * なお変換する対象ファイルは、toolsディレクトリに対して、`..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv` に格納されていると仮定して練習を進めます。
 
 1. csvfileを大縮尺(拡大表示)用ベクター地図に変換
-   * `java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv`<br>
+   * `java -Xmx500m Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv`<br>
      * 同ディレクトリに、`JPcities_of_worldcitiespop_utf8.svg`ファイルおよび、補助の.svgファイル群が作成されます。
 
 1. csvfileを小縮尺(縮小表示)用ラスター地図に変換
-   * `java Shape2ImageSVGMap ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.svg -sumUp 16 -antiAlias -charset utf-8 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv #0000ff #0000ff 0 3`<br>
+   * `java -Xmx500m Shape2ImageSVGMap ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.svg -sumUp 16 -antiAlias -charset utf-8 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv #0000ff #0000ff 0 3`<br>
      * 同ディレクトリに、JPcities_of_worldcitiespop_utf8ディレクトリが作成され、その下に付随するファイル群が作成されます。(いくつかのディレクトリとpngやsvgファイル）
 
 1. `..\webApps\webApps\Container.svg`をテキストエディタで編集
@@ -78,11 +80,11 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
        * そのうえで、1カラム目が最初のカラムとなります。
 
 1. 大縮尺(拡大表示)用ベクトル地図を生成（データサイズによって時間がかかります）
-   * `java Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage ..\tutorials\webApps\(wdir)\(wfile).csv`
+   * `java -Xmx500m Shape2SVGMap -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage ..\tutorials\webApps\(wdir)\(wfile).csv`
      * 同ディレクトリに、JPcities_of_worldcitiespop_utf8.svgファイルおよび、補助の.svgファイル群が作成されます。
      
 1. 小縮尺(縮小表示)用ラスター地図を生成（データサイズによって時間がかかります）
-   * `java Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 16 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).csv #0000ff #0000ff 0 3`
+   * `java -Xmx500m Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 16 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).csv #0000ff #0000ff 0 3`
      * 同ディレクトリに、(wfile)ディレクトリが作成され、その下に補助ファイル群が作成されます。(いくつかのディレクトリとpngやsvgファイル）
 
 1. ルートコンテナファイル`..\tutorials\webApps\Container.svg`　を編集
@@ -105,7 +107,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 * 小縮尺表示用の丸点の色を変更<br>
 　Shape2ImageSVGMapコマンドの、以下の(色コード)部分を変更して実行します<br>
-　`java Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 8 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).shp (Fill Color) (Stroke Color) 0 3`
+　`java -Xmx500m Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 8 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).shp (Fill Color) (Stroke Color) 0 3`
   * (Fill Color) (Stroke Color)はPOIの色コードで、ひとまずは両方とも同じ値で良いでしょう。色コードはWebの色コードで#RRGGBB (RR,GG,BBそれぞれ00-FF)です。
 　
 * 初期状態で表示させたくないデータ<br>
