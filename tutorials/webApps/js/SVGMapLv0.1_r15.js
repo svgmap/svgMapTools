@@ -145,14 +145,16 @@
 // 2018/01/29 : from rev14 update: data-controllerをルートコンテナのレイヤー要素から指定できるよう機能追加
 // 2018/02/02 : オブジェクトクリック機能のリファクタリング：testClickの機能とgetObjectAtPointをrev15で大幅拡張したtestTickerに統合 testClick, POItargetSelectionはこれにより不要となったので廃止、これに伴いPOI(img要素)に設置していた testClick EventListenerを全撤去
 // 2018/02/05 : Rev15 Release クリーンナップ
+// 2018/02/23 : <text>の改善
 // 2018/02/26 : captureGISgeometriesでビットイメージタイルも取得可能とした　ただし、captureGISgeometriesOptionで設定した場合
 // 2018/03/02 : useではなく直接imageで設置したnonScaling bitImageもPOIとして扱うようにした　結構大きい影響のある改修
 // 2018/04/06 : Edge対応ほぼ完了したかな これに伴いuaProp新設　今後isIE,verIE,isSPをこれに統合したうえで、IE10以下のサポートを完全に切る予定
+// 2018/06/01 : script実行ルーチンのデバッグ
 // 
 //
-//
 // Issues:
-// 2018/3/5 Vector2DのcircleがcaptureGISで正しい値が取れてない？
+// 2018/3/9 メタデータのないPOIが単にクリッカブルになる。またvectorPOIはclickableクラスを設定しないとクリッカブルでないなどちょっとキレイでない。
+// 2018/3/5 FIXED Vector2DのcircleがcaptureGISで正しい値が取れてない？
 // 2018/3/5 visibility hiddenのVector2Dがヒットテストにかかってしまうらしい？imageも要確認
 // (probably FIXED) 2016/06 Firefoxでヒープが爆発する？(最新48.0ではそんなことはないかも？　たぶんfixed？)
 // 2016/12 ほとんどすべてのケースでtransformが使えない実装です (transform matrix(ref))とか特殊なものとCRSのみ
@@ -1119,7 +1121,6 @@ function handleScript( docId , zoom , child2root ){
 //	console.log(svgImagesProps[docId].script.CRS);
 	var vc = viewBoxChanged();
 	svgImagesProps[docId].script.handleScriptCf(); // ここで、上記の値をグローバル変数にセットしているので、追加したらhandleScriptCfにも追加が必要です！ 2017.8.17
-//	console.log("handleScript: vc:",vc);
 	if ( vc =="zoom" || svgImagesProps[docId].script.initialLoad ){ // zooming
 		svgImagesProps[docId].script.initialLoad  = false;
 		if ( svgImagesProps[docId].script.onzoom ){
@@ -5021,7 +5022,7 @@ function setSVGcirclePoints( pathNode ,  context , child2canvas , clickable , ca
 		ret.height = csize.y * 2;
 	}
 //	console.log("repld:"+repld,  " ret:",ret , " csize:" , csize);
-	console.log("circle ret:",ret , " csize:" , csize);
+//	console.log("circle ret:",ret , " csize:" , csize);
 	
 	return ( ret );
 
