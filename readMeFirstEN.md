@@ -3,7 +3,7 @@
 This tool generates quad tree vector and raster mixed tile SVG map content from shapefile or csv file.
 You can create your own map from CSV or shapefile using this tool.
 
-You should be able to convert millions of fairly large data into map content. [(Example)](http://svgmap.org/devinfo/devkddi/lvl0.1/rev14/SVGMapper_r14.html#visibleLayer=worldcities&hiddenLayer=polygonAuthoringTester)
+You should be able to convert millions of fairly large data into map content by [quad tree tiling](https://www.slideshare.net/totipalmate/tiling-51301496). [(Example)](http://svgmap.org/devinfo/devkddi/lvl0.1/rev14/SVGMapper_r14.html#visibleLayer=worldcities&hiddenLayer=polygonAuthoringTester)
 
 There are built by Java and requires an environment that runs Java (Oracle version).
 
