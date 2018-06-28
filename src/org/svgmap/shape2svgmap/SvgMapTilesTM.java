@@ -26,6 +26,7 @@ package org.svgmap.shape2svgmap;
 // 2017.04.19 PointGeomでのclipingループを消去。subTileのArrayList->HashSet化、ThreadのExecutor化 (参考:http://java-study.blog.jp/archives/1036862519.html)
 // 2017.05.12 二次元ハッシュに盛大なバグ・・修正
 // 2017.09.15 メッセージのマイナー改良(気にすることは何もない)
+// 2018.6.28 バグ修正 clipingループ消去ルーチンに問題
 
 // ISSUES:
 // putHeaderはマルチスレッド化準備してない（たぶん必要ない）　そのため、ファイル冒頭のcommentパートの入り方が変わってしまう（とにかくまずはヘッダまでは入る感じ）
@@ -1048,6 +1049,15 @@ public class SvgMapTilesTM {
 		
 		ans[1] = (int)( ( coo.x - minX ) / meshWidth ); // for j
 		ans[0] = (int)( ( coo.y - minY ) / meshHeight ); // for i
+		
+		if ( ans[1] >= wPart ){ // debug 2018/6/28 上の式だと最大値がはみ出ちゃいます・・・
+//			System.out.println("ERR tile width number exceeds : "+coo.x);
+			ans[1] = wPart -1;
+		}
+		if ( ans[0] >= hPart ){
+//			System.out.println("ERR tile height number exceeds : "+coo.y);
+			ans[0] = hPart -1;
+		}
 		
 //		System.out.println( "getIncludedTileIndex" + ans[0]+","+ans[1]);
 		
