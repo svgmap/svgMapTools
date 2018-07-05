@@ -770,6 +770,11 @@ public class Shape2ImageSVGMap4 {
 		**/
 		
 		ReferencedEnvelope bounds = map.getMaxBounds();
+//		System.out.println("bounds:"+bounds+"  : "+bounds.getMinX()+","+bounds.getMinY()+","+bounds.getMaxX()+","+bounds.getMaxY());
+		if ( bounds.getMinX()==0 && bounds.getMaxX()==-1 ){
+			bounds = sfcArray[0].getBounds();
+			System.out.println("Hmmm can't get bounds.. fixIt by layer0 : " + bounds);
+		}
 		
 		
 		// 事前に決めなければならない８パラメータを設定する

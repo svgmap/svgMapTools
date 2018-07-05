@@ -1,3 +1,3 @@
 @echo off 
 set CP=%CLASSPATH%;.\lib\*;.\shape2svgmap.jar;.
-java -classpath %CP% Shape2ImageSVGMap %*
+java -Xmx800m -classpath %CP% Shape2ImageSVGMap %*

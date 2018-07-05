@@ -26,7 +26,8 @@ package org.svgmap.shape2svgmap;
 // 2017.04.19 PointGeomでのclipingループを消去。subTileのArrayList->HashSet化、ThreadのExecutor化 (参考:http://java-study.blog.jp/archives/1036862519.html)
 // 2017.05.12 二次元ハッシュに盛大なバグ・・修正
 // 2017.09.15 メッセージのマイナー改良(気にすることは何もない)
-// 2018.6.28 バグ修正 clipingループ消去ルーチンに問題
+// 2018.06.28 バグ修正 clipingループ消去ルーチンに問題
+// 2018.07.04 オーバーフローしたタイルは早々にクローズしFile Open数をなるべく減らす。
 
 // ISSUES:
 // putHeaderはマルチスレッド化準備してない（たぶん必要ない）　そのため、ファイル冒頭のcommentパートの入り方が変わってしまう（とにかくまずはヘッダまでは入る感じ）
@@ -1932,14 +1933,15 @@ public class SvgMapTilesTM {
 //			System.out.println("exec:pointHintKey:"+pointHintKey);
 			if ( pointHintKey < 0 ){
 				for ( Long key : subTileInfo.subTileSet){
-					int[] tileIndex = getIndex(key);
-					int i = tileIndex[1];
-					int j = tileIndex[0];
-	//				SvgMap hsm = get2DHashSM( tiles, j, i);
-					drawObjectToTile( i, j, 0 , subTileInfo );
+					if ( ! subTileInfo.subTileOverflowSet.contains(key) && !thisTileExistence.contains(key)){ // この描画シリーズと一つ前までのところまででオーバーフローしてないもののみ描画
+						int[] tileIndex = getIndex(key);
+						int i = tileIndex[1];
+						int j = tileIndex[0];
+						drawObjectToTile( i, j, 0 , subTileInfo );
+					}
 				}
 			} else { // pointHintKeyを持つpointジオメトリに対してタイル位置を一発で決め、高速化する
-				if ( subTileInfo.subTileSet.contains(pointHintKey) && !subTileInfo.subTileOverflowSet.contains(pointHintKey) ){
+				if ( subTileInfo.subTileSet.contains(pointHintKey) && (!subTileInfo.subTileOverflowSet.contains(pointHintKey)&& !thisTileExistence.contains(pointHintKey) )){
 					
 					int[] tileIndex = getIndex(pointHintKey);
 					int i = tileIndex[1];
@@ -2167,7 +2169,12 @@ public class SvgMapTilesTM {
 				
 				int[] tileIndex = getIndex(key);
 				SvgMap hsm = get2DHashSM( tiles, tileIndex[0], tileIndex[1]); // 逆かも？ 2017.4.18
-				hsm.flush();
+				if ( !thisTileExistence.contains(key) ){ // 一つ前までの描画バッチで存在しているものはflush
+					hsm.flush();
+					if( subTileInfo.subTileOverflowSet.contains(key) ){ // しかし、この描画バッチでオーバーフローしたらここでクローズ
+						hsm.putFooter();
+					}
+				}
 			}
 		}
 	}
