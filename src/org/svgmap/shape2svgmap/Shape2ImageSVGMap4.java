@@ -191,7 +191,7 @@ public class Shape2ImageSVGMap4 {
 		}
 		
 		if ( firstShpPos < 0 ){
-			System.out.println("シェープファイル|csvが指定されていません・・・");
+			System.out.println("Error: No shapefile or csv file assigned.");
 			return ( mainArgs );
 		}
 		
@@ -216,8 +216,8 @@ public class Shape2ImageSVGMap4 {
 				ans = (String[])(argList.toArray(new String[0]));
 				
 			} catch ( Exception e ){
-				System.out.println("-optionFile オプションが誤っています");
-				showHelp();
+				System.out.println("Error: Invalid -optionFile option");
+				System.out.println("To display help, please launch Shape2ImageSVGMap without any options.\n");
 				System.exit(0);
 			}
 			return ( ans );
@@ -245,110 +245,122 @@ public class Shape2ImageSVGMap4 {
 			System.exit(0);
 		}
 		
-		
-		if ( args[0].indexOf(".svg") > 0 ){
-			complementalSvg = true;
-			System.out.println("Use Complemental Vector Svg Container:" + args[0]);
-			sr = new SvgMapContainerReader( args[0] );
-			s2i.complementalSourceSvg = new File(args[0]);
-			
-		} else if ( args[0].indexOf("d")>0){
-			s2i.partDeg = Double.parseDouble(args[0].substring(0,args[0].indexOf("d")));
-		} else if ( args[0].indexOf("single")==0){
-			s2i.singleImage = true;
-		} else if ( args[0].indexOf("-") > 0 ){
-			int ix = args[0].indexOf("-");
-			startLvl = Integer.parseInt(args[0].substring(0,ix));
-			endLvl = Integer.parseInt(args[0].substring(ix+1));
-			if ( startLvl > endLvl ){
-				int lt = startLvl;
-				startLvl = endLvl;
-				endLvl = lt;
+		try{
+			if ( args[0].indexOf(".svg") > 0 ){
+				complementalSvg = true;
+				System.out.println("Use Complemental Vector Svg Container:" + args[0]);
+				sr = new SvgMapContainerReader( args[0] );
+				s2i.complementalSourceSvg = new File(args[0]);
+				
+			} else if ( args[0].indexOf("d")>0){
+				s2i.partDeg = Double.parseDouble(args[0].substring(0,args[0].indexOf("d")));
+			} else if ( args[0].indexOf("single")==0){
+				s2i.singleImage = true;
+			} else if ( args[0].indexOf("-") > 0 ){
+				int ix = args[0].indexOf("-");
+				startLvl = Integer.parseInt(args[0].substring(0,ix));
+				endLvl = Integer.parseInt(args[0].substring(ix+1));
+				if ( startLvl > endLvl ){
+					int lt = startLvl;
+					startLvl = endLvl;
+					endLvl = lt;
+				}
+				System.out.println("level:" + startLvl + " to " + endLvl );
+			} else {
+				s2i.lvl = Integer.parseInt(args[0]);
 			}
-			System.out.println("level:" + startLvl + " to " + endLvl );
-		} else {
-			s2i.lvl = Integer.parseInt(args[0]);
+		} catch ( Exception  e ){
+			System.out.println("\n\nError: Invalid TileSize parameter : " + args[0]);
+			System.out.println("To display help, please launch Shape2ImageSVGMap without any options.\n");
+			e.printStackTrace();
+			System.exit(0);
 		}
 		
 		int i = 1;
 		
-		while( args[i].indexOf("-")==0){
-			if ( args[i].toLowerCase().indexOf("-viewbuffer")>=0){
-				++i;
-				s2i.viewBuffer = Double.parseDouble(args[i]);
-				System.out.println("viewBuffer:" + s2i.viewBuffer);
-			} else if ( args[i].toLowerCase().indexOf("-sumup")>=0){
-				++i;
-				int su = Integer.parseInt(args[i]);
-				if ( su <= 1){
-					su = 1;
-				} else if( su % 2 == 1 ){ // sumUpは偶数のみを許す(ただし１以外)
-					su = 2 * (int)(1 + su / 2);
+		try{
+			while( args[i].indexOf("-")==0){
+				if ( args[i].toLowerCase().indexOf("-viewbuffer")>=0){
+					++i;
+					s2i.viewBuffer = Double.parseDouble(args[i]);
+					System.out.println("viewBuffer:" + s2i.viewBuffer);
+				} else if ( args[i].toLowerCase().indexOf("-sumup")>=0){
+					++i;
+					int su = Integer.parseInt(args[i]);
+					if ( su <= 1){
+						su = 1;
+					} else if( su % 2 == 1 ){ // sumUpは偶数のみを許す(ただし１以外)
+						su = 2 * (int)(1 + su / 2);
+					}
+					s2i.sumUp = su;
+					
+					System.out.println("sumUp:" + s2i.sumUp);
+				} else if ( args[i].toLowerCase().indexOf("-rebuildcontaineronly")>=0){
+					s2i.rebuildContainerOnly = true;
+					System.out.println("rebuildContainerOnly");
+				} else if ( args[i].toLowerCase().indexOf("-includebasemap")>=0){
+					s2i.includeBaseMap = true;
+					System.out.println("includeBaseMap");
+				} else if ( args[i].toLowerCase().indexOf("-antialias")>=0){
+					s2i.antiAlias = true;
+					System.out.println("includeBaseMap");
+				} else if ( args[i].toLowerCase().indexOf("-tilesize")>=0){
+					++i;
+					s2i.imageWidth = Integer.parseInt(args[i]);
+					s2i.imageHeight = s2i.imageWidth;
+	//			} else if ( args[i].toLowerCase().indexOf("-fixarea")>=0){
+	//				fixArea = true;
+				} else if ( args[i].toLowerCase().indexOf("-jponly")>=0){
+					s2i.checkJp = true;
+				} else if ( args[i].toLowerCase().indexOf("-colorkey")>=0){
+					++i;
+					s2i.colorKeys = args[i];
+				} else if ( args[i].toLowerCase().indexOf("-strcolor")>=0){
+					++i;
+					s2i.keyLength = Integer.parseInt(args[i]);
+				} else if ( args[i].toLowerCase().indexOf("-numcolor")>=0){
+					++i;
+					if (args[i].toLowerCase().equals("hsv")){
+						s2i.colorTable = SVGMapGetColorUtil.HSV;
+					} else if (args[i].toLowerCase().equals("ihsv")){
+						s2i.colorTable = SVGMapGetColorUtil.iHSV;
+					} else if (args[i].toLowerCase().equals("red")){
+						s2i.colorTable = SVGMapGetColorUtil.RED;
+					} else if (args[i].toLowerCase().equals("quota")){
+						s2i.colorTable = SVGMapGetColorUtil.QUOTA;
+					}
+				} else if ( args[i].toLowerCase().indexOf("-outofrange")>=0){
+					++i;
+					if (args[i].toLowerCase().equals("skip")){
+						s2i.outOfRangeView = SVGMapGetColorUtil.SKIP;
+					} else if (args[i].toLowerCase().equals("counterstop")){
+						s2i.outOfRangeView = SVGMapGetColorUtil.COUNTER_STOP;
+					}
+					
+				} else if ( args[i].toLowerCase().indexOf("-threads")>=0){
+					++i;
+					if ( Integer.parseInt(args[i]) > 0 ){
+						s2i.maxThreads = Integer.parseInt(args[i]);
+					}
+				} else if ( args[i].toLowerCase().indexOf("-csvschema")>=0){
+					++i;
+					s2i.csvSchemaPath = args[i];
+					System.out.println("Schema Path for CSV file: " + s2i.csvSchemaPath);
+				} else if ( args[i].toLowerCase().indexOf("-charset")>=0){
+					++i;
+					s2i.charset = args[i];
+				} else {
+					System.out.println("\n\nError :  There is no option named " + args[i]);
+					System.out.println("To display help, please launch Shape2ImageSVGMap without any options.\n");
+					System.exit(0);
 				}
-				s2i.sumUp = su;
-				
-				System.out.println("sumUp:" + s2i.sumUp);
-			} else if ( args[i].toLowerCase().indexOf("-rebuildcontaineronly")>=0){
-				s2i.rebuildContainerOnly = true;
-				System.out.println("rebuildContainerOnly");
-			} else if ( args[i].toLowerCase().indexOf("-includebasemap")>=0){
-				s2i.includeBaseMap = true;
-				System.out.println("includeBaseMap");
-			} else if ( args[i].toLowerCase().indexOf("-antialias")>=0){
-				s2i.antiAlias = true;
-				System.out.println("includeBaseMap");
-			} else if ( args[i].toLowerCase().indexOf("-tilesize")>=0){
 				++i;
-				s2i.imageWidth = Integer.parseInt(args[i]);
-				s2i.imageHeight = s2i.imageWidth;
-//			} else if ( args[i].toLowerCase().indexOf("-fixarea")>=0){
-//				fixArea = true;
-			} else if ( args[i].toLowerCase().indexOf("-jponly")>=0){
-				s2i.checkJp = true;
-			} else if ( args[i].toLowerCase().indexOf("-colorkey")>=0){
-				++i;
-				s2i.colorKeys = args[i];
-			} else if ( args[i].toLowerCase().indexOf("-strcolor")>=0){
-				++i;
-				s2i.keyLength = Integer.parseInt(args[i]);
-			} else if ( args[i].toLowerCase().indexOf("-numcolor")>=0){
-				++i;
-				if (args[i].toLowerCase().equals("hsv")){
-					s2i.colorTable = SVGMapGetColorUtil.HSV;
-				} else if (args[i].toLowerCase().equals("ihsv")){
-					s2i.colorTable = SVGMapGetColorUtil.iHSV;
-				} else if (args[i].toLowerCase().equals("red")){
-					s2i.colorTable = SVGMapGetColorUtil.RED;
-				} else if (args[i].toLowerCase().equals("quota")){
-					s2i.colorTable = SVGMapGetColorUtil.QUOTA;
-				}
-			} else if ( args[i].toLowerCase().indexOf("-outofrange")>=0){
-				++i;
-				if (args[i].toLowerCase().equals("skip")){
-					s2i.outOfRangeView = SVGMapGetColorUtil.SKIP;
-				} else if (args[i].toLowerCase().equals("counterstop")){
-					s2i.outOfRangeView = SVGMapGetColorUtil.COUNTER_STOP;
-				}
-				
-			} else if ( args[i].toLowerCase().indexOf("-threads")>=0){
-				++i;
-				if ( Integer.parseInt(args[i]) > 0 ){
-					s2i.maxThreads = Integer.parseInt(args[i]);
-				}
-			} else if ( args[i].toLowerCase().indexOf("-csvschema")>=0){
-				++i;
-				s2i.csvSchemaPath = args[i];
-				System.out.println("Schema Path for CSV file: " + s2i.csvSchemaPath);
-			} else if ( args[i].toLowerCase().indexOf("-charset")>=0){
-				++i;
-				s2i.charset = args[i];
-			} else {
-				showHelp();
-				
-				System.out.println("\n\n-Option Error : " + args[i]);
-				System.exit(0);
 			}
-			++i;
+		} catch ( Exception e ){
+			System.out.println("\n\nError: Invalid Option : " + args[i]);
+			System.out.println("To display help, please launch Shape2ImageSVGMap without any options.\n");
+			e.printStackTrace();
+			System.exit(0);
 		}
 		
 		int layerCount=0;
@@ -359,6 +371,14 @@ public class Shape2ImageSVGMap4 {
 		}
 		
 		s2i.setLayerCounts(layerCount);
+		
+		if ( ( args.length - i ) % 5 != 0 ){
+			System.out.println("\n\nErrpr: Invalid layer parameters. For each layer you have to set five parameters as below.");
+			System.out.println(" Path4Shape.(shp|csv) (#fillColor | attrNumb) #strokeColor strokeWidth symbolSize");
+			System.out.println("");
+			System.out.println("To display help, please launch Shape2ImageSVGMap without any options.\n");
+			System.exit(0);
+		}
 		
 		while(i < args.length ){
 //			try{
