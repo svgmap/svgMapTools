@@ -12,9 +12,10 @@ package org.svgmap.shape2svgmap;
 // 2012.07.30 POIの改修に着手 putPoiShape() <=vectorPoiShapesを使う 
 // 2013.10.21 putUseでPOIを使い分けられるようにする　ただしpoiが定義されてないと、そのままエラーに・・・ putPoiShapeはintでこっちはStringで不整合中・・
 // 2014.03.20 2月に遅延ファイル出力に変更、それに伴うバグの修正
-// 2016.3.22 ファイル出力なしの状態での性能評価
+// 2016.03.22 ファイル出力なしの状態での性能評価
 // 2016.10.31 CustomAttrをsvgMapTilesでも使えるように改修
-// 2017.9.15 minor update (add hmmm message..)
+// 2017.09.15 minor update (add hmmm message..)
+// 2018.07.10 クリッピングされたデータのputPolylineでの、無駄なデータ生成を抑制(polygon用クリッピングルーチンを流用しているのが原因・・)
 //
 
 import java.io.*;
@@ -512,40 +513,57 @@ public class SvgMap {
 	
 	public boolean putPolyline( PolygonDouble pol , String strokeColor , double strokeWidth , double opacity ) throws Exception{
 //		String outStr ="";
-		boolean moved = false;
-		if (pol.npoints > 1 ){
+		pathString = new StringBuffer();
+		StringBuffer subPathString = new StringBuffer();
+		boolean hasRealPath=false;
+		boolean hasRealSubPath=false;
+		for ( int i = 0 ; i < pol.npoints ; i++ ){ // カラのデータやM連発のデータがあるので、あらかじめd生成とチェックを行う
+			if ( pol.clippedEdge[i] || i == 0 ){
+				if ( hasRealSubPath ){
+					pathString.append(subPathString);
+				}
+				subPathString = new StringBuffer();
+				hasRealSubPath = false;
+				subPathString.append("M");
+				subPathString.append( nFmt.format(pol.xpoints[i]) );
+				subPathString.append(",");
+				subPathString.append( nFmt.format(pol.ypoints[i]) );
+			} else {
+				if ( !hasRealPath ){
+					hasRealPath = true;
+				}
+				if ( !hasRealSubPath ){
+					hasRealSubPath = true;
+				}
+				subPathString.append("L");
+				subPathString.append( nFmt.format(pol.xpoints[i]) );
+				subPathString.append(",");
+				subPathString.append( nFmt.format(pol.ypoints[i]) );
+			}
+		}
+		if ( hasRealSubPath ){
+			pathString.append(subPathString);
+		}
+		
+		if (hasRealPath){
 			putGroupAnchor();
 			out.write("<path ");
 			putIdAndMicroMeta();
 			out.write( opacityProp( opacity ) + strokeWidthProp( strokeWidth ) + strokeProp( strokeColor ) );
 			out.write( "d=\"");
-			pathString = new StringBuffer();
-			for (int i = 0 ; i < pol.npoints ; i++ ){
-				if(pol.clippedEdge[i] || i==0){
-					pathString.append("M");
-					pathString.append( nFmt.format(pol.xpoints[i]) );
-					pathString.append(",");
-					pathString.append( nFmt.format(pol.ypoints[i]) );
-//					pathString.append(" ");
-//					outStr = "M" + nFmt.format(pol.xpoints[i]) + " " + nFmt.format(pol.ypoints[i]) + " ";
-				} else {
-					pathString.append("L");
-					pathString.append( nFmt.format(pol.xpoints[i]) );
-					pathString.append(",");
-					pathString.append( nFmt.format(pol.ypoints[i]) );
-//					pathString.append(" ");
-					out.write(pathString.toString());
-					pathString = new StringBuffer();
-//					out.write(outStr + nFmt.format(pol.xpoints[i]) + " " + nFmt.format(pol.ypoints[i]) + " ");
-//					outStr ="";
-				}
-			}
+			out.write(pathString.toString());
 			out.write ("\"/>\n");
 //			System.out.println("PolyLine");
 			nPoints += pol.npoints;
+			return ( checkSize() );
+		} else {
+			boolean ret = true;
+			if ( forceOos && nElements > 0 ){
+				ret = false;
+			}
+			return ( ret ); // trueだけで良いのかも・・・
 		}
 //		System.out.println("File:" + svgFile.length());
-		return ( checkSize() );
 	}
 	
 	// Polygon
