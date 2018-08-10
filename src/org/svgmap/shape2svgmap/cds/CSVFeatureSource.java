@@ -85,6 +85,7 @@ public class CSVFeatureSource extends ContentFeatureSource {
         CsvReader reader = getDataStore().read();
      	System.out.println("buildFeatureType: reader: " + reader );
     	String[] dataType = getDataStore().dataType;
+    	boolean sjisInternalCharset =  getDataStore().sjisInternalCharset;
        try {
              System.out.println("buildFeatureType: readHeaders call: ");
             boolean success = reader.readHeaders();
@@ -124,24 +125,25 @@ public class CSVFeatureSource extends ContentFeatureSource {
                     continue; // skip as it is part of Location
                 }
             	if ( column.toLowerCase().endsWith(":int") || (dataType !=null && dataType.length > k && dataType[k].equals("int") )){
-//            		column = column.substring(0, column.toLowerCase().indexOf(":int"));
-//	            	String colSjis = new String(column.getBytes("Shift_JIS"), 0);
-            		String colSjis = sjisExt.getSjisStr( column );
-	                builder.add(colSjis, Integer.class);
+            		if ( sjisInternalCharset){
+            			column = sjisExt.getSjisStr( column );
+            		}
+	                builder.add(column, Integer.class);
             	} else if ( column.toLowerCase().endsWith(":double")  || (dataType !=null && dataType.length > k && dataType[k].equals("double") )){
-//            		column = column.substring(0, column.toLowerCase().indexOf(":double"));
-//	            	String colSjis = new String(column.getBytes("Shift_JIS"), 0);
-            		String colSjis = sjisExt.getSjisStr( column );
-	                builder.add(colSjis, Double.class);
+            		if ( sjisInternalCharset){
+            			column = sjisExt.getSjisStr( column );
+            		}
+	                builder.add(column, Double.class);
             	} else if ( column.toLowerCase().endsWith(":string")  || (dataType !=null && dataType.length > k && dataType[k].equals("string")  )){
-//            		column = column.substring(0, column.toLowerCase().indexOf(":string"));
-//	            	String colSjis = new String(column.getBytes("Shift_JIS"), 0);
-            		String colSjis = sjisExt.getSjisStr( column );
-	                builder.add(colSjis, String.class);
+            		if ( sjisInternalCharset){
+            			column = sjisExt.getSjisStr( column );
+            		}
+	                builder.add(column, String.class);
             	} else {
-//	            	String colSjis = new String(column.getBytes("Shift_JIS"), 0);
-            		String colSjis = sjisExt.getSjisStr( column );
-	                builder.add(colSjis, String.class);
+            		if ( sjisInternalCharset){
+            			column= sjisExt.getSjisStr( column );
+            		}
+	                builder.add(column, String.class);
             	}
 //                builder.add(column, String.class);
             	++k;

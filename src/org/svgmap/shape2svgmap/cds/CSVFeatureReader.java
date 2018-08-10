@@ -30,6 +30,7 @@ public class CSVFeatureReader implements FeatureReader<SimpleFeatureType, Simple
     private SimpleFeatureBuilder builder;
     private int row;
     private GeometryFactory geometryFactory;
+	private boolean sjisInternalCharset;
 	
 	private int skipLines = 0;
 
@@ -37,6 +38,7 @@ public class CSVFeatureReader implements FeatureReader<SimpleFeatureType, Simple
         this.state = contentState;
         this.query = query;
         CSVDataStore csv = (CSVDataStore) contentState.getEntry().getDataStore();
+    	sjisInternalCharset = csv.sjisInternalCharset;
     	skipLines = csv.skipLines;
         reader = csv.read(); // this may throw an IOException if it could not connect
         boolean header = reader.readHeaders();
@@ -104,14 +106,15 @@ public class CSVFeatureReader implements FeatureReader<SimpleFeatureType, Simple
                 coordinate.x = Double.valueOf( value.trim() );
             } else {
 //            	vals += ","+ value;
-//            	builder.set(column, value );
-            	// Shapefileの悲しい実装とアラインさせるためにあえて文字化けさせる・・・
-            	// deprecate関数を削除 2017.11.2
-//            	String valSjis = new String(value.getBytes("Shift_JIS"), 0);
-            	String valSjis = sjisExt.getSjisStr(value);
-//            	String colSjis = new String(column.getBytes("Shift_JIS"), 0);
-            	String colSjis = sjisExt.getSjisStr(column);
-            	builder.set(colSjis, valSjis );
+            	if (  sjisInternalCharset ){ // shapefile readerもcharsetが指定できることが分かったので、このフラグでどちらにも対応できるようにした 2018/8/10
+            		// Shapefileの悲しい実装とアラインさせるためにあえて文字化けさせる・・・
+            		// deprecate関数を削除 2017.11.2
+            		String valSjis = sjisExt.getSjisStr(value);
+            		String colSjis = sjisExt.getSjisStr(column);
+            		builder.set(colSjis, valSjis );
+            	} else {
+            		builder.set(column, value );
+            	}
             }
         }        
 //        builder.set("Location", geometryFactory.createPoint( coordinate ) ); 

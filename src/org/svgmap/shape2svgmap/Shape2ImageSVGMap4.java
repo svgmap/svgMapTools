@@ -30,7 +30,7 @@ package org.svgmap.shape2svgmap;
 // 2017/02/20 Rev4: マルチスレッド化開発開始 shapefileから直接生成したfeaturesourceでは、性能の向上は僅かな感じ　やはり複数のファイルをオープンしてしまうこと自体が問題だと思われる。（さらに深い調査が必要）　これに対して、http://docs.geotools.org/stable/userguide/tutorial/datastore/source.htmlなどを参考に一つのshapefile featuresourceをバッファリング＆コピーして複数のスレッドに分配するfeaturesourceを実装してそれを用いるようにすると改善するかも？
 // 2017/04/04 CSV読み込み対応 geotools8(8.7)が必要だが、imageio-ext-*.jarが不具合起こすので外しておく
 // 2017/05/12 ようやく文字列でのフィルタがshape2svgmapと互換(前方一致)になったと思う
-
+// 2018/08/10 漢字プロパティ名のカラムを色分けカラムに指定すると変換できない問題を解消。この際にshapefileの文字化けの問題の解消法も分かったのでそちらも対策、そしてこれが波及してcsv data storeもネイティブ文字コードをsjis文字化けではないまともな実装ができるように改修。今とのところshape2SvgMapでは不具合が起きていないので昔のままにしておくが、追々このまともな実装に改修するべき
 
 
 import java.awt.*;
@@ -45,6 +45,7 @@ import javax.imageio.*;
 import java.text.NumberFormat ;
 import java.awt.geom.*;
 
+import java.nio.charset.*;
 
 import org.geotools.data.shapefile.*;
 import org.geotools.feature.*;
@@ -599,12 +600,14 @@ public class Shape2ImageSVGMap4 {
 			} else {
 				cds = new CSVDataStore( new File(filePath), new File(csvSchemaPath), gZipped, charset );
 			}
+			cds.sjisInternalCharset = false; // 2018.8.10 shapefileでも文字コードを正しく判別して読めることが分かったので・・・
 			fs = cds.getFeatureSource(cds.getNames().get(0));
 		} else {
 			URI uri = file.toURI();
 			URL url = uri.toURL();
 		  	System.out.println("URL:"+url);
-		    sds = new ShapefileDataStore(url);
+//		    sds = new ShapefileDataStore(url); 
+		    sds = new ShapefileDataStore(url, true , Charset.forName("Windows-31j")); // 2018.8.10 debug   shapefileでもcharsetを指定すれば文字化けしないことが判明　これをしないと、FilterFactoryのpropertyが正しく処理されないため・・
 		    fs = sds.getFeatureSource();
 		}
 		
@@ -1213,7 +1216,8 @@ public class Shape2ImageSVGMap4 {
 		
 		
 		for ( int i = 0 ; i < ((SimpleFeatureType)schema).getAttributeCount() ; i++){
-			System.out.print(i+":" + colu.getKanjiProp(((SimpleFeatureType)schema).getDescriptor(i).getLocalName()));
+//			System.out.print(i+":" + colu.getKanjiProp(((SimpleFeatureType)schema).getDescriptor(i).getLocalName()));
+			System.out.print(i+":" + (((SimpleFeatureType)schema).getDescriptor(i).getLocalName()));
 			if ( i == colorCol ){
 				System.out.println(" => Selected Attribute");
 			} else {
@@ -1223,7 +1227,10 @@ public class Shape2ImageSVGMap4 {
 		
 		System.out.println("Attribute is Number? : "+ colu.mainAttrIsNumber);
 		
-		String attrName = colu.getKanjiProp(((SimpleFeatureType)schema).getDescriptor(colorCol).getLocalName());
+//		String attrName = colu.getKanjiProp(((SimpleFeatureType)schema).getDescriptor(colorCol).getLocalName());
+		String attrName = (((SimpleFeatureType)schema).getDescriptor(colorCol).getLocalName());
+//		System.out.println("check attrName:"+attrName+" ::  2kanjiProp" + colu.getKanjiProp(attrName) + "   parseAsSJ:"+(new String(((String)attrName).getBytes("iso-8859-1"),"Windows-31J")).trim()+"   parseAsUTF:"+(new String(((String)attrName).getBytes("iso-8859-1"),"UTF-8")).trim());
+//		attrName = colu.getKanjiProp(attrName);
 		
 		if ( colu.mainAttrIsNumber ) {
 			System.out.println(" attrMin:" + colu.mainAttrMin + "  attrMax:" + colu.mainAttrMax );
@@ -1306,7 +1313,8 @@ public class Shape2ImageSVGMap4 {
 				
 //				Filter fl = ff.begins( ff.property(attrName) , ff.literal( new String( o.getBytes("Shift_JIS"), 0) ) );
 //				Filter fl = ff.equals( ff.property(attrName) , ff.literal( new String( o.getBytes("Shift_JIS"), 0) ) );
-				Filter fl = ff.like( ff.property(attrName) , o+"*" ); // http://www.programcreek.com/java-api-examples/index.php?api=org.opengis.filter.FilterFactory2 を参考にしたワイルドカード検索・・(頭の文字列を検索する) 2017.5.12
+//				Filter fl = ff.like( ff.property(attrName) , o+"*" ); // http://www.programcreek.com/java-api-examples/index.php?api=org.opengis.filter.FilterFactory2 を参考にしたワイルドカード検索・・(頭の文字列を検索する) 2017.5.12
+				Filter fl = ff.like( ff.property(attrName) , o ); // ワイルドカードはまずい場合がある。完全一致に修正・・　debug: 2018/8/9
 //				Rule rl = getOneSymbolizeRule( getColor(color) , getColor("#000000") , 0 , dash , markerSize , schema );
 				Rule rl = getOneSymbolizeRule( getColor(color) , getColor(color) , 0 , dash , markerSize , schema );
 				rl.setFilter(fl);

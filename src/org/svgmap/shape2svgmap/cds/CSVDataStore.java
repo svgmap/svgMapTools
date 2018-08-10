@@ -7,6 +7,9 @@
 //  ２行目(Option):カンマ区切りのデータタイプ(int,string,double)
 //  ３行目カンマ区切り、[拡張コマンド]=[コマンドパラメータ]　。
 //   今のところskip=xxx 頭のxxx行スキップする
+//
+// 2018/8/10 shapefileFeatureStoreの文字化け問題に呼応して同様の文字化け処理をあえて起こさせていた実装を、文字化けしない正しい処理もできるように改修(sjisInternalCharsetをfalseにする)
+
 
 package org.svgmap.shape2svgmap.cds;
 
@@ -43,6 +46,8 @@ public class CSVDataStore extends ContentDataStore {
     
 	boolean gZipped = false;
 	String charset = "MS932";
+	
+	public boolean sjisInternalCharset = true; // 2018/8/10
 	
     public CSVDataStore( File file ){
         this.file = file;
