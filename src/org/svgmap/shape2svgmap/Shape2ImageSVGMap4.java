@@ -31,7 +31,7 @@ package org.svgmap.shape2svgmap;
 // 2017/04/04 CSV読み込み対応 geotools8(8.7)が必要だが、imageio-ext-*.jarが不具合起こすので外しておく
 // 2017/05/12 ようやく文字列でのフィルタがshape2svgmapと互換(前方一致)になったと思う
 // 2018/08/10 漢字プロパティ名のカラムを色分けカラムに指定すると変換できない問題を解消。この際にshapefileの文字化けの問題の解消法も分かったのでそちらも対策、そしてこれが波及してcsv data storeもネイティブ文字コードをsjis文字化けではないまともな実装ができるように改修。今とのところshape2SvgMapでは不具合が起きていないので昔のままにしておくが、追々このまともな実装に改修するべき
-
+// 2018/08/31 strkeyの長さ制限(keyLength)に対する細かな色条件判定が間違っていたのを修正
 
 import java.awt.*;
 import java.awt.image.*;
@@ -1300,7 +1300,7 @@ public class Shape2ImageSVGMap4 {
 			
 		} else {
 			HashMap colorMap = colu.colorMap;
-			
+			HashSet truncatedKey = colu.truncatedKey; // added 2018.8.31
 			rules = new Rule[colorMap.size()+1];
 			
 			Set set = colorMap.keySet();
@@ -1310,11 +1310,24 @@ public class Shape2ImageSVGMap4 {
 			while (it.hasNext()){
 				String o = (String)it.next();
 				String color = (String)colorMap.get(o);
-				
+				boolean truncated = false;
+				if ( truncatedKey.contains(o) ){
+					truncated = true;
+				}
 //				Filter fl = ff.begins( ff.property(attrName) , ff.literal( new String( o.getBytes("Shift_JIS"), 0) ) );
 //				Filter fl = ff.equals( ff.property(attrName) , ff.literal( new String( o.getBytes("Shift_JIS"), 0) ) );
+				
+				Filter fl = null;
+				if ( truncated ){ // カットされたキーの場合は、ワイルドカード指定 added 2018.8.31
+					fl = ff.like( ff.property(attrName) , o+"*" );
+				} else { // そうでないものは完全一致
+					fl = ff.like( ff.property(attrName) , o );
+				}
+				
+				// 以下２行はいずれも誤り・・・　キーが短縮されたものの場合はワイルドカードで検索、そうでないものの場合は完全一致が必要　上に修正 2018.8.31
 //				Filter fl = ff.like( ff.property(attrName) , o+"*" ); // http://www.programcreek.com/java-api-examples/index.php?api=org.opengis.filter.FilterFactory2 を参考にしたワイルドカード検索・・(頭の文字列を検索する) 2017.5.12
-				Filter fl = ff.like( ff.property(attrName) , o ); // ワイルドカードはまずい場合がある。完全一致に修正・・　debug: 2018/8/9
+//				Filter fl = ff.like( ff.property(attrName) , o ); // ワイルドカードはまずい場合がある。完全一致に修正・・　debug: 2018/8/9
+				
 //				Rule rl = getOneSymbolizeRule( getColor(color) , getColor("#000000") , 0 , dash , markerSize , schema );
 				Rule rl = getOneSymbolizeRule( getColor(color) , getColor(color) , 0 , dash , markerSize , schema );
 				rl.setFilter(fl);

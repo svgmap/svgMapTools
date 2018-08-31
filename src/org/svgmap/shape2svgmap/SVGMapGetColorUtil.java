@@ -11,6 +11,7 @@ package org.svgmap.shape2svgmap;
 // 2016/02/05 colorkeysを数値型でも有効にした
 // 2016/04/0x Shape2SVGMap19以降は、これを使用する形に共通化したいがまだ・・
 // 2017/05/15 outofrangeに対する処理を三択(skip,nullColor,counterStop)
+// 2018/08/31 truncatedKey追加 文字制限よりも長くて切り捨てた場合にそのkeyを同定するためのhash for shape2ImageSvgMap bug fix
 //
 
 
@@ -113,6 +114,7 @@ public class SVGMapGetColorUtil {
 	
 	
 	public HashMap<Object,String> colorMap = new HashMap<Object,String>(); // ここに文字列～列挙値の場合のカラーテーブルがたまる(Key:文字列,Val:#color)
+	public HashSet<String> truncatedKey = new HashSet<String>(); // 上のcolorMapのKeyが文字数上限越えでカットされたものの場合に設定 2018/8/31 added for shape2ImageSvgMap
 	
 	
 	public double mainAttrMax = -9e99;
@@ -395,6 +397,9 @@ public class SVGMapGetColorUtil {
 		String key;
 		if ( sVal.length() > keyLength ){
 			key = sVal.substring(0,keyLength);
+			if ( !truncatedKey.contains(key) ){  // for shape2ImageSvgMap 2018.8.31
+				truncatedKey.add(key);
+			}
 		} else {
 			key = sVal;
 		}

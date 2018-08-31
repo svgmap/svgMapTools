@@ -20,6 +20,6 @@
 <animation x="-30000" y="-30000" width="60000" height="60000" xlink:href="baseMap/dynamicDenshiKokudo.svg" title="DenshiKokudo" class="basemap switch" visibility="hidden"/>
 
 <!-- Thematic Layer -->
-<animation title="Self Gas Stand" xlink:href="sample/JPcities_of_worldcitiespop_utf8.svg" class="poi clickable" x="-30000" y="-30000" width="60000" height="60000" visibility="visible"/>
+<animation title="JP cities" xlink:href="sample/JPcities_of_worldcitiespop_utf8.svg" class="poi clickable" x="-30000" y="-30000" width="60000" height="60000" visibility="visible"/>
 
 </svg>
