@@ -18,147 +18,176 @@ import org.opengis.feature.simple.SimpleFeatureType;
 import com.csvreader.CsvReader;
 //import com.opencsv.CsvReader;
 import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.Polygon;
 
 @SuppressWarnings("unchecked")
 public class CSVFeatureSource extends ContentFeatureSource {
-    
-    public CSVFeatureSource(ContentEntry entry, Query query) {
-        super(entry,query);
-    }
-    /**
-     * Access parent CSVDataStore
-     */
-    public CSVDataStore getDataStore(){
-        return (CSVDataStore) super.getDataStore();
-    }
-    
-    /**
-     * Implementation that generates the total bounds
-     * (many file formats record this information in the header)
-     */
-    protected ReferencedEnvelope getBoundsInternal(Query query) throws IOException {
-    	System.out.println("called getBoundsInternal:");
-        ReferencedEnvelope bounds = new ReferencedEnvelope( getSchema().getCoordinateReferenceSystem() );
-        
-        FeatureReader<SimpleFeatureType, SimpleFeature> featureReader = getReaderInternal(query);
-        try {
-            while( featureReader.hasNext() ){
-                SimpleFeature feature = featureReader.next();
-                bounds.include( feature.getBounds() );
-            }
-        }
-        finally {
-            featureReader.close();
-        }
-        return bounds;
-    }
-
-    protected int getCountInternal(Query query) throws IOException {
-        CsvReader reader = getDataStore().read();
-        try {
-            boolean connect = reader.readHeaders();
-            if( connect == false ){
-                throw new IOException("Unable to connect");
-            }
-            int count = 0;
-            while( reader.readRecord() ){
-                count += 1;
-            }
-            return count;
-        }
-        finally {
-            reader.close();
-        }
-    }
-
-    protected FeatureReader<SimpleFeatureType, SimpleFeature> getReaderInternal(Query query)
-            throws IOException {
-        return new CSVFeatureReader( getState(), query );
-    }
-
-    protected SimpleFeatureType buildFeatureType() throws IOException {
-    	System.out.println("called buildFeatureType:");
-        SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
-        builder.setName( entry.getName() );
-        
-        // read headers
-        CsvReader reader = getDataStore().read();
-     	System.out.println("buildFeatureType: reader: " + reader );
-    	String[] dataType = getDataStore().dataType;
-    	boolean sjisInternalCharset =  getDataStore().sjisInternalCharset;
-       try {
-             System.out.println("buildFeatureType: readHeaders call: ");
-            boolean success = reader.readHeaders();
-             System.out.println("buildFeatureType: readHeaders success0: " + success);
-           if( success == false ){
-                throw new IOException("Header of CSV file not available");
-            }
-            System.out.println("buildFeatureType: readHeaders success1: " + success);
-       	
-            // we are going to hard code a point location
-            // columns like lat and lon will be gathered into a
-       	// Point called Location --> the_geom ( for compatibility with shapefile source )
-            builder.setCRS(DefaultGeographicCRS.WGS84); // <- Coordinate reference system
+	
+	public CSVFeatureSource(ContentEntry entry, Query query) {
+		super(entry,query);
+	}
+	/**
+	* Access parent CSVDataStore
+	*/
+	public CSVDataStore getDataStore(){
+		return (CSVDataStore) super.getDataStore();
+	}
+	
+	/**
+	* Implementation that generates the total bounds
+	* (many file formats record this information in the header)
+	*/
+	protected ReferencedEnvelope getBoundsInternal(Query query) throws IOException {
+		System.out.println("called getBoundsInternal:");
+		ReferencedEnvelope bounds = new ReferencedEnvelope( getSchema().getCoordinateReferenceSystem() );
+		
+		FeatureReader<SimpleFeatureType, SimpleFeature> featureReader = getReaderInternal(query);
+		try {
+			while( featureReader.hasNext() ){
+				SimpleFeature feature = featureReader.next();
+//				System.out.println(feature.getBounds());
+				bounds.include( feature.getBounds() );
+			}
+		}
+		finally {
+			featureReader.close();
+		}
+		return bounds;
+	}
+	
+	protected int getCountInternal(Query query) throws IOException {
+		CsvReader reader = getDataStore().read();
+		try {
+			boolean connect = reader.readHeaders();
+			if( connect == false ){
+				throw new IOException("Unable to connect");
+			}
+			int count = 0;
+			while( reader.readRecord() ){
+				count += 1;
+			}
+			return count;
+		}
+		finally {
+			reader.close();
+		}
+	}
+	
+	protected FeatureReader<SimpleFeatureType, SimpleFeature> getReaderInternal(Query query)            throws IOException {
+		return new CSVFeatureReader( getState(), query );
+	}
+	
+	protected SimpleFeatureType buildFeatureType() throws IOException {
+		System.out.println("called buildFeatureType:");
+		SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
+		builder.setName( entry.getName() );
+		
+		// read headers
+		CsvReader reader = getDataStore().read();
+		System.out.println("buildFeatureType: reader: " + reader );
+		String[] dataType = getDataStore().dataType;
+		boolean sjisInternalCharset =  getDataStore().sjisInternalCharset;
+		try {
+			System.out.println("buildFeatureType: readHeaders call: ");
+			boolean success = reader.readHeaders();
+			System.out.println("buildFeatureType: readHeaders success0: " + success);
+			if( success == false ){
+				throw new IOException("Header of CSV file not available");
+			}
+			System.out.println("buildFeatureType: readHeaders success1: " + success);
+			
+			// we are going to hard code a point location
+			// columns like lat and lon will be gathered into a
+			// Point called Location --> the_geom ( for compatibility with shapefile source )
+			builder.setCRS(DefaultGeographicCRS.WGS84); // <- Coordinate reference system
 //            builder.add("Location", Point.class );
-            builder.add("the_geom", Point.class );
-            
-       		int k = 0;
-       		int dblCnt = 0;
-	       	HashSet<String> dblCheck = new HashSet<String>();
-            for( String column : reader.getHeaders() ){
-            	
-            	if ( dblCheck.contains(column) ){ // Patch 2018.2.13 S.Takagi Check and Fix Duplicated Feature Type Name
-            		++ dblCnt;
-            		System.out.println("WARNING:  Duplicate Column Name: "+column +".  Rename to :"+ column + dblCnt);
-            		column = column + dblCnt;
-            	} else {
-            		dblCheck.add(column);
-            	}
-            	
-            	System.out.println("buildFeatureType: column: " + column);
-                if( "lat".equalsIgnoreCase(column) || "latitude".equalsIgnoreCase(column) || "lati".equalsIgnoreCase(column) || "緯度".equalsIgnoreCase(column) ){
-                	++k;
-                    continue; // skip as it is part of Location
-                }
-                if( "lon".equalsIgnoreCase(column) || "longitude".equalsIgnoreCase(column) || "lng".equalsIgnoreCase(column) || "long".equalsIgnoreCase(column) || "経度".equalsIgnoreCase(column) ){
-                	++k;
-                    continue; // skip as it is part of Location
-                }
-            	if ( column.toLowerCase().endsWith(":int") || (dataType !=null && dataType.length > k && dataType[k].equals("int") )){
-            		if ( sjisInternalCharset){
-            			column = sjisExt.getSjisStr( column );
-            		}
-	                builder.add(column, Integer.class);
-            	} else if ( column.toLowerCase().endsWith(":double")  || (dataType !=null && dataType.length > k && dataType[k].equals("double") )){
-            		if ( sjisInternalCharset){
-            			column = sjisExt.getSjisStr( column );
-            		}
-	                builder.add(column, Double.class);
-            	} else if ( column.toLowerCase().endsWith(":string")  || (dataType !=null && dataType.length > k && dataType[k].equals("string")  )){
-            		if ( sjisInternalCharset){
-            			column = sjisExt.getSjisStr( column );
-            		}
-	                builder.add(column, String.class);
-            	} else {
-            		if ( sjisInternalCharset){
-            			column= sjisExt.getSjisStr( column );
-            		}
-	                builder.add(column, String.class);
-            	}
+			boolean grometryTypeResolved = false;
+			// まずPointかLineStringかSimplePolygonかを同定する
+			String[] headers = reader.getHeaders();
+			getDataStore().headers = headers;
+			for( String column : headers ){
+				if( column.toLowerCase().startsWith("lat:") || column.toLowerCase().startsWith("latitude:") || column.toLowerCase().startsWith("lati:") || column.toLowerCase().startsWith("緯度:") || "lat".equalsIgnoreCase(column) || "latitude".equalsIgnoreCase(column) || "lati".equalsIgnoreCase(column) || "緯度".equalsIgnoreCase(column) ){
+					if ( column.toLowerCase().endsWith(":line") ){
+						builder.add("the_geom", LineString.class );
+						System.out.println("buildFeatureType: LineString Geom File");
+						getDataStore().geometryType = CSVDataStore.LineString;
+					} else if( column.toLowerCase().endsWith(":polygon") ){
+						builder.add("the_geom", Polygon.class );
+						System.out.println("buildFeatureType: Polygon Geom File");
+						getDataStore().geometryType = CSVDataStore.Polygon;
+					} else {
+						builder.add("the_geom", Point.class );
+						System.out.println("buildFeatureType: Point Geom File");
+						getDataStore().geometryType = CSVDataStore.Point;
+					}
+					grometryTypeResolved = true;
+				}
+			}
+			if ( ! grometryTypeResolved ){
+				System.out.println("ERROR! No geometry column on input csv file. Exit.");
+				System.exit(0);
+			}
+			
+			int k = 0;
+			int dblCnt = 0;
+			HashSet<String> dblCheck = new HashSet<String>();
+			for( String column : headers ){
+				
+				if ( dblCheck.contains(column) ){ // Patch 2018.2.13 S.Takagi Check and Fix Duplicated Feature Type Name
+					++ dblCnt;
+					System.out.println("WARNING:  Duplicate Column Name: "+column +".  Rename to :"+ column + dblCnt);
+					column = column + dblCnt;
+				} else {
+					dblCheck.add(column);
+				}
+				
+				System.out.println("buildFeatureType: column: " + column);
+				if( column.toLowerCase().startsWith("lat:") || column.toLowerCase().startsWith("latitude:") || column.toLowerCase().startsWith("lati:") || column.toLowerCase().startsWith("緯度:") || "lat".equalsIgnoreCase(column) || "latitude".equalsIgnoreCase(column) || "lati".equalsIgnoreCase(column) || "緯度".equalsIgnoreCase(column) ){
+					getDataStore().latitudeColumn = k;
+					++k;
+					continue; // skip as it is part of Location
+				}
+				if( column.toLowerCase().startsWith("lon:") || column.toLowerCase().startsWith("longitude:") || column.toLowerCase().startsWith("lng:") || column.toLowerCase().startsWith("経度:") || "lon".equalsIgnoreCase(column) || "longitude".equalsIgnoreCase(column) || "lng".equalsIgnoreCase(column) || "long".equalsIgnoreCase(column) || "経度".equalsIgnoreCase(column) ){
+					getDataStore().longitudeColumn = k;
+					++k;
+					continue; // skip as it is part of Location
+				}
+				if ( column.toLowerCase().endsWith(":int") || (dataType !=null && dataType.length > k && dataType[k].equals("int") )){
+					if ( sjisInternalCharset){
+						column = sjisExt.getSjisStr( column );
+					}
+					builder.add(column, Integer.class);
+				} else if ( column.toLowerCase().endsWith(":double")  || (dataType !=null && dataType.length > k && dataType[k].equals("double") )){
+					if ( sjisInternalCharset){
+						column = sjisExt.getSjisStr( column );
+					}
+					builder.add(column, Double.class);
+				} else if ( column.toLowerCase().endsWith(":string")  || (dataType !=null && dataType.length > k && dataType[k].equals("string")  )){
+					if ( sjisInternalCharset){
+						column = sjisExt.getSjisStr( column );
+					}
+					builder.add(column, String.class);
+				} else {
+					if ( sjisInternalCharset){
+						column= sjisExt.getSjisStr( column );
+					}
+					builder.add(column, String.class);
+				}
 //                builder.add(column, String.class);
-            	++k;
-            }
-            
-            // build the type (it is immutable and cannot be modified)
-            final SimpleFeatureType SCHEMA = builder.buildFeatureType();
-    	System.out.println("buildFeatureType: SCHEMA: " + SCHEMA);
-        	
-            return SCHEMA;
-        }
-        finally {
-            reader.close();
-        }
-    }
-    
-
+				++k;
+			}
+			
+			// build the type (it is immutable and cannot be modified)
+			final SimpleFeatureType SCHEMA = builder.buildFeatureType();
+			System.out.println("buildFeatureType: SCHEMA: " + SCHEMA);
+			
+			return SCHEMA;
+		}
+		finally {
+			reader.close();
+		}
+	}
+	
+	
 }

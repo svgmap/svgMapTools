@@ -16,6 +16,7 @@ package org.svgmap.shape2svgmap;
 // 2016.10.31 CustomAttrをsvgMapTilesでも使えるように改修
 // 2017.09.15 minor update (add hmmm message..)
 // 2018.07.10 クリッピングされたデータのputPolylineでの、無駄なデータ生成を抑制(polygon用クリッピングルーチンを流用しているのが原因・・)
+// 2018.09.20 File.length()による出力データサイズ確認on checkSize()が大幅に性能を劣化させていることが判明　CharArrayWriterを利用し内部でサイズを計算する方法に切り替え
 //
 
 import java.io.*;
@@ -233,6 +234,14 @@ public class SvgMap {
 		out.write("</svg>\n");
 //		System.out.println("File:" + svgFile.length());
 		out.close();
+		length += ((CharArrayWriter)out).size();
+//		System.out.println(length);
+		if ( out2 != null ){
+			((CharArrayWriter)out).writeTo( out2 );
+			out.flush();
+			((CharArrayWriter)out).reset();
+			out2.close();
+		}
 		if ( nElements == 0 ) {
 			if ( nullFileDebug ){
 				// do nothing
@@ -248,11 +257,6 @@ public class SvgMap {
 		
 		// added a part of checksize()
 		boolean ret;
-		if ( nullFileDebug ){
-			length = ((NullWriter)out).length();
-		} else {
-			length = svgFile.length();
-		}
 		if ( forceOos && nElements > 0 ){
 			ret = false;
 		} else if ( length < limit ){
@@ -268,6 +272,7 @@ public class SvgMap {
 	
 	public void removeFile()throws Exception{
 		out.close();
+		out2.close();
 		if ( nullFileDebug ){
 			// do nothing
 		} else {
@@ -869,42 +874,35 @@ public class SvgMap {
 		}
 	}
 	
+	Writer out2;
 	private boolean checkSize() throws Exception{
 		// リミッターを超えたら、falseを返す
 		++ nElements;
 		// 遅延ファイル出力を試す(2014.02)
 		// forceOosのときはファイル生成自体行わないように改良 2016.5.11 (delete()に影響ないか？)
-		if ( nElements == 1 && !forceOos ){ // 最初の実効的書き込み
-			if ( nullFileDebug ){
-				NullWriter nullSt = new NullWriter();
-				out = nullSt;
-			} else {
-//				System.out.println("At last file create!"+svgFile);
-				FileOutputStream osFile = new FileOutputStream( svgFile );
-				Writer out2 = new BufferedWriter(new OutputStreamWriter( osFile , "UTF-8" ));
-				((CharArrayWriter)out).writeTo( out2 );
-				// もともとoutはcharArrayWriterだったものをここで、BufferedWriterに
-				out = out2;
-				out.flush(); // いったん書き出し
+		boolean ret=true;
+		if ( forceOos ){
+			if (  nElements > 0 ){
+				ret = false;
+			}
+		} else {
+			if ( nElements == 1 ){ // 最初の実効的書き込み
+				if ( nullFileDebug ){
+					out2 = new NullWriter();
+				} else {
+	//				System.out.println("At last file create!"+svgFile);
+					FileOutputStream osFile = new FileOutputStream( svgFile );
+					out2 = new BufferedWriter(new OutputStreamWriter( osFile , "UTF-8" ));
+				}
+			}
+			length += ((CharArrayWriter)out).size();
+			((CharArrayWriter)out).writeTo( out2 );
+			out.flush();
+			((CharArrayWriter)out).reset();
+			if ( length >= limit ){
+				ret = false;
 			}
 		}
-//		System.out.println( nElements );
-		boolean ret;
-		if ( nullFileDebug ){
-			length = ((NullWriter)out).length();
-		} else {
-			length = svgFile.length();
-		}
-		if ( forceOos && nElements > 0 ){
-			ret = false;
-		} else if ( length < limit ){
-			ret = true;
-		} else {
-			ret = false;
-//			System.out.println("Exceeded fileLimit!");
-//			throw new IndexOutOfBoundsException();
-		}
-		
 		return ( ret );
 	}
 }

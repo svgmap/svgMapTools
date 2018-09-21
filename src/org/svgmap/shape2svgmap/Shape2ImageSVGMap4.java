@@ -32,6 +32,7 @@ package org.svgmap.shape2svgmap;
 // 2017/05/12 ようやく文字列でのフィルタがshape2svgmapと互換(前方一致)になったと思う
 // 2018/08/10 漢字プロパティ名のカラムを色分けカラムに指定すると変換できない問題を解消。この際にshapefileの文字化けの問題の解消法も分かったのでそちらも対策、そしてこれが波及してcsv data storeもネイティブ文字コードをsjis文字化けではないまともな実装ができるように改修。今とのところshape2SvgMapでは不具合が起きていないので昔のままにしておくが、追々このまともな実装に改修するべき
 // 2018/08/31 strkeyの長さ制限(keyLength)に対する細かな色条件判定が間違っていたのを修正
+// 2019.09.21 csv入力での単純なlineString,polygonデータ対応
 
 import java.awt.*;
 import java.awt.image.*;
@@ -168,11 +169,17 @@ public class Shape2ImageSVGMap4 {
 		System.out.println( " -charset    : set charset for csv : Default:SJIS  (SJIS:UTF-8)");
 		System.out.println( " -csvschema  : set schema file for csv");
 		System.out.println( " Source CSV File rules:");
-		System.out.println( "   Currently only Point feature is supported. And other proerties are string.");
-		System.out.println( "   Schema (name of each columns) of CSV should be set by the first row of source CSV or single line schema file using -csvschemaoption.");
-		System.out.println("    You should declare latitude and longitude column by schema name 'LAT' and 'LON' (case ignored).");
+		System.out.println( "   Schema (name of each columns) of CSV should be set by the first row of source CSV or single line schema file using -csvschema option.");
+		System.out.println( "   Properties other than coordinate values are basically treated as string.");
+		System.out.println( "   ");
+		System.out.println( "   Point feature:");
+		System.out.println("      You should declare latitude and longitude column by schema name 'LAT' and 'LON' or 'LATITUDE' and 'LONGITUDE' (case insensitive).");
+		System.out.println( "   LineString feature:");
+		System.out.println("      Only one unbroken polyline is supported. A 'latitude:line' and 'longitude:line' pair must be at the last column of the schema. That is, other property must exist at the column before the coordinate value. And as actual data, arbitrary numbers of latitude and longitude pairs are listed from the last column.");
+		System.out.println( "   Polygon feature:");
+		System.out.println("      Only one polygon that is not split and is not even a donut is supported. The 'latitude:polygon' and 'longitude:polygon' pairs must be at the last column of the schema. Other than that it is the same as above.");
 		System.out.println("    If you use -csvschema schema file must be single line and terminated (CR|LF).");
-		System.out.println("    Currently CSV file should be OS native charset.");
+		
 		
 	}
 	

@@ -9,7 +9,7 @@
 //   今のところskip=xxx 頭のxxx行スキップする
 //
 // 2018/8/10 shapefileFeatureStoreの文字化け問題に呼応して同様の文字化け処理をあえて起こさせていた実装を、文字化けしない正しい処理もできるように改修(sjisInternalCharsetをfalseにする)
-
+// 2018/9/20 Line,Polygonの最もシンプルなもの(途切れや穴がないもの)をCSVから読み込める機能を拡張
 
 package org.svgmap.shape2svgmap.cds;
 
@@ -34,54 +34,62 @@ import com.csvreader.CsvReader;
 //import com.opencsv.CsvReader;
 
 public class CSVDataStore extends ContentDataStore {
-// header end
-    
-    // constructor start
-    File file;
+	// header end
+	
+	// constructor start
+	File file;
 	File schemaFile = null;
 	
 	String schemaLine="";
 	public String[] dataType;
 	int skipLines = 0;
-    
+	
 	boolean gZipped = false;
 	String charset = "MS932";
 	
 	public boolean sjisInternalCharset = true; // 2018/8/10
+	String[] headers; // 2018/09/13
+	int geometryType = 0; // (Point|LineString|Polygon) 2018/09/13
+	int latitudeColumn = 0; // 2018/09/13
+	int longitudeColumn = 0; // 2018/09/13
 	
-    public CSVDataStore( File file ){
-        this.file = file;
-    }
+	static int Point = 0;
+	static int LineString = 1;
+	static int Polygon = 2;
 	
-    public CSVDataStore( File file, boolean gZipped ){
-        this.file = file;
-    	this.gZipped = gZipped;
-    }
+	public CSVDataStore( File file ){
+		this.file = file;
+	}
 	
-    public CSVDataStore( File file, boolean gZipped , String charset ){
-        this.file = file;
-    	this.gZipped = gZipped;
-    	this.charset = charset;
-    }
+	public CSVDataStore( File file, boolean gZipped ){
+		this.file = file;
+		this.gZipped = gZipped;
+	}
 	
-    public CSVDataStore( File file , File schemaFile){
-        this.file = file;
-    	this.schemaFile = schemaFile;
-    }
+	public CSVDataStore( File file, boolean gZipped , String charset ){
+		this.file = file;
+		this.gZipped = gZipped;
+		this.charset = charset;
+	}
 	
-    public CSVDataStore( File file , File schemaFile, boolean gZipped ){
-        this.file = file;
-    	this.schemaFile = schemaFile;
-    	this.gZipped = gZipped;
-    }
+	public CSVDataStore( File file , File schemaFile){
+		this.file = file;
+		this.schemaFile = schemaFile;
+	}
 	
-    public CSVDataStore( File file , File schemaFile, boolean gZipped , String charset ){
-        this.file = file;
-    	this.schemaFile = schemaFile;
-    	this.gZipped = gZipped;
-    	this.charset = charset;
-    }
-    // constructor end
+	public CSVDataStore( File file , File schemaFile, boolean gZipped ){
+		this.file = file;
+		this.schemaFile = schemaFile;
+		this.gZipped = gZipped;
+	}
+	
+	public CSVDataStore( File file , File schemaFile, boolean gZipped , String charset ){
+		this.file = file;
+		this.schemaFile = schemaFile;
+		this.gZipped = gZipped;
+		this.charset = charset;
+	}
+	// constructor end
 	
 	
 	private void getSchema()throws IOException {
@@ -136,53 +144,52 @@ public class CSVDataStore extends ContentDataStore {
 		
 		br.close();
 	}
-    
-    /**
-     * Allow read access to file; for our package visibile "friends".
-     * Please close the reader when done.
-     * @return CsvReader for file
-     */
-    CsvReader read() throws IOException {
-    	CsvReader csvReader = null;
-    	
-    	InputStream dataStream = null;
-    	
-    	if ( gZipped ){
-    		dataStream = new GZIPInputStream(new BufferedInputStream(new FileInputStream(file)));
-    	} else {
-    		dataStream = new FileInputStream(file);
-    	}
-    	
-    	if ( schemaFile == null ){
+
+	/**
+	* Allow read access to file; for our package visibile "friends".
+	* Please close the reader when done.
+	* @return CsvReader for file
+	*/
+	CsvReader read() throws IOException {
+		CsvReader csvReader = null;
+		
+		InputStream dataStream = null;
+		
+		if ( gZipped ){
+			dataStream = new GZIPInputStream(new BufferedInputStream(new FileInputStream(file)));
+		} else {
+			dataStream = new FileInputStream(file);
+		}
+		
+		if ( schemaFile == null ){
 //    		BufferedReader reader = new BufferedReader(new InputStreamReader(dataStream,"MS932"));
-    		BufferedReader reader = new BufferedReader(new InputStreamReader(dataStream,charset));
-    		csvReader = new CsvReader(reader);
-    	} else {
-    		getSchema(); // schemaLine and each type on global
-    		InputStream schemaStream = new ByteArrayInputStream(schemaLine.getBytes());
-    		SequenceInputStream sequenceInputStream = new SequenceInputStream (schemaStream,dataStream);
+			BufferedReader reader = new BufferedReader(new InputStreamReader(dataStream,charset));
+			csvReader = new CsvReader(reader);
+		} else {
+			getSchema(); // schemaLine and each type on global
+			InputStream schemaStream = new ByteArrayInputStream(schemaLine.getBytes());
+			SequenceInputStream sequenceInputStream = new SequenceInputStream (schemaStream,dataStream);
 //    		BufferedReader reader = new BufferedReader(new InputStreamReader(sequenceInputStream,"MS932"));
-    		BufferedReader reader = new BufferedReader(new InputStreamReader(sequenceInputStream,charset));
-    		 csvReader = new CsvReader(reader);
-    	}
-//        csvReader.close();
-        return csvReader;
-    }
-
-    // createTypeNames start
-    protected List<Name> createTypeNames() throws IOException {
-        String name = file.getName();
-        name = name.substring(0, name.lastIndexOf('.'));
-        
-        Name typeName = new NameImpl( name );
-        return Collections.singletonList(typeName);
-    }
-    // createTypeNames end
-    
-
-    @Override
-    protected ContentFeatureSource createFeatureSource(ContentEntry entry) throws IOException {
-        return new CSVFeatureSource(entry, Query.ALL);
-    }
-
+			BufferedReader reader = new BufferedReader(new InputStreamReader(sequenceInputStream,charset));
+			csvReader = new CsvReader(reader);
+		}
+//		csvReader.close();
+		return csvReader;
+	}
+	
+	// createTypeNames start
+	protected List<Name> createTypeNames() throws IOException {
+		String name = file.getName();
+		name = name.substring(0, name.lastIndexOf('.'));
+		
+		Name typeName = new NameImpl( name );
+		return Collections.singletonList(typeName);
+	}
+	// createTypeNames end
+	
+	
+	@Override
+	protected ContentFeatureSource createFeatureSource(ContentEntry entry) throws IOException {
+		return new CSVFeatureSource(entry, Query.ALL);
+	}
 }
