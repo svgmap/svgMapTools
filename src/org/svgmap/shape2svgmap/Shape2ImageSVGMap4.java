@@ -4,7 +4,7 @@ package org.svgmap.shape2svgmap;
 //
 // shapefileからビットイメージタイル地図群とそのSVGコンテナを生成する
 // Programmed by Satoru Takagi (2012/04)
-// Copyright 2012-2017 by Satoru Takagi @ KDDI All Rights Reserved
+// Copyright 2012-2018 by Satoru Takagi @ KDDI All Rights Reserved
 //
 // 2012/04/26 1st Ver
 // 2012/05/10 mesh2DBを用いて、日本陸上部のみのデータ生成で若干高速化
@@ -32,7 +32,8 @@ package org.svgmap.shape2svgmap;
 // 2017/05/12 ようやく文字列でのフィルタがshape2svgmapと互換(前方一致)になったと思う
 // 2018/08/10 漢字プロパティ名のカラムを色分けカラムに指定すると変換できない問題を解消。この際にshapefileの文字化けの問題の解消法も分かったのでそちらも対策、そしてこれが波及してcsv data storeもネイティブ文字コードをsjis文字化けではないまともな実装ができるように改修。今とのところshape2SvgMapでは不具合が起きていないので昔のままにしておくが、追々このまともな実装に改修するべき
 // 2018/08/31 strkeyの長さ制限(keyLength)に対する細かな色条件判定が間違っていたのを修正
-// 2019.09.21 csv入力での単純なlineString,polygonデータ対応
+// 2018.09.21 csv入力での単純なlineString,polygonデータ対応
+// 2018/09/25 マーカーを選択可能にした。meshマーカーは実空間サイズ(degrees)を設定可能。strokeColor省略オプション追加(fillColorと合わせる)。属性値に応じた色塗りでもstrokeを指定可能に('-'で省略も可能)
 
 import java.awt.*;
 import java.awt.image.*;
@@ -74,6 +75,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.svgmap.shape2svgmap.svgMapMarkFactory;
 
 public class Shape2ImageSVGMap4 {
 	
@@ -103,14 +105,16 @@ public class Shape2ImageSVGMap4 {
 	// for outOfRange Color Control
 	int outOfRangeView = SVGMapGetColorUtil.MARK;
 	
+	// for meshMarker
+	double meshMarkerGeoHeight = -1;
 	//
 	File complementalSourceSvg = null;
 	
 	public static void showHelp(){
 		System.out.println( "Shape2ImageSVGMap: Generate bit image tiles type SVG Map data from (Shapefile|csv)");
-		System.out.println( "Copyright 2012 - 2017 by Satoru Takagi @ KDDI All Rights Reserved");
+		System.out.println( "Copyright 2012 - 2018 by Satoru Takagi @ KDDI All Rights Reserved");
 		System.out.println( "" );
-		System.out.println( "Shape2ImageSVGMap TileSize (-Options) (Path4Shape.(shp|csv) (#fillColor | attrNumb) #strokeColor strokeWidth symbolSize )* " );
+		System.out.println( "Shape2ImageSVGMap TileSize (-Options) (Path4Shape.(shp|csv) (#fillColor | attrNumb) (#strokeColor | -) strokeWidth (symbolSize | sizedMarkerShapeName) )* " );
 		System.out.println( "" );
 		System.out.println( "TileSize: ( level | tileSize\"deg\" | sigle | statLevl-endLevel | (vectorTiledContainer.svg) )" );
 		System.out.println( " tileSize: (tileSize)\"deg\"" );
@@ -138,12 +142,16 @@ public class Shape2ImageSVGMap4 {
 		System.out.println( " ...");
 		System.out.println( " rootContainerSvgfileName : Build complemental multi-level tiles for density controlled vector tiles ");
 		System.out.println( "" );
-		System.out.println( "#fillColor   : fillColorString(in web format)." );
+		System.out.println( "#fillColor   : fillColorString(in web color format)." );
 		System.out.println( "attrNumb     : Attribute number for determining fillColor. Calculation logic is the same as Shape2SVGMap's -color option. Options for outline are ignored. (no outline)" );
 		System.out.println( "               If you set [numb]R[min],[max] then attr range is forced min .. max.");
-		System.out.println( "#strokeColor : strokeColorString(in web format). You cannot set up an attribute number." );
+		System.out.println( "#strokeColor : strokeColorString(in web color format). You cannot set up an attribute number. If '-' is set then strokeColor equals to fillColor." );
 		System.out.println( "strokewidith : width of stroke(in px)(int)." );
-		System.out.println( "symbolSize   : size of symbol(in px)(int)." );
+		System.out.println( "symbolSize   : size of symbol(in px)(int).   marker is circle" );
+		System.out.println( "sizedMarkerShapeName  :  ( ('cross'|'circle'|'triangle'|'x'|'star'|'arrow'|'hatch'|'square')':'size | 'mesh:'lngspan:heightspan )" );
+		System.out.println( "    size: number (in px)" );
+		System.out.println( "    lngspan, heightspan : number (in geoCoords(deg)) , only for 'mesh')" );
+		System.out.println( "    examples:  'triangle:10', 'mesh:0.1:0.1'");
 		System.out.println( " If \"dash\" is added (ex. 1dash) then stroke is dashed." );
 		System.out.println( "" );
 		System.out.println( "-Options:" );
@@ -160,16 +168,16 @@ public class Shape2ImageSVGMap4 {
 		System.out.println( "  param  default : 2");
 		System.out.println( " -numcolor   : The color table on a numerical value (param RED:Red gradation, HSV:(min:blue,nax:red), iHSV:(min:red,max:blue), QUOTA:randomly)");
 		System.out.println( "                default:HSV");
-		System.out.println( " -outOfRange : 上限加減を超えた値の処理");
-		System.out.println( "                 デフォルト:グレーに設定");
-		System.out.println( "                 skip (=skipoutofrange)");
-		System.out.println( "                 counterStop 上限下限値に張り付く");
+		System.out.println( " -outOfRange : How to handle values exceeding limits");
+		System.out.println( "                 default : gray");
+		System.out.println( "                 skip  : (=skipoutofrange)");
+		System.out.println( "                 counterStop  : Stick to upper limit and lower limit");
 		System.out.println( " -optionFile : set -options using text file (param: optiontextfile.txt)");
 		System.out.println( " -threads    : set maximum number of threads (default 4)");
 		System.out.println( " -charset    : set charset for csv : Default:SJIS  (SJIS:UTF-8)");
 		System.out.println( " -csvschema  : set schema file for csv");
 		System.out.println( " Source CSV File rules:");
-		System.out.println( "   Schema (name of each columns) of CSV should be set by the first row of source CSV or single line schema file using -csvschema option.");
+		System.out.println( "   Schema (name of each columns) of CSV should be set by the first row of source CSV or single line schema file using -csvschemaoption.");
 		System.out.println( "   Properties other than coordinate values are basically treated as string.");
 		System.out.println( "   ");
 		System.out.println( "   Point feature:");
@@ -382,7 +390,7 @@ public class Shape2ImageSVGMap4 {
 		
 		if ( ( args.length - i ) % 5 != 0 ){
 			System.out.println("\n\nErrpr: Invalid layer parameters. For each layer you have to set five parameters as below.");
-			System.out.println(" Path4Shape.(shp|csv) (#fillColor | attrNumb) #strokeColor strokeWidth symbolSize");
+			System.out.println(" Path4Shape.(shp|csv) (#fillColor | attrNumb) (#strokeColor | -) strokeWidth (symbolSize | sizedMarkerShapeName)");
 			System.out.println("");
 			System.out.println("To display help, please launch Shape2ImageSVGMap without any options.\n");
 			System.exit(0);
@@ -390,7 +398,7 @@ public class Shape2ImageSVGMap4 {
 		
 		while(i < args.length ){
 //			try{
-				int markerSize = Integer.parseInt(args[i+4]);
+				// int markerSize = Integer.parseInt(args[i+4]);
 				//            sourve  , fillClr   , strokeClr , strokeWid , symbolSize
 				s2i.loadLayer(args[i] , args[i+1] , args[i+2] , args[i+3] , args[i+4]);
 				i += 5;
@@ -579,8 +587,41 @@ public class Shape2ImageSVGMap4 {
 			}
 		}
 		
-		int markerSize = Integer.parseInt( markerSizeS );
+		markerSizeS = markerSizeS.toLowerCase();
+		String markerName = "circle";
+		int markerSize = 3;
+		if ( markerSizeS.indexOf(":")>0){
+			String[] markerSizeSarray=markerSizeS.split(":");
+			markerName = markerSizeSarray[0];
+			if ( markerSizeSarray.length < 2 ){
+				System.out.println("ERROR! sizedMarkerShapeName invalid : " + markerSizeS );
+				System.exit(0);
+			}
+			if ( markerName.equals("cross") || markerName.equals("circle") || markerName.equals("triangle") || markerName.equals("x") || markerName.equals("star") || markerName.equals("arrow") || markerName.equals("hatch") || markerName.equals("square")){
+				markerSize =  Integer.parseInt( markerSizeSarray[1] );
+			} else if ( markerName.equals("mesh")  ){
+				if ( markerSizeSarray.length < 3 ){
+					System.out.println("ERROR! sizedMarkerShapeName invalid : " + markerSizeS );
+					System.exit(0);
+				}
+				double aspect = Double.parseDouble(markerSizeSarray[2])/Double.parseDouble(markerSizeSarray[1]);
+				markerName = "meshrect:"+(double)((int)(aspect*100))/100;
+				if ( aspect < 1 ){ // 縦の長さがsizeのようですので・・
+					markerSize = (int)(10 * aspect);
+				} else {
+					markerSize = 10;
+				}
+				meshMarkerGeoHeight = Double.parseDouble(markerSizeSarray[2]);
+			} else {
+				System.out.println("ERROR! sizedMarkerShapeName invalid : " + markerSizeS );
+				System.exit(0);
+			}
+			
+		} else {
+			markerSize = Integer.parseInt( markerSizeS );
+		}
 		
+		System.out.println("markerName:"+markerName+"  markerSize:"+markerSize);
 		
 	  	File file = new File(filePath);
 		
@@ -629,10 +670,10 @@ public class Shape2ImageSVGMap4 {
 		
 		Style style;
 		if ( attrColorNumber < 0 ){
-			style = getFeatureStyle( fillColor , strokeColor , strokeWidth , dash , markerSize , fs.getSchema());
+			style = getFeatureStyle( fillColor , strokeColor , strokeWidth , dash , markerSize , fs.getSchema(), markerName);
 		} else {
 //			style = getFeatureStyle2( 2 , false , 3 , fs );
-			style = getFeatureStyle2( attrColorNumber , false , markerSize , fs , fMin , fMax );
+			style = getFeatureStyle2( attrColorNumber , strokeColor , strokeWidth ,  dash , markerSize , fs , fMin , fMax , markerName);
 		}
 		styleArray[layerCount] = style;
 		
@@ -825,6 +866,19 @@ public class Shape2ImageSVGMap4 {
 		}
 		
 //		System.out.println("imageWidth:" + imageWidth + " imageHeight:" + imageHeight + " geoXstep:" + geoXstep + " gepYstep:" + geoYstep + " geoXstart:" + geoXstart + " geoYstart:" + geoYstart + " GridXsize:" + GridXsize + " GridYsize:" + GridYsize);
+		
+		for ( int i = 0 ; i < styleArray.length; i++ ){
+			if ( meshMarkerGeoHeight > 0 ){
+				int mkSize = (int)(meshMarkerGeoHeight * imageHeight / geoYstep);
+				if ( mkSize == 0 ){
+					mkSize = 1;
+				}
+				setMarkerSize(styleArray[i] , mkSize );
+//				System.out.println("MESH SIZE: geo:"+meshMarkerGeoHeight+"    pix:"+ mkSize);
+//				System.out.println("MESH SIZE: imageHeight:"+imageHeight+"    geoYstep:"+ geoYstep);
+				
+			}
+		}
 		
 		prevGeoXstart = geoXstart;
 		prevGeoYstart = geoYstart;
@@ -1169,12 +1223,12 @@ public class Shape2ImageSVGMap4 {
 	
 	// ポリゴンスタイルの生成関数
 	// Colorは　new Color(47, 184, 27)　こんなかんじ
-	public Style getFeatureStyle( Color fillColor , Color strokeColor , int strokeWidth , boolean dash , int markerSize , FeatureType schema ){
+	public Style getFeatureStyle( Color fillColor , Color strokeColor , int strokeWidth , boolean dash , int markerSize , FeatureType schema , String markerName){
 		//スタイルを作成
 		FilterFactory ff = CommonFactoryFinder.getFilterFactory2(null);
 		StyleFactory sf = CommonFactoryFinder.getStyleFactory(null);
 		
-		Rule rule = getOneSymbolizeRule( fillColor , strokeColor , strokeWidth , dash , markerSize , schema );
+		Rule rule = getOneSymbolizeRule( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName);
 		
 /**			
 		// add for checking
@@ -1200,7 +1254,7 @@ public class Shape2ImageSVGMap4 {
 	
 	
 	// ポリゴンスタイルの生成関数２　値に応じて色を変化させる機能用
-	public Style getFeatureStyle2( int colorCol , boolean dash , int markerSize ,  SimpleFeatureSource fs , double fMin , double fMax ) throws Exception {
+	public Style getFeatureStyle2( int colorCol , Color strokeColor , int strokeWidth , boolean dash , int markerSize ,  SimpleFeatureSource fs , double fMin , double fMax , String markerName) throws Exception {
 		System.out.println("Call getFeatureStyle2 : colorCol:" + colorCol );
 		FeatureType schema = fs.getSchema();
 		//スタイルを作成
@@ -1272,14 +1326,14 @@ public class Shape2ImageSVGMap4 {
 				// オーバーフロー時
 				Color overFlowColor =  getColor(colu.getColor( colu.mainAttrMax + 0.5 * vSpan , colu.mainAttrMin , colu.mainAttrMax ));
 				Filter overFlowFl =  ff.greater( ff.property(attrName) , ff.literal(colu.mainAttrMax) );
-				Rule overFlowRl = getOneSymbolizeRule( overFlowColor , overFlowColor , 0 , dash , markerSize , schema );
+				Rule overFlowRl = getOneSymbolizeRule( overFlowColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
 				overFlowRl.setFilter(overFlowFl);
 				rules[colorResolution] = overFlowRl;
 				
 				// アンダーフロー時
 				Color underFlowColor =  getColor(colu.getColor( colu.mainAttrMin - 0.5 * vSpan , colu.mainAttrMin , colu.mainAttrMax ));
 				Filter underFlowFl = ff.less( ff.property(attrName) , ff.literal(colu.mainAttrMin) );
-				Rule underFlowRl = getOneSymbolizeRule( underFlowColor , underFlowColor , 0 , dash , markerSize , schema );
+				Rule underFlowRl = getOneSymbolizeRule( underFlowColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
 				underFlowRl.setFilter(underFlowFl);
 				rules[colorResolution+1] = underFlowRl;
 				
@@ -1299,7 +1353,7 @@ public class Shape2ImageSVGMap4 {
 				}
 				Filter fl2 = ff.lessOrEqual( ff.property(attrName) , ff.literal(vHigh) );
 				Filter fl = ff.and( fl1 , fl2 );
-				Rule rl = getOneSymbolizeRule( getColor(color) , getColor(color) , 0 , dash , markerSize , schema );
+				Rule rl = getOneSymbolizeRule( getColor(color) , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
 				rl.setFilter(fl);
 				rules[ i ] = rl;
 				System.out.println(color + " = " + vLow + " ... " + vHigh);
@@ -1336,7 +1390,7 @@ public class Shape2ImageSVGMap4 {
 //				Filter fl = ff.like( ff.property(attrName) , o ); // ワイルドカードはまずい場合がある。完全一致に修正・・　debug: 2018/8/9
 				
 //				Rule rl = getOneSymbolizeRule( getColor(color) , getColor("#000000") , 0 , dash , markerSize , schema );
-				Rule rl = getOneSymbolizeRule( getColor(color) , getColor(color) , 0 , dash , markerSize , schema );
+				Rule rl = getOneSymbolizeRule( getColor(color) , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
 				rl.setFilter(fl);
 				rules[ i ] = rl;
 				orList.add(fl);
@@ -1346,7 +1400,7 @@ public class Shape2ImageSVGMap4 {
 			@SuppressWarnings("unchecked")
 			Filter otfl = ff.or(orList);
 			otfl = ff.not(otfl);
-			Rule otrl = getOneSymbolizeRule( getColor(colu.nullColor) , getColor(colu.nullColor) , 0 , dash , markerSize , schema );
+			Rule otrl = getOneSymbolizeRule( getColor(colu.nullColor) , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
 			otrl.setFilter(otfl);
 			rules[ colorMap.size() ] = otrl;
 		}
@@ -1363,8 +1417,11 @@ public class Shape2ImageSVGMap4 {
 	
 	
 	
-	Rule getOneSymbolizeRule( Color fillColor , Color strokeColor , int strokeWidth , boolean dash , int markerSize , FeatureType schema ){
+	Rule getOneSymbolizeRule( Color fillColor , Color strokeColor , int strokeWidth , boolean dash , int markerSize , FeatureType schema , String markerName ){
 		//スタイルを作成
+		if ( strokeColor == null ){
+			strokeColor = fillColor;
+		}
 		FilterFactory ff = CommonFactoryFinder.getFilterFactory2(null);
 		StyleFactory sf = CommonFactoryFinder.getStyleFactory(null);
 		
@@ -1377,7 +1434,16 @@ public class Shape2ImageSVGMap4 {
 			}
 //			System.out.println("Point Style : " +  fillColor + ", size:" + markerSize );
 			// point分を追加
-			Mark mark = sf.getCircleMark(); // 円形のマークを選択 以下２行で線と塗り設定
+//			Mark mark = sf.getCircleMark(); // 円形のマークを選択 以下２行で線と塗り設定
+			Mark mark = sf.getDefaultMark();
+			mark.setWellKnownName(ff.literal(markerName));
+// https://geoserver-pdf.readthedocs.io/en/stable/styling/sld-extensions/pointsymbols.html
+// をもとに、独自のMarkerFactoryを追加することができるらしい
+// そうすると、SLDStyleFactory　の　DynamicSymbolFactoryFinder.getMarkFactories()　でひっかけることができる
+// SPIについてはhttps://www.glamenv-septzen.net/view/1324　や　http://www.ne.jp/asahi/hishidama/home/tech/java/jar.html#h_Service_Providerなどを参考に
+			if ( strokeColor == null ){
+				strokeColor = fillColor;
+			}
 			org.geotools.styling.Stroke strokeP = sf.createStroke(
 				ff.literal(strokeColor),
 				ff.literal(strokeWidth)
@@ -1523,6 +1589,23 @@ public class Shape2ImageSVGMap4 {
 //		System.out.println(key+" , " + ans[0] + ":"+ans[1]);
 		return ( ans );
 	}
+	
+	void setMarkerSize(Style style , int markerSize){
+		FilterFactory ff = CommonFactoryFinder.getFilterFactory2(null);
+		java.util.List<FeatureTypeStyle> ftsl=style.featureTypeStyles();
+		for ( FeatureTypeStyle fts : ftsl){
+			java.util.List<Rule> rules = fts.rules();
+			for(Rule rule : rules){
+				java.util.List<Symbolizer> symbolizers =  rule.symbolizers();
+				for ( Symbolizer symbolizer : symbolizers){
+					if ( symbolizer instanceof  PointSymbolizer){
+						Graphic gp = ((PointSymbolizer)symbolizer).getGraphic();
+						gp.setSize(ff.literal(markerSize));
+					}
+				}
+			}
+		}
+	}	
 	
 	private class  TileRenderRunnable implements Runnable{
 		

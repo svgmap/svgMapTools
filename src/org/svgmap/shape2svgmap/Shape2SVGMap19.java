@@ -1,7 +1,7 @@
 package org.svgmap.shape2svgmap;
 
 // ShapeをSVG Mapに変換するソフトウェアです。
-// Copyright 2007 - 2017 by Satoru Takagi
+// Copyright 2007 - 2018 by Satoru Takagi
 // 
 // geoTools2.7.5 で動作確認
 //
@@ -229,7 +229,7 @@ public class Shape2SVGMap19 {
 	
 	private static void showHelp(){
 		System.out.println("Shape2SVGMap: ShapeをSVGMapに変換します。");
-		System.out.println("Copyright 2007-2017 by Satoru Takagi @ KDDI All Rights Reserved.");
+		System.out.println("Copyright 2007-2018 by Satoru Takagi @ KDDI All Rights Reserved.");
 		System.out.println("----------");
 		System.out.println("java Shape2SVGMap [Options] (input.shp|input.csv) [output.svg]");
 		System.out.println("input.(shp|csv) : ソースファイル指定。csvに関しては-csvschena説明参照");
