@@ -272,7 +272,9 @@ public class SvgMap {
 	
 	public void removeFile()throws Exception{
 		out.close();
-		out2.close();
+		if ( out2 != null ){ // fix not created out2 writer issue 2018/12/28
+			out2.close();
+		}
 		if ( nullFileDebug ){
 			// do nothing
 		} else {
