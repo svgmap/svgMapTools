@@ -289,9 +289,22 @@ public class SvgMap {
 	}
 	
 	
+	String userMetadata ="";
+	// metadataタグに、任意のデータを挿入する関数　added 2019.1.24
+	//  この関数はputCrs()の前に呼ばないと意味ないです。 
+	// XMLノードとしての成型はすでに実施済みの文字列が渡される必要がある、
+	// さらに、htmlEscape()もこの上位で実施されていることを前提
+	public void setUserMetadata( String userMetadata ){
+		this.userMetadata = userMetadata;
+	}
+	
 	public void putCrs( double a ,  double b , double c , double d , double e , double f ) throws Exception{
 		// CRSを出力
 		out.write("<metadata>\n");
+		if ( userMetadata.length() > 0 ){
+			out.write(userMetadata + "\n");
+			userMetadata = "";
+		}
 		
 		// CRSを出力
 		out.write(" <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:crs=\"http://opengis.org/xmldtds/transformations.dtd\" xmlns:svg=\"http://www.w3.org/svg\"");

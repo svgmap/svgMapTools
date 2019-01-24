@@ -526,6 +526,13 @@ public class SvgMapTilesTM {
 		return ( divErr );
 	}
 	
+	String layerMetadata="";
+	// レイヤールートコンテナに対して<metadata>要素内に任意のめたーデータ文字列を追加する機能  2019/1/24
+	// escapeが必要ならば、SvgMapTilesTM.htmlEscape()などを使って、自分で行ったものを入れてください。
+	// putCrs()前ならいつ呼んでも良い
+	public void setLayerMetadata(String layerMetadata){
+		this.layerMetadata = layerMetadata;
+	}
 	
 	double commonA, commonB, commonC, commonD, commonE, commonF;
 	public void putCrs( double a ,  double b , double c , double d , double e , double f ) throws Exception{
@@ -536,6 +543,9 @@ public class SvgMapTilesTM {
 		commonE = e;
 		commonF = f;
 		if ( hasContainer ){
+			if ( layerMetadata.length() > 0 ){
+				container.setUserMetadata( layerMetadata );
+			}
 			container.putCrs(  a ,  b , c , d , e , f );
 		}
 		if ( tiled ){
@@ -1736,7 +1746,7 @@ public class SvgMapTilesTM {
 	
 	
 	
-	public String htmlEscape(String text){
+	public static String htmlEscape(String text){
 		StringBuffer sb=new StringBuffer();
 		for(int i=0;i<text.length();i++){
 			switch(text.charAt(i)){

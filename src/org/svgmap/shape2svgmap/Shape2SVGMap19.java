@@ -54,7 +54,8 @@ package org.svgmap.shape2svgmap;
 // 2017.11.10 package化
 // 2017.12.27 OSS化　github登録
 // 2018.01.26 内蔵の色関係の関数を削除し、SVGMapGetColorUtil(コンプリのShape2ImageSVGMapで使用中)を使用
-// 2019.09.21 csv入力での単純なlineString,polygonデータ対応
+// 2018.09.21 csv入力での単純なlineString,polygonデータ対応
+// 2019.01.24 -layermeta
 // 
 // BUG 130806の手直しにより初期分割数が1x1の階層的データが生成できないバグができている。global level tilingを実施するとき(初期レベルの時の初期タイル分割数が1x1になる場合)に大きな問題がある。(データ生成に失敗する) (2014.03 確認 1420,1439行あたり？)  日本だけのデータで-level 0 -limit 100 とか指定すると、limit超えで打ち切っただけのルートデータを生成してしまい、その上でタイル生成を始めていますね・・ 2017.4.19 タイルは生成できるようになっているが、コンテナのLevel0のタイルのファイル名が誤る。
 //
@@ -152,7 +153,7 @@ public class Shape2SVGMap19 {
 	String dupProp = ""; // 重複図形の抑制 属性名: 属性番号(この属性の値が同じとき抑制)
 	String linkProp = ""; // ハイパーリンク設置　属性名：属性番号
 	boolean metaEmbed = false; // メタデータ(RDF/XML) 廃止・・
-	boolean microMetaEmbed = false; // マイクロメタデータ
+	boolean microMetaEmbed = false; // マイクロメタデータ to be obsoluted...
 	boolean microMeta2Embed = false; // マイクロメタデータ2
 	double accuracy = 1.0; // 精度 : データ数値の桁数・　 条件次第で線の太さも決定される
 	int meshPart = 0; // メッシュ分割数
@@ -224,6 +225,9 @@ public class Shape2SVGMap19 {
 	int colorTable = SVGMapGetColorUtil.HSV;
 	int outOfRangeViewMethod = SVGMapGetColorUtil.MARK;
 	int colorKeyLength = 2;
+	
+	// 2019.1.24 レイヤールートコンテナの<metadata>要素に、任意のデータ(含むタグ文字列)を入れるための文字列変数
+	String layerMetadata ="";
 	
 	static boolean layerDebug = false;
 	
@@ -334,6 +338,7 @@ public class Shape2SVGMap19 {
 		System.out.println("              <image xlink:href=\"mappin.png\" preserveAspectRatio=\"none\" x=\"-8\" y=\"-25\" width=\"19\" height=\"27\"/>");
 		System.out.println("            </g>");
 		System.out.println("            ...");
+		System.out.println("            文字コードはUTF-8限定");
 		
 		System.out.println("-poiSymbolIdNumber: POIのシンボルID番号を指定");
 		System.out.println("            値: 数字");
@@ -352,15 +357,21 @@ public class Shape2SVGMap19 {
 		System.out.println("-meta:      RDF/XMLメタデータ埋め込み");
 		System.out.println("            値無し");
 		**/
+		/**
 		System.out.println("-micrometa: microメタデータ埋め込み");
 		System.out.println("            [値無し]：全ての属性を埋め込み");
 		System.out.println("            (スペース区切りで複数の)[属性番号]：指定した属性番号の属性を埋込み");
 		System.out.println("            (スペース区切りで複数の)[属性番号]=[属性名]：指定した属性名で埋込み");
-		System.out.println("-micrometa2: microメタデータ type2 埋め込み");
+		**/
+		System.out.println("-micrometa2: microメタデータ  埋め込み");
 		System.out.println("            [値無し]：全ての属性を埋め込み");
 		System.out.println("            (スペース区切りで複数の)[属性番号]：指定した属性番号の属性を埋込み");
 		System.out.println("            (スペース区切りで複数の)[属性番号]=[属性名]：指定した属性名で埋込み");
-		System.out.println("            最初に指定した属性番号のデータをxlink:title属性にも付与する");		
+		System.out.println("            最初に指定した属性番号のデータをxlink:title属性にも付与する");
+		System.out.println("-layermeta: (\"メタデータ文字列\"||file [path])");
+		System.out.println("            メタデータ文字列は、xmlノードとして許される任意の文字列複数のタグ文字列を入れることも可");
+		System.out.println("            file の場合はメタデータ挿入したい文字列の入ったテキストファイルのパスを[path]で指定する(ファイル入力の場合はUTF-8)");
+		System.out.println("            いずれでも、エスケープなどは自ら行っておく");
 		System.out.println("-noid     : micrometaのときid属性を付けない");
 		System.out.println("            [値無し]");
 		System.out.println("-group    : グループを作成");
@@ -660,6 +671,16 @@ public class Shape2SVGMap19 {
 						
 					}
 					System.out.println( "Micrometa\"2\" MetaIndex:" + s2sm.metaIndex );
+				} else if ( args[i].toLowerCase().equals("-layermeta")){
+					++i;
+					if ( args[i].toLowerCase().equals("file")){
+						++i;
+						SVGMapSymbolTemplate lm = new SVGMapSymbolTemplate(); // 目的が違うがSVGMapSymbolTemplate流用します・・・ 2019.1.24
+						lm.readSymbolFile(args[i]);
+						s2sm.layerMetadata = lm.symbolFile;
+					} else {
+						s2sm.layerMetadata = args[i];
+					}
 				} else if ( args[i].toLowerCase().equals("-noshape")){
 					s2sm.noShape = true;
 				} else if ( args[i].toLowerCase().equals("-noid")){
@@ -1557,6 +1578,9 @@ public class Shape2SVGMap19 {
 				System.out.println("useDefaultStyle:" + useDefaultStyle );
 				
 				// CRSメタデータを出力
+				if ( layerMetadata.length() > 0 ){
+					sm.setLayerMetadata(layerMetadata);
+				}
 				sm.putCrs( smat.g2s.a , smat.g2s.b , smat.g2s.c , smat.g2s.d , smat.g2s.e , smat.g2s.f );
 				
 				// GISメタデータ出力を設定
