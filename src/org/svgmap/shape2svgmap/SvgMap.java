@@ -225,6 +225,8 @@ public class SvgMap {
 		strokeGroup = strokeG;
 	}
 	
+	boolean out2Closed = false; // 2019/5/29 check if out2 is closed
+	
 	public boolean putFooter()throws Exception{ // 最後にファイル出力サイズチェックを行うことにした。 2017.4.19
 		termAnchor(); // 忘れている人用 2011/02
 		termGroup(); // 同上
@@ -236,11 +238,12 @@ public class SvgMap {
 		out.close();
 		length += ((CharArrayWriter)out).size();
 //		System.out.println(length);
-		if ( out2 != null ){
+		if ( out2 != null  && out2Closed == false){
 			((CharArrayWriter)out).writeTo( out2 );
 			out.flush();
 			((CharArrayWriter)out).reset();
 			out2.close();
+			out2Closed = true;
 		}
 		if ( nElements == 0 ) {
 			if ( nullFileDebug ){
@@ -274,6 +277,7 @@ public class SvgMap {
 		out.close();
 		if ( out2 != null ){ // fix not created out2 writer issue 2018/12/28
 			out2.close();
+			out2Closed = true;
 		}
 		if ( nullFileDebug ){
 			// do nothing
@@ -902,6 +906,7 @@ public class SvgMap {
 			}
 		} else {
 			if ( nElements == 1 ){ // 最初の実効的書き込み
+				out2Closed = false;
 				if ( nullFileDebug ){
 					out2 = new NullWriter();
 				} else {
