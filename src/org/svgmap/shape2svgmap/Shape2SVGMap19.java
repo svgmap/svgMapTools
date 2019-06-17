@@ -56,6 +56,7 @@ package org.svgmap.shape2svgmap;
 // 2018.01.26 内蔵の色関係の関数を削除し、SVGMapGetColorUtil(コンプリのShape2ImageSVGMapで使用中)を使用
 // 2018.09.21 csv入力での単純なlineString,polygonデータ対応
 // 2019.01.24 -layermeta
+// 2019.06.14 WKTでエンコードされたgeometryの入ったCSVに対応
 // 
 // BUG 130806の手直しにより初期分割数が1x1の階層的データが生成できないバグができている。global level tilingを実施するとき(初期レベルの時の初期タイル分割数が1x1になる場合)に大きな問題がある。(データ生成に失敗する) (2014.03 確認 1420,1439行あたり？)  日本だけのデータで-level 0 -limit 100 とか指定すると、limit超えで打ち切っただけのルートデータを生成してしまい、その上でタイル生成を始めていますね・・ 2017.4.19 タイルは生成できるようになっているが、コンテナのLevel0のタイルのファイル名が誤る。
 //
@@ -408,13 +409,14 @@ public class Shape2SVGMap19 {
 		System.out.println("-showhead : ヘッダの表示");
 		System.out.println("-csvschema: データのスキーマファイルを指定");
 		System.out.println(" CSVファイルの説明・制約:");
-		System.out.println("    Point,LineString(ただし途切れない線),Polygon(ただしドーナツも分裂もないもの)をサポート。他の属性は基本的にすべて文字列として扱い。");
+		System.out.println("    Point,LineString(ただし途切れない線),Polygon(ただしドーナツも分裂もないもの),WKTエンコードgeometryをサポート。他の属性は基本的にすべて文字列として扱い。");
 		System.out.println("    1行目はスキーマ行、以降の行から続くデータの属性名を指定する(スキーマもCSV)");
 		System.out.println("    同属性名として緯度経度を示すマジックワード(後述)を設置して座標のカラムであることを指定する。");
 		System.out.println("    スキーマ行なしに、-csvschemaでスキーマを別ファイル化することも可能。その場合1行のファイルで表現し、末尾に改行が必要。");
 		System.out.println("    Point: 任意のカラムに座標の属性名を示すマジックワード('緯度','経度','latitude','longitude','lat','lng' 英文字は大小文字の区別なし)を指定する。");
 		System.out.println("    LineString:スキーマ行CSVの末尾のカラムにマジックワード'latitude:linestring','longitude:linestring'(latitudeなどの代わりに先述の文字列も使用可)のペアを設定する必要がある。実データは任意の座標を末尾に羅列して表現する。");
 		System.out.println("    Polygon:同上 マジックワード'latitude:polygon','longitude:polygon'");
+		System.out.println("    WKT:任意のカラムにWKTを示すマジックワード'WKT'を指定。WKTがカンマを含む場合ダブルクォーテーションでWKTカラムのエスケープが必要");
 		System.out.println("-top      : 頭からｎ個のデータだけを出力する。　値：個数");
 //		System.out.println("-test     : テスト用"); // ほとんど意味ない
 //		System.out.println("-transform: CRSのtransform 6値を直接指定(csv)");

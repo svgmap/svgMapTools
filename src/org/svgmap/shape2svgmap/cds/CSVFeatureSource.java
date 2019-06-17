@@ -20,6 +20,7 @@ import com.csvreader.CsvReader;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Polygon;
+import com.vividsolutions.jts.geom.Geometry;
 
 @SuppressWarnings("unchecked")
 public class CSVFeatureSource extends ContentFeatureSource {
@@ -122,6 +123,10 @@ public class CSVFeatureSource extends ContentFeatureSource {
 						getDataStore().geometryType = CSVDataStore.Point;
 					}
 					grometryTypeResolved = true;
+				} else if ( column.toLowerCase().equals("wkt")){
+					grometryTypeResolved = true;
+					builder.add("the_geom", Geometry.class );
+					getDataStore().geometryType = CSVDataStore.Wkt;
 				}
 			}
 			if ( ! grometryTypeResolved ){
@@ -149,6 +154,12 @@ public class CSVFeatureSource extends ContentFeatureSource {
 					continue; // skip as it is part of Location
 				}
 				if( column.toLowerCase().startsWith("lon:") || column.toLowerCase().startsWith("longitude:") || column.toLowerCase().startsWith("lng:") || column.toLowerCase().startsWith("経度:") || "lon".equalsIgnoreCase(column) || "longitude".equalsIgnoreCase(column) || "lng".equalsIgnoreCase(column) || "long".equalsIgnoreCase(column) || "経度".equalsIgnoreCase(column) ){
+					getDataStore().longitudeColumn = k;
+					++k;
+					continue; // skip as it is part of Location
+				}
+				if(column.toLowerCase().equals("wkt")){
+					getDataStore().latitudeColumn = k;
 					getDataStore().longitudeColumn = k;
 					++k;
 					continue; // skip as it is part of Location

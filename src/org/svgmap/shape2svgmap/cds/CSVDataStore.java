@@ -56,6 +56,7 @@ public class CSVDataStore extends ContentDataStore {
 	static int Point = 0;
 	static int LineString = 1;
 	static int Polygon = 2;
+	static int Wkt = 3;
 	
 	public CSVDataStore( File file ){
 		this.file = file;

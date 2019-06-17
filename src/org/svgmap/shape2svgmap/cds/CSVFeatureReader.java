@@ -5,6 +5,7 @@ package org.svgmap.shape2svgmap.cds;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 import java.util.ArrayList;
+//import java.text.ParseException;
 
 import org.geotools.data.FeatureReader;
 import org.geotools.data.Query;
@@ -22,6 +23,8 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.LinearRing;
+import com.vividsolutions.jts.io.WKTReader;
+import com.vividsolutions.jts.geom.Geometry;
 
 public class CSVFeatureReader implements FeatureReader<SimpleFeatureType, SimpleFeature> {
 	
@@ -40,7 +43,10 @@ public class CSVFeatureReader implements FeatureReader<SimpleFeatureType, Simple
 	
 	private int skipLines = 0;
 	
+	WKTReader wktR;
+	
 	public CSVFeatureReader(ContentState contentState, Query query) throws IOException {
+		wktR = new WKTReader();
 		this.state = contentState;
 		this.query = query;
 		CSVDataStore csv = (CSVDataStore) contentState.getEntry().getDataStore();
@@ -96,7 +102,7 @@ public class CSVFeatureReader implements FeatureReader<SimpleFeatureType, Simple
 		return ( ans );
 	}
 	
-	SimpleFeature readFeature_int() throws IOException {
+	SimpleFeature readFeature_int() throws IOException{
 		if( reader == null ){
 			throw new IOException("FeatureReader is closed; no additional features can be read");
 		}
@@ -108,11 +114,13 @@ public class CSVFeatureReader implements FeatureReader<SimpleFeatureType, Simple
 		Coordinate coordinate = new Coordinate();
 		double crdx =0, crdy =0;
 		ArrayList<Coordinate> crds = null;
-		if ( geometryType != CSVDataStore.Point ){
+		String wkts ="";
+		if ( geometryType != CSVDataStore.Point && geometryType != CSVDataStore.Wkt ){
 			crds = new ArrayList<Coordinate>();
 		}
 //    	String vals="";
 		for ( int  i = 0 ; i < reader.getColumnCount() ; i++ ){
+//			System.out.println("csv:col:"+i+": "+reader.get(i)+"  gType:"+geometryType+"  length:"+reader.getColumnCount() +"  latitudeColumn:"+latitudeColumn);
 			String column;
 			if ( i < headers.length ){
 				column = headers[i];
@@ -127,7 +135,7 @@ public class CSVFeatureReader implements FeatureReader<SimpleFeatureType, Simple
 				coordinate.y = Double.valueOf( value.trim() );
 			} else if( i == longitudeColumn && geometryType == CSVDataStore.Point ){
 				coordinate.x = Double.valueOf( value.trim() );
-			} else if ( ( i >= latitudeColumn || i >= longitudeColumn ) && geometryType != CSVDataStore.Point ){
+			} else if ( ( i >= latitudeColumn || i >= longitudeColumn ) && (geometryType == CSVDataStore.LineString || geometryType == CSVDataStore.Polygon) ){
 				if ( ( i - latitudeColumn ) % 2 == 0 ){
 					crdy = Double.valueOf( value.trim() );
 					if ( latitudeColumn > longitudeColumn ) {
@@ -141,6 +149,9 @@ public class CSVFeatureReader implements FeatureReader<SimpleFeatureType, Simple
 						crds.add( new Coordinate( crdx, crdy ) );
 					}
 				}
+			} else if( i == latitudeColumn && geometryType == CSVDataStore.Wkt ){
+				wkts = value.trim();
+//				System.out.println("WKT Col:"+i+":"+wkts);
 			} else {
 //            	vals += ","+ value;
 				if (  sjisInternalCharset ){ // shapefile readerもcharsetが指定できることが分かったので、このフラグでどちらにも対応できるようにした 2018/8/10
@@ -167,6 +178,17 @@ public class CSVFeatureReader implements FeatureReader<SimpleFeatureType, Simple
 			LinearRing shell = geometryFactory.createLinearRing( crds.toArray(new Coordinate[crds.size()]) );
 			LinearRing[] holes = null;
 			builder.set("the_geom", geometryFactory.createPolygon( shell, holes ) ); 
+		} else if ( geometryType == CSVDataStore.Wkt ){
+//			System.out.println("WKT String: "+wkts);
+			try{
+				Geometry geom = wktR.read(wkts);
+//				System.out.println("geom:"+geom);
+				builder.set("the_geom", geom);
+			} catch (Exception e ){
+//				System.out.println(e);
+				e.printStackTrace(); 
+				throw new IOException("FeatureReader is closed; WKT syntax error.");
+			}
 		}
 //    	 --> the_geom ( for compatibility with shapefile source )
 //    	System.out.println("readFeature:"+coordinate + " : "+ vals);

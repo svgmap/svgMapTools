@@ -186,6 +186,8 @@ public class Shape2ImageSVGMap4 {
 		System.out.println("      Only one unbroken polyline is supported. A 'latitude:line' and 'longitude:line' pair must be at the last column of the schema. That is, other property must exist at the column before the coordinate value. And as actual data, arbitrary numbers of latitude and longitude pairs are listed from the last column.");
 		System.out.println( "   Polygon feature:");
 		System.out.println("      Only one polygon that is not split and is not even a donut is supported. The 'latitude:polygon' and 'longitude:polygon' pairs must be at the last column of the schema. Other than that it is the same as above.");
+		System.out.println( "   WKT encoded Geometry feature:");
+		System.out.println("      You should declare WKT column by schema name 'WKT' (case insensitive). If WKT data includes comma, you should escape the column by Double quotation.");
 		System.out.println("    If you use -csvschema schema file must be single line and terminated (CR|LF).");
 		
 		
