@@ -10,7 +10,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 * データの作成のために、jreもしくはjava がインストールされている環境が必要です。
 * なお、動作チェックはWindows10とJAVA8で行っています。(JAVA10(JAVA9以降)では動作しません。GeotoolsがJAVA10非互換のため。なおOpenJDK8も簡単な動作確認を行っています。)
 * 生成したコンテンツはEdgeで動作可能です。一方、Firefox,Chrome,IE11では以下の条件で利用可能です。
-　* Firefox, Chrome, IE11とも、生成したコンテンツを任意のウェブサーバにコピーしたうえでアクセスすれば使用可能です。
+  * Firefox, Chrome, IE11とも、生成したコンテンツを任意のウェブサーバにコピーしたうえでアクセスすれば使用可能です。
   * 一方、ローカルファイルのままアクセスする場合はブラウザに制限がかかり、そのままではアクセスできません。
     * ChromeはローカルファイルへのAJAXに制限がかかっているため、 --allow-file-access-from-filesオプションをつけて起動する必要があります（ショートカットを作成すると良い）<br>
     `"C:\Program Files\Google\Chrome\Application\chrome.exe" --allow-file-access-from-files`
