@@ -3,7 +3,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 > 2014.03.03 1st rev. By Satoru Takagi<br>
 > 2017.12.07 OSS化に対応した更新<br>
 > 2018.01.11 markdown化 <br>
-> 2018.06.01 SVGMap*.jsを更新、-Xmx追加 
+> 2018.06.01 SVGMap*.jsを更新、-Xmx追加 <br>
 > 2019.07.22 Firefoxのローカル利用が困難になったので説明変更
 
 ## Notes:
