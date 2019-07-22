@@ -10,10 +10,11 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 * データの作成のために、jreもしくはjava がインストールされている環境が必要です。
 * なお、動作チェックはWindows10とJAVA8で行っています。(JAVA10(JAVA9以降)では動作しません。GeotoolsがJAVA10非互換のため。なおOpenJDK8も簡単な動作確認を行っています。)
 * 生成したコンテンツはEdgeで動作可能です。一方、Firefox,Chrome,IE11では以下の条件で利用可能です。
+  * Edgeの場合ローカルに生成したファイルをそのまま開いて使用できます。
   * Firefox, Chrome, IE11とも、生成したコンテンツを任意のウェブサーバにコピーしたうえでアクセスすれば使用可能です。
-  * 一方、ローカルファイルのままアクセスする場合はブラウザに制限がかかり、そのままではアクセスできません。
-    * ChromeはローカルファイルへのAJAXに制限がかかっているため、 --allow-file-access-from-filesオプションをつけて起動する必要があります（ショートカットを作成すると良い）<br>
-    `"C:\Program Files\Google\Chrome\Application\chrome.exe" --allow-file-access-from-files`
+  * 一方、ローカルファイルのままアクセスする場合はEdge以外のブラウザでは制限がかかり、そのままではアクセスできません。
+    * Chromeは --allow-file-access-from-filesオプションをつけて起動することで使用可能です（ショートカットを作成すると良い）<br>
+    `start chrome --allow-file-access-from-files`
   * IE、Firefoxも同様の制限があり使用できません。安全に回避する方法はないのでローカルファイルのまま使用することはお勧めできません。
 * 生成したコンテンツは、背景地図としてインターネット上のコンテンツ(OpenStreetMapや電子国土)を参照しているため、一般的なインターネットWebサイトに接続できる環境で利用する必要があります（別途背景地図をローカルに用意すればスタンドアロン環境でも利用可能）
 
@@ -61,7 +62,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
    * `<animation title="Cities of Japan" xlink:href="sample/JPcities_of_worldcitiespop_utf8.svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />`
    * これで地図作成完了
 
-1. `..\tutorials\webApps\SvgMapper.html`　をFirefoxで開くと変換したデータが見られる。
+1. `..\tutorials\webApps\SvgMapper.html`　をEdgeもしくは`start chrome --allow-file-access-from-files`で開くと変換したデータが見られる。
 
 ## 実践
 1. 作業ディレクトリの設置
