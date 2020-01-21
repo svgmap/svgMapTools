@@ -34,6 +34,7 @@ package org.svgmap.shape2svgmap;
 // 2018/08/31 strkeyの長さ制限(keyLength)に対する細かな色条件判定が間違っていたのを修正
 // 2018.09.21 csv入力での単純なlineString,polygonデータ対応
 // 2018/09/25 マーカーを選択可能にした。meshマーカーは実空間サイズ(degrees)を設定可能。strokeColor省略オプション追加(fillColorと合わせる)。属性値に応じた色塗りでもstrokeを指定可能に('-'で省略も可能)
+// 2020/01/21 WKTなどジオメトリタイプが混合したデータでも描画可能にし始めた(まだ値によって色が変わるものは未対応)
 
 import java.awt.*;
 import java.awt.image.*;
@@ -53,6 +54,8 @@ import org.geotools.data.shapefile.*;
 import org.geotools.feature.*;
 import org.geotools.data.simple.*;
 import org.opengis.filter.*;
+import org.opengis.filter.expression.Expression;
+import org.geotools.filter.function.FilterFunction_geometryType;
 import org.geotools.factory.*;
 import org.geotools.geometry.jts.*;
 import org.geotools.map.*;
@@ -1227,10 +1230,10 @@ public class Shape2ImageSVGMap4 {
 	// Colorは　new Color(47, 184, 27)　こんなかんじ
 	public Style getFeatureStyle( Color fillColor , Color strokeColor , int strokeWidth , boolean dash , int markerSize , FeatureType schema , String markerName){
 		//スタイルを作成
-		FilterFactory ff = CommonFactoryFinder.getFilterFactory2(null);
+		// FilterFactory ff = CommonFactoryFinder.getFilterFactory2(null);
 		StyleFactory sf = CommonFactoryFinder.getStyleFactory(null);
 		
-		Rule rule = getOneSymbolizeRule( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName);
+		Rule rules[] = getSymbolizeRules( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName);
 		
 /**			
 		// add for checking
@@ -1247,8 +1250,7 @@ public class Shape2ImageSVGMap4 {
 		
 		Rule rules[] = {rule , ruleOther};
 **/
-		Rule rules[] = {rule};
-		FeatureTypeStyle fts = sf.createFeatureTypeStyle(rules);
+		FeatureTypeStyle fts = sf.createFeatureTypeStyle(rules); 
 		Style style = sf.createStyle();
 		style.featureTypeStyles().add(fts);
 		return ( style );
@@ -1256,6 +1258,7 @@ public class Shape2ImageSVGMap4 {
 	
 	
 	// ポリゴンスタイルの生成関数２　値に応じて色を変化させる機能用
+	// ISSUE and TBD: 混合ジオメトリタイプデータへの対応(2020/1/21)
 	public Style getFeatureStyle2( int colorCol , Color strokeColor , int strokeWidth , boolean dash , int markerSize ,  SimpleFeatureSource fs , double fMin , double fMax , String markerName) throws Exception {
 		System.out.println("Call getFeatureStyle2 : colorCol:" + colorCol );
 		FeatureType schema = fs.getSchema();
@@ -1417,9 +1420,54 @@ public class Shape2ImageSVGMap4 {
 	}
 	
 	
+	Rule[] getSymbolizeRules( Color fillColor , Color strokeColor , int strokeWidth , boolean dash , int markerSize , FeatureType schema , String markerName ){
+		Class<?> type = schema.getGeometryDescriptor().getType().getBinding();
+		// 2020/1/21 ジオメトリタイプの混合があり得る場合に対応する(WKTとか・・・)
+		
+		// Reerences:
+		// https://docs.geotools.org/latest/javadocs/org/geotools/styling/Rule.html#getSymbolizers--
+		// https://docs.geotools.org/latest/userguide/library/render/style.html#featuretypestyle
+		// https://docs.geoserver.org/stable/en/user/styling/sld/tipstricks/mixed-geometries.html
+		// https://docs.geotools.org/latest/javadocs/org/geotools/filter/function/FilterFunction_geometryType.html
+		// https://github.com/geotools/geotools/blob/master/modules/library/main/src/test/java/org/geotools/filter/visitor/AbstractCapabilitiesFilterSplitterTests.java#L155
+		
+		if ( type.isAssignableFrom( com.vividsolutions.jts.geom.Point.class) && type.isAssignableFrom( com.vividsolutions.jts.geom.LineString.class) ){
+			System.out.println("Mixed geometry type data...");
+			
+			Rule rulePoint = getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 1);
+			rulePoint.setFilter(getGeometryTypeFilter("Point"));
+			
+			Rule ruleLineString = getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 2);
+			ruleLineString.setFilter(getGeometryTypeFilter("LineString"));
+			
+			Rule rulePolygon = getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 3);
+			rulePolygon.setFilter(getGeometryTypeFilter("Polygon"));
+			
+			Rule rules[] = {rulePoint,ruleLineString,rulePolygon};
+			
+			return ( rules );
+			
+		} else {
+			Rule rule = getOneSymbolizeRule( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
+			Rule rules[] = {rule};
+			return (rules);
+		}
+	}
 	
+	Filter getGeometryTypeFilter(String type){ // type: "Point","LineString","Polygon"
+		FilterFactory ff = CommonFactoryFinder.getFilterFactory2(null);
+		FilterFunction_geometryType geomTypeExpr = new FilterFunction_geometryType();
+		geomTypeExpr.setParameters(Arrays.asList(new Expression[] {ff.property("the_geom")}));
+		PropertyIsEqualTo filter = ff.equals(geomTypeExpr, ff.literal(type));
+		return ( filter );
+	}
 	
 	Rule getOneSymbolizeRule( Color fillColor , Color strokeColor , int strokeWidth , boolean dash , int markerSize , FeatureType schema , String markerName ){
+		return (getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 0 ));
+	}
+	
+	// https://docs.geotools.org/stable/tutorials/map/style.html
+	Rule getOneSymbolizeRule_int( Color fillColor , Color strokeColor , int strokeWidth , boolean dash , int markerSize , FeatureType schema , String markerName , int specificType){
 		//スタイルを作成
 		if ( strokeColor == null ){
 			strokeColor = fillColor;
@@ -1427,10 +1475,25 @@ public class Shape2ImageSVGMap4 {
 		FilterFactory ff = CommonFactoryFinder.getFilterFactory2(null);
 		StyleFactory sf = CommonFactoryFinder.getStyleFactory(null);
 		
-		Class<?> type = schema.getGeometryDescriptor().getType().getBinding();
 		Rule rule = sf.createRule();
-		if(type.isAssignableFrom( com.vividsolutions.jts.geom.Point.class) || 
-		type.isAssignableFrom( com.vividsolutions.jts.geom.MultiPoint.class) ){
+//		System.out.println("Geometry Binding:"+type);
+		
+		if (specificType == 0 ){
+			specificType = 3;
+			Class<?> type = schema.getGeometryDescriptor().getType().getBinding();
+			if ( type.isAssignableFrom( com.vividsolutions.jts.geom.Point.class) || 
+			type.isAssignableFrom( com.vividsolutions.jts.geom.MultiPoint.class)){
+				specificType = 1;
+			} else if(type.isAssignableFrom( com.vividsolutions.jts.geom.LineString.class) ||
+			type.isAssignableFrom( com.vividsolutions.jts.geom.MultiLineString.class) ){
+				specificType = 2;
+			} else if(type.isAssignableFrom( com.vividsolutions.jts.geom.Polygon.class) ||
+			type.isAssignableFrom( com.vividsolutions.jts.geom.MultiPolygon.class) ){
+				specificType = 3;
+			}
+		}
+		
+		if(specificType == 1 ){
 			if ( markerSize <= 0 ){
 				markerSize = strokeWidth * 3; // とりあえずね・・
 			}
@@ -1464,8 +1527,7 @@ public class Shape2ImageSVGMap4 {
 			poiSym.setGraphic(graphic);
 			
 			rule.symbolizers().add(poiSym);
-		} else if(type.isAssignableFrom( com.vividsolutions.jts.geom.LineString.class) ||
-		type.isAssignableFrom( com.vividsolutions.jts.geom.MultiLineString.class) ){
+		} else if( specificType == 2 ){
 //			System.out.println("Line Style");
 			// 線の色・太さ
 			org.geotools.styling.Stroke stroke = null;
@@ -1493,7 +1555,7 @@ public class Shape2ImageSVGMap4 {
 			LineSymbolizer sym = sf.createLineSymbolizer(stroke , null);
 			
 			rule.symbolizers().add(sym);
-		} else {
+		} else if( specificType == 3 ){
 //			System.out.println("Polygon Style");
 			// ポリゴンの線の色
 			org.geotools.styling.Stroke stroke = null;
