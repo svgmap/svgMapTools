@@ -1,7 +1,7 @@
 # SVG Map Toolsについて
 
 SVG Map Toolsは、Shapefileや緯度経度を持ったCSVファイルからSVGMapコンテンツを生成するツールです。
-Javaで構築されており、Java(Oracle版)が動作する環境が必要です。主にWindowsおよびCentOSで動作確認しています。
+Javaで構築されており、Java8(Oracle版もしくはOpenJDK)が動作する環境が必要です。主にWindowsおよびCentOSで動作確認しています。
 
 コンテンツは、データの密度に応じて、ラスターとベクターを混合した[四分木タイル](https://www.slideshare.net/totipalmate/tiling-51301496)(Quad Tree Composite Tiles)として生成することができます。
 これにより、[この例のような](http://svgmap.org/devinfo/devkddi/lvl0.1/rev14/SVGMapper_r14.html#visibleLayer=worldcities&hiddenLayer=polygonAuthoringTester)数百万件以上のデータの地図コンテンツを構築できます。
