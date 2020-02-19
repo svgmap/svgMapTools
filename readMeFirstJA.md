@@ -9,7 +9,7 @@ Javaで構築されており、Java8(Oracle版もしくはOpenJDK)が動作す�
 
 現在のところ以下の４つのモジュールで構成されています。このうちShape2SVGMapとShape2ImageSVGMapが基本となるモジュールです。
 
-SVGMapの概要・どのようなコンテンツが表示できるかは、http://svgmap.org/ を参照ください。
+SVGMapの概要・どのようなコンテンツが表示できるかは、[https://svgmap.org/](https://svgmap.org/) を参照ください。
 
 * Shape2SVGMap: CSVもしくはShapefile形式のデータを、ベクトルデータのSVGMapコンテンツに変換します。
 * Shape2ImageSVGMap: CSVもしくはShapefile形式のデータを、ビットイメージのSVGMapコンテンツに変換します。
