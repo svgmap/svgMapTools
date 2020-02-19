@@ -12,7 +12,7 @@ This tool implements [quad tree composite tiling](https://www.slideshare.net/tot
 
 ## Readme
 * [(in Japanese)](./readMeFirstJA.md)
-* [(in English)](https://translate.google.com/translate?hl=&sl=ja&tl=en&u=https%3A%2F%2Fsvgmap.github.io%2FsvgMapTools%2FreadMeFirstJA.html&sandbox=1)
+* [(in English)](https://translate.google.com/translate?hl=&sl=ja&tl=en&u=https%3A%2F%2Fsvgmap.github.io%2FsvgMapTools%2FreadMeFirstJA.html&sandbox=1) (Google Translation)
 <!-- * [(in English)](./readMeFirstEN.md) -->
 
 ## Tutorials
