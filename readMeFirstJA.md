@@ -18,7 +18,7 @@ SVGMapの概要・どのようなコンテンツが表示できるかは、http:
 
 CSVデータは、任意のカラムに緯度・経度を格納したポイントデータだけでなく、任意のカラムに[WKT](https://ja.wikipedia.org/wiki/Well-known_text)データとして格納したラインやポリゴンデータも扱うことができます。
 
-先ず、[tutorial](tutorial)ディレクトリの内容を用いて、基本モジュール（Shape2SVGMap、Shape2ImageSVGMap）の基本操作を学習し、処理の流れを理解してから使用してください。なお、tutorialsの内容はWindows用に調整されています。Linuxなどで使う場合は適宜翻訳して利用してください。
+先ず、[tutorials](tutorials)ディレクトリの内容を用いて、基本モジュール（Shape2SVGMap、Shape2ImageSVGMap）の基本操作を学習し、処理の流れを理解してから使用してください。なお、tutorialsの内容はWindows用に調整されています。Linuxなどで使う場合は適宜翻訳して利用してください。
 
 ## 環境の設定
 このファイルがあるディレクトリをカレントディレクトリとし、その配下のlibsディレクトリに、本ツールが使用するクラスライブラリ、[geotools2.7.5](https://sourceforge.net/projects/geotools/files/GeoTools%202.7%20Releases/2.7.5/) と [javacsv2.1](https://sourceforge.net/projects/javacsv/)　のjarファイル群を配置する必要があります。javacsvは一つのjarファイル、geotoolsは大量のjarファイルから構成されています。いずれもオープンソースソフトウェアです。
