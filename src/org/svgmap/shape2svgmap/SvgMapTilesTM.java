@@ -60,6 +60,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class SvgMapTilesTM {
@@ -126,6 +128,9 @@ public class SvgMapTilesTM {
 	public boolean isSvgTL = true;
 	
 	NumberFormat nf;
+	
+	// §Œä•¶š‚ğæ‚èœ‚­‚½‚ß‚ÌMatcher—p 2020/02/28
+	private static final Pattern controlCharacters = Pattern.compile("[\\u0000-\\u001F]");
 	
 	ExecutorService svgMapExecutorService; // for multi thread 2017.4.19
 	ArrayList<SvgMapExporterRunnable> svgMapExporterRunnables;
@@ -1747,6 +1752,9 @@ public class SvgMapTilesTM {
 	
 	
 	public static String htmlEscape(String text){
+		Matcher match = controlCharacters.matcher(text);
+		text = match.replaceAll(""); // 2020/02/28 §Œä•¶šíœ
+		
 		StringBuffer sb=new StringBuffer();
 		for(int i=0;i<text.length();i++){
 			switch(text.charAt(i)){
