@@ -108,7 +108,7 @@ public class CSVFeatureSource extends ContentFeatureSource {
 			String[] headers = reader.getHeaders();
 			getDataStore().headers = headers;
 			for( String column : headers ){
-				if( column.toLowerCase().startsWith("lat:") || column.toLowerCase().startsWith("latitude:") || column.toLowerCase().startsWith("lati:") || column.toLowerCase().startsWith("緯度:") || "lat".equalsIgnoreCase(column) || "latitude".equalsIgnoreCase(column) || "lati".equalsIgnoreCase(column) || "緯度".equalsIgnoreCase(column) ){
+				if( column.toLowerCase().startsWith("lat") || column.toLowerCase().startsWith("latitude") || column.toLowerCase().startsWith("lati") || column.toLowerCase().startsWith("緯度") ){ // この弁別ロジック・・ちょっと半端になってしまった・・正規表現導入すべき2020/5/15
 					if ( column.toLowerCase().endsWith(":line") ){
 						builder.add("the_geom", LineString.class );
 						System.out.println("buildFeatureType: LineString Geom File");
@@ -137,6 +137,7 @@ public class CSVFeatureSource extends ContentFeatureSource {
 			int k = 0;
 			int dblCnt = 0;
 			HashSet<String> dblCheck = new HashSet<String>();
+			// 次に、latitudeColumn,longitudeColumnを同定する
 			for( String column : headers ){
 				
 				if ( dblCheck.contains(column) ){ // Patch 2018.2.13 S.Takagi Check and Fix Duplicated Feature Type Name
@@ -147,39 +148,64 @@ public class CSVFeatureSource extends ContentFeatureSource {
 					dblCheck.add(column);
 				}
 				
-				System.out.println("buildFeatureType: column: " + column);
-				if( column.toLowerCase().startsWith("lat:") || column.toLowerCase().startsWith("latitude:") || column.toLowerCase().startsWith("lati:") || column.toLowerCase().startsWith("緯度:") || "lat".equalsIgnoreCase(column) || "latitude".equalsIgnoreCase(column) || "lati".equalsIgnoreCase(column) || "緯度".equalsIgnoreCase(column) ){
+				System.out.print("buildFeatureType: column: " + column+" :");
+				if( column.toLowerCase().startsWith("lat") || column.toLowerCase().startsWith("latitude") || column.toLowerCase().startsWith("lati") || column.toLowerCase().startsWith("緯度") ){ // この弁別ロジック・・ちょっと半端になってしまった・・正規表現導入すべき2020/5/15
 					getDataStore().latitudeColumn = k;
+					if ( column.toLowerCase().indexOf("dms") > 0 ){
+						getDataStore().latitudeFormat = CSVDataStore.DMS;
+						System.out.println("latitude:DMS");
+					} else if ( column.toLowerCase().indexOf("dm") > 0 ){
+						getDataStore().latitudeFormat = CSVDataStore.DM;
+						System.out.println("latitude:DM");
+					} else {
+						getDataStore().latitudeFormat = CSVDataStore.DEG;
+						System.out.println("latitude");
+					}
 					++k;
 					continue; // skip as it is part of Location
 				}
-				if( column.toLowerCase().startsWith("lon:") || column.toLowerCase().startsWith("longitude:") || column.toLowerCase().startsWith("lng:") || column.toLowerCase().startsWith("経度:") || "lon".equalsIgnoreCase(column) || "longitude".equalsIgnoreCase(column) || "lng".equalsIgnoreCase(column) || "long".equalsIgnoreCase(column) || "経度".equalsIgnoreCase(column) ){
+				if( column.toLowerCase().startsWith("lon") || column.toLowerCase().startsWith("longitude") || column.toLowerCase().startsWith("lng") || column.toLowerCase().startsWith("経度") ){ // この弁別ロジック・・ちょっと半端になってしまった・・正規表現導入すべき2020/5/15
 					getDataStore().longitudeColumn = k;
+					if ( column.toLowerCase().indexOf("dms") > 0 ){
+						getDataStore().longitudeFormat = CSVDataStore.DMS;
+						System.out.println("longitude:DMS");
+					} else if ( column.toLowerCase().indexOf("dm") > 0 ){
+						getDataStore().longitudeFormat = CSVDataStore.DM;
+						System.out.println("longitude:DM");
+					} else {
+						getDataStore().longitudeFormat = CSVDataStore.DEG;
+						System.out.println("longitude");
+					}
 					++k;
 					continue; // skip as it is part of Location
 				}
 				if(column.toLowerCase().equals("wkt")){
 					getDataStore().latitudeColumn = k;
 					getDataStore().longitudeColumn = k;
+					System.out.println("WKT geometry");
 					++k;
 					continue; // skip as it is part of Location
 				}
 				if ( column.toLowerCase().endsWith(":int") || (dataType !=null && dataType.length > k && dataType[k].equals("int") )){
+					System.out.println("integer");
 					if ( sjisInternalCharset){
 						column = sjisExt.getSjisStr( column );
 					}
 					builder.add(column, Integer.class);
 				} else if ( column.toLowerCase().endsWith(":double")  || (dataType !=null && dataType.length > k && dataType[k].equals("double") )){
+					System.out.println("double");
 					if ( sjisInternalCharset){
 						column = sjisExt.getSjisStr( column );
 					}
 					builder.add(column, Double.class);
 				} else if ( column.toLowerCase().endsWith(":string")  || (dataType !=null && dataType.length > k && dataType[k].equals("string")  )){
+					System.out.println("string");
 					if ( sjisInternalCharset){
 						column = sjisExt.getSjisStr( column );
 					}
 					builder.add(column, String.class);
 				} else {
+					System.out.println("etcString");
 					if ( sjisInternalCharset){
 						column= sjisExt.getSjisStr( column );
 					}

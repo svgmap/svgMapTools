@@ -40,13 +40,17 @@ public class CSVFeatureReader implements FeatureReader<SimpleFeatureType, Simple
 	private int geometryType;
 	private int latitudeColumn;
 	private int longitudeColumn;
+	private int latitudeFormat; // 2020/05/15
+	private int longitudeFormat;
 	
 	private int skipLines = 0;
 	
 	WKTReader wktR;
+	DMSparser dmsp;
 	
 	public CSVFeatureReader(ContentState contentState, Query query) throws IOException {
 		wktR = new WKTReader();
+		dmsp = new DMSparser();
 		this.state = contentState;
 		this.query = query;
 		CSVDataStore csv = (CSVDataStore) contentState.getEntry().getDataStore();
@@ -55,6 +59,8 @@ public class CSVFeatureReader implements FeatureReader<SimpleFeatureType, Simple
 		geometryType = csv.geometryType;
 		latitudeColumn = csv.latitudeColumn;
 		longitudeColumn = csv.longitudeColumn;
+		latitudeFormat = csv.latitudeFormat;
+		longitudeFormat = csv.longitudeFormat;
 		skipLines = csv.skipLines;
 		reader = csv.read(); // this may throw an IOException if it could not connect
 		boolean header = reader.readHeaders();
@@ -132,18 +138,22 @@ public class CSVFeatureReader implements FeatureReader<SimpleFeatureType, Simple
 			String value = reader.get(i);
 //        	System.out.println("column:"+column + " val:"+value);
 			if( i == latitudeColumn && geometryType == CSVDataStore.Point ){
-				coordinate.y = Double.valueOf( value.trim() );
+//				coordinate.y = Double.valueOf( value.trim() );
+				coordinate.y = dmsp.getValue( value.trim() , latitudeFormat );
 			} else if( i == longitudeColumn && geometryType == CSVDataStore.Point ){
-				coordinate.x = Double.valueOf( value.trim() );
+//				coordinate.x = Double.valueOf( value.trim() );
+				coordinate.x = dmsp.getValue( value.trim() , longitudeFormat );
 			} else if ( ( i >= latitudeColumn || i >= longitudeColumn ) && (geometryType == CSVDataStore.LineString || geometryType == CSVDataStore.Polygon) ){
 				if ( ( i - latitudeColumn ) % 2 == 0 ){
-					crdy = Double.valueOf( value.trim() );
+//					crdy = Double.valueOf( value.trim() );
+					crdy = dmsp.getValue( value.trim() , latitudeFormat );
 					if ( latitudeColumn > longitudeColumn ) {
 //						System.out.println("x,y:"+crdx+","+crdy);
 						crds.add( new Coordinate( crdx, crdy ) );
 					}
 				} else {
-					crdx = Double.valueOf( value.trim() );
+//					crdx = Double.valueOf( value.trim() );
+					crdx = dmsp.getValue( value.trim() , longitudeFormat );
 					if ( latitudeColumn < longitudeColumn ) {
 //						System.out.println("x,y:"+crdx+","+crdy);
 						crds.add( new Coordinate( crdx, crdy ) );

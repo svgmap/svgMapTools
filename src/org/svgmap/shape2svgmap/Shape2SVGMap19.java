@@ -416,6 +416,7 @@ public class Shape2SVGMap19 {
 		System.out.println("    Point: 任意のカラムに座標の属性名を示すマジックワード('緯度','経度','latitude','longitude','lat','lng' 英文字は大小文字の区別なし)を指定する。");
 		System.out.println("    LineString:スキーマ行CSVの末尾のカラムにマジックワード'latitude:linestring','longitude:linestring'(latitudeなどの代わりに先述の文字列も使用可)のペアを設定する必要がある。実データは任意の座標を末尾に羅列して表現する。");
 		System.out.println("    Polygon:同上 マジックワード'latitude:polygon','longitude:polygon'");
+		System.out.println("    度分秒表現:緯度経度マジックワード後にDMSもしくはDMを追記する'経度DMS','latitudeDM:polygon'など、DDDMMSS.SSSの,DDMM.MMのような表現を扱える");
 		System.out.println("    WKT:任意のカラムにWKTを示すマジックワード'WKT'を指定。WKTがカンマを含む場合ダブルクォーテーションでWKTカラムのエスケープが必要");
 		System.out.println("-top      : 頭からｎ個のデータだけを出力する。　値：個数");
 //		System.out.println("-test     : テスト用"); // ほとんど意味ない

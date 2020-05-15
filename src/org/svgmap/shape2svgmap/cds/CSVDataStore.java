@@ -36,6 +36,17 @@ import com.csvreader.CsvReader;
 public class CSVDataStore extends ContentDataStore {
 	// header end
 	
+	// statucs
+	static int Point = 0;
+	static int LineString = 1;
+	static int Polygon = 2;
+	static int Wkt = 3;
+	
+	// added 2020/05/15
+	static int DEG = 0;
+	static int DM = 1;
+	static int DMS = 2;
+	
 	// constructor start
 	File file;
 	File schemaFile = null;
@@ -53,10 +64,9 @@ public class CSVDataStore extends ContentDataStore {
 	int latitudeColumn = 0; // 2018/09/13
 	int longitudeColumn = 0; // 2018/09/13
 	
-	static int Point = 0;
-	static int LineString = 1;
-	static int Polygon = 2;
-	static int Wkt = 3;
+	int latitudeFormat = DEG; // added 2020/05/15
+	int longitudeFormat = DEG;
+	
 	
 	public CSVDataStore( File file ){
 		this.file = file;
