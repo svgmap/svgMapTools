@@ -35,6 +35,7 @@ package org.svgmap.shape2svgmap;
 // 2018.09.21 csv入力での単純なlineString,polygonデータ対応
 // 2018/09/25 マーカーを選択可能にした。meshマーカーは実空間サイズ(degrees)を設定可能。strokeColor省略オプション追加(fillColorと合わせる)。属性値に応じた色塗りでもstrokeを指定可能に('-'で省略も可能)
 // 2020/01/21 WKTなどジオメトリタイプが混合したデータでも描画可能にし始めた(まだ値によって色が変わるものは未対応)
+// 2020/04/09 メルカトル正方タイルを出力する機能を追加(ただし、SVGのほうはWGS84,PlateCaree想定のコンテナを生成(背景地図と合わせる))
 
 import java.awt.*;
 import java.awt.image.*;
@@ -63,7 +64,9 @@ import org.geotools.renderer.lite.*;
 import org.geotools.styling.*;
 import org.opengis.feature.simple.*;
 import org.opengis.referencing.crs.*;
+import org.opengis.referencing.operation.MathTransform;
 import org.opengis.feature.type.*;
+import org.geotools.referencing.CRS;
 
 import com.vividsolutions.jts.geom.*;
 
@@ -84,7 +87,7 @@ public class Shape2ImageSVGMap4 {
 	
 	boolean checkJp = false;
 	boolean includeBaseMap = false;
-	
+	boolean webMercatorTile = false;
 	int colorResolution = 48;
 	
 	int maxThreads = 4;
@@ -143,6 +146,8 @@ public class Shape2ImageSVGMap4 {
 		System.out.println( " 13:   0.0439453125deg");
 		System.out.println( " ...");
 		System.out.println( " ...");
+		System.out.println( " For -webMercatorTile option, the above values correspond to the longitude axis, and for the latitude axis direction, the width of +-85.05113deg is divided by 2^lvl on the projection.");
+		System.out.println( "" );
 		System.out.println( " rootContainerSvgfileName : Build complemental multi-level tiles for density controlled vector tiles ");
 		System.out.println( "" );
 		System.out.println( "#fillColor   : fillColorString(in web color format)." );
@@ -177,6 +182,7 @@ public class Shape2ImageSVGMap4 {
 		System.out.println( "                 counterStop  : Stick to upper limit and lower limit");
 		System.out.println( " -optionFile : set -options using text file (param: optiontextfile.txt)");
 		System.out.println( " -threads    : set maximum number of threads (default 4)");
+		System.out.println( " -webMercatorTile : Generates bit image tiles by Web Mercator projection. However, those containers are linear in latitude and longitude coordinates.");
 		System.out.println( " -charset    : set charset for csv : Default:SJIS  (SJIS:UTF-8)");
 		System.out.println( " -csvschema  : set schema file for csv");
 		System.out.println( " Source CSV File rules:");
@@ -370,6 +376,8 @@ public class Shape2ImageSVGMap4 {
 				} else if ( args[i].toLowerCase().indexOf("-charset")>=0){
 					++i;
 					s2i.charset = args[i];
+				} else if ( args[i].toLowerCase().indexOf("-webmercatortile")>=0){
+					s2i.webMercatorTile = true;
 				} else {
 					System.out.println("\n\nError :  There is no option named " + args[i]);
 					System.out.println("To display help, please launch Shape2ImageSVGMap without any options.\n");
@@ -512,8 +520,8 @@ public class Shape2ImageSVGMap4 {
 			lvl = lv;
 			partDeg = -1;
 			System.out.println("\n=====================");
-			System.out.println("Convert level:" + lvl + " partDeg:"+ getPartDeg(lvl));
-			double zth = getZoomTh(getPartDeg(lvl));
+			System.out.println("Convert level:" + lvl + " partDeg:"+ getPartInv(lvl)*360.0);
+			double zth = getZoomTh(getPartInv(lvl)*360.0);
 			
 	//				if ( fixArea == true && lv != startLvl ){}
 			if ( lv != startLvl ){
@@ -711,7 +719,7 @@ public class Shape2ImageSVGMap4 {
 			if ( partDeg >0){
 				lvl = getLvl(partDeg);
 			} else {
-				partDeg = getPartDeg(lvl);
+				partDeg = getPartInv(lvl)*360.0;
 			}
 			
 			System.out.println("tileLevel:" + lvl + "  tileWidth:" + partDeg );
@@ -752,11 +760,11 @@ public class Shape2ImageSVGMap4 {
 	// 処理に必要な８つのパラメータ
 	int imageWidth = 256; //タイルのサイズ
 	int imageHeight = 256;
-	double geoXstart, geoYstart;
-	double geoXstep, geoYstep;
+	double mapXstart, mapYstart;
+	double mapXstep, mapYstep;
 	int GridXsize, GridYsize;
 	
-	double prevGeoXstart, prevGeoYstart, prevGeoXend, prevGeoYend; // shape2svgmap18との互換をとるため
+	double prevMapXstart, prevMapYstart, prevMapXend, prevMapYend; // shape2svgmap18との互換をとるため
 	HashSet<Long> prevTileExistence;
 	HashSet<Long> thisTileExistence;
 	
@@ -769,39 +777,65 @@ public class Shape2ImageSVGMap4 {
 	
 	// 事前に決めなければならない８パラメータを設定する、３種類の方法
 	// int imageWidth, imageHeight;
-	// double geoXstep, geoYstep;
-	// double geoXstart, geoYstart;
+	// double mapXstep, mapYstep;
+	// double mapXstart, mapYstart;
 	// int GridXsize, GridYsize;
 	void setSingleBuildConditions( Rectangle2D.Double bounds ){
 		imageWidth = imageWidth;
 		imageHeight = (int)(imageWidth * bounds.height / bounds.width);
-		geoXstep = bounds.width;
-		geoYstep = bounds.height;
-		geoXstart = bounds.x;
-		geoYstart = bounds.y;
+		mapXstep = bounds.width;
+		mapYstep = bounds.height;
+		mapXstart = bounds.x;
+		mapYstart = bounds.y;
 		GridXsize = 1;
 		GridYsize = 1;
 	}
 	
-	void setGlobalTileBuildConditions( Rectangle2D.Double bounds , int level ){
+	void setGlobalTileBuildConditions( Rectangle2D.Double mapBounds , int level , Rectangle2D.Double mapRange){
 		imageWidth = imageWidth;
 		imageHeight = imageHeight;
-		double partDeg = getPartDeg(level);
-		geoXstep = partDeg;
-		geoYstep = partDeg;
-		geoXstart = (int)((bounds.x + 180.0) / geoXstep ) * geoXstep - 180.0;
-		geoYstart = (int)((bounds.y + 180.0) / geoYstep ) * geoYstep - 180.0;
-		GridXsize = (int)Math.ceil( ((bounds.x + bounds.width)-geoXstart)/geoXstep);
-		GridYsize = (int)Math.ceil( ((bounds.y + bounds.height)-geoYstart)/geoYstep);
+		
+		double partDeg = getPartInv(level) * mapRange.width; // plateCareeもwebMercatorも基本的には正方形なのでw/h区別ない
+		mapXstep = partDeg;
+		mapYstep = partDeg;
+		mapXstart = (int)((mapBounds.x - mapRange.x) / mapXstep ) * mapXstep + mapRange.x;
+		mapYstart = (int)((mapBounds.y - mapRange.y) / mapYstep ) * mapYstep + mapRange.y;
+		GridXsize = (int)Math.ceil( ((mapBounds.x + mapBounds.width)-mapXstart)/mapXstep);
+		GridYsize = (int)Math.ceil( ((mapBounds.y + mapBounds.height)-mapYstart)/mapYstep);
+	}
+	
+	Rectangle2D.Double getProjectionRange(CoordinateReferenceSystem crs, CoordinateReferenceSystem targetCRS) throws Exception{
+		Rectangle2D.Double ans = null;
+		if ( webMercatorTile ){
+			Envelope env = new Envelope(-180,180-1e-13, -85.05113, 85.05113); // -1e-13は、transformが値域上限で破綻するため (geoToosの挙動)
+			ReferencedEnvelope projenv = new ReferencedEnvelope(env, crs).transform(targetCRS, true);
+			ans = new Rectangle2D.Double(projenv.getMinX(), projenv.getMinY(), projenv.getWidth(), projenv.getHeight());
+		} else { // PlateCareeは、ローカルルールとして、北緯南緯も+-180(原理としては+-90だが)を設定し、正方形になるようにしている
+			ans = new Rectangle2D.Double(-180,-180,360,360);
+		}
+//		System.out.println("getProjectionRange:"+ans);
+		return ( ans );
+	}
+	
+	ReferencedEnvelope getProjectionRangeEnvelope(CoordinateReferenceSystem crs, CoordinateReferenceSystem targetCRS) throws Exception{
+		// 上と似すぎてるので、上を下に統合するかも。ただ、PlateCareeの時の1e-13が気になっている
+		ReferencedEnvelope env = null;
+		if ( webMercatorTile ){
+			env = new ReferencedEnvelope(-180,180-1e-13, -85.05113, 85.05113, crs); // -1e-13は、transformが値域上限で破綻するため (geoToosの挙動)
+		} else {
+			env = new ReferencedEnvelope(-180,180-1e-13, -90, 90, crs); // 多分同上
+		}
+		ReferencedEnvelope ans = env.transform(targetCRS, true);
+		return ( ans );
 	}
 	
 	void setCustomTileBuildConditions( Rectangle2D.Double bounds , int xPart , int yPart ){
 		imageWidth = imageWidth;
 		imageHeight = (int)(imageWidth * (bounds.height / yPart) / (bounds.width / xPart));
-		geoXstep = bounds.width / xPart;
-		geoYstep = bounds.height / yPart;
-		geoXstart =  bounds.x;
-		geoYstart = bounds.y;
+		mapXstep = bounds.width / xPart;
+		mapYstep = bounds.height / yPart;
+		mapXstart =  bounds.x;
+		mapYstart = bounds.y;
 		GridXsize = xPart;
 		GridYsize = yPart;
 	}
@@ -817,14 +851,33 @@ public class Shape2ImageSVGMap4 {
 		// mapContextを作成
 		CoordinateReferenceSystem crs = 
 		sfcArray[0].getSchema().getGeometryDescriptor().getCoordinateReferenceSystem();
+//		sfcArray[0].getSchema().getCoordinateReferenceSystem();
+//		crs = CRS.decode("EPSG:3785");
 		MapLayer layers[] = {};
-		DefaultMapContext map = new DefaultMapContext(layers, crs);
+		
+    	CoordinateReferenceSystem targetCRS=null;
+		if ( webMercatorTile ){
+//			targetCRS = crsFactory.createFromWKT("PROJCS[\"Google Mercator\",   GEOGCS[\"WGS 84\",     DATUM[\"World Geodetic System 1984\",       SPHEROID[\"WGS 84\", 6378137.0, 298.257223563, AUTHORITY[\"EPSG\",\"7030\"]],       AUTHORITY[\"EPSG\",\"6326\"]],     PRIMEM[\"Greenwich\", 0.0, AUTHORITY[\"EPSG\",\"8901\"]],     UNIT[\"degree\", 0.017453292519943295],     AXIS[\"Geodetic latitude\", NORTH],     AXIS[\"Geodetic longitude\", EAST],     AUTHORITY[\"EPSG\",\"4326\"]],   PROJECTION[\"Mercator (1SP)\", AUTHORITY[\"EPSG\",\"9804\"]],   PARAMETER[\"semi_major\", 6378137.0],   PARAMETER[\"semi_minor\", 6378137.0],   PARAMETER[\"latitude_of_origin\", 0.0],   PARAMETER[\"central_meridian\", 0.0],   PARAMETER[\"scale_factor\", 1.0],   PARAMETER[\"false_easting\", 0.0],   PARAMETER[\"false_northing\", 0.0],   UNIT[\"m\", 1.0],   AXIS[\"Easting\", EAST],   AXIS[\"Northing\", NORTH],   AUTHORITY[\"EPSG\",\"900913\"]]");
+//    		targetCRS = CRS.decode("EPSG:3785");
+	    	targetCRS = CRS.decode("EPSG:900913",true);
+		} else {
+	    	targetCRS = crs;
+		}
+		
+		
+		DefaultMapContext map = new DefaultMapContext(layers, targetCRS);
 		
 		for ( int i = 0 ; i < layerCount ; i++ ){
 			System.out.println("Add Layer:" + i );
 			// レイヤを追加する(これがmapContextというものに、実際のshapeデータを括り付けている)
 			map.addLayer(new FeatureLayer(sfcArray[i], styleArray[i]));
 		}
+		
+		/**
+		CoordinateReferenceSystem worldCRS = map.getCoordinateReferenceSystem();
+		boolean lenient = true; // allow for some error due to different datums
+		MathTransform transform = CRS.findMathTransform( crs, worldCRS, lenient );
+		**/
 		
 		// レンダラを準備する　shapefileから生成される地理情報ストリームを入力してそれによって描画するレンダラという意味だと思われる
 		/**
@@ -845,50 +898,53 @@ public class Shape2ImageSVGMap4 {
 		renderer.setContext(map); // これでmapContextを介してshapefile群をストリーミングレンダラに括りつけている
 		**/
 		
-		ReferencedEnvelope bounds = map.getMaxBounds();
-//		System.out.println("bounds:"+bounds+"  : "+bounds.getMinX()+","+bounds.getMinY()+","+bounds.getMaxX()+","+bounds.getMaxY());
-		if ( bounds.getMinX()==0 && bounds.getMaxX()==-1 ){
-			bounds = sfcArray[0].getBounds();
-			System.out.println("Hmmm can't get bounds.. fixIt by layer0 : " + bounds);
+		ReferencedEnvelope mapBounds = map.getMaxBounds(); // 地図(絵)の座標系(mercatorでは地理座標系と異なる)
+//		System.out.println("\n\mapBounds:"+mapBounds+"  : "+mapBounds.getMinX()+","+mapBounds.getMinY()+","+mapBounds.getMaxX()+","+mapBounds.getMaxY()+"\n\n");
+		if ( mapBounds.getMinX()==0 && mapBounds.getMaxX()==-1 ){
+			mapBounds = sfcArray[0].getBounds();
+			if ( webMercatorTile ){ // 2020/4/8
+				mapBounds = new ReferencedEnvelope(mapBounds, crs).transform(targetCRS, true);
+			}
+			System.out.println("Hmmm can't get mapBounds.. fixIt by layer0 : " + mapBounds);
 		}
 		
 		
 		// 事前に決めなければならない８パラメータを設定する
 		// int imageWidth, imageHeight;
-		// double geoXstep, geoYstep;
-		// double geoXstart, geoYstart;
+		// double mapXstep, mapYstep;
+		// double mapXstart, mapYstart;
 		// int GridXsize, GridYsize;
 		if ( singleImage ){
-			setSingleBuildConditions( new Rectangle2D.Double( bounds.getMinX(), bounds.getMinY(), bounds.getWidth(), bounds.getHeight() ) );
+			setSingleBuildConditions( new Rectangle2D.Double( mapBounds.getMinX(), mapBounds.getMinY(), mapBounds.getWidth(), mapBounds.getHeight() ) );
 		} else if ( customTile ){
 			setCustomTileBuildConditions( customArea , customPart[0] , customPart[1] );
-			partDeg = geoXstep; // とりあえずテスト用・・・
+			partDeg = mapXstep; // とりあえずテスト用・・・
 		} else {
 			if ( lvl == -1 && partDeg > 0 ){
 				lvl = getLvl(partDeg);
 			}
-			setGlobalTileBuildConditions( new Rectangle2D.Double( bounds.getMinX(), bounds.getMinY(), bounds.getWidth(), bounds.getHeight() ) , lvl );
+			setGlobalTileBuildConditions( new Rectangle2D.Double( mapBounds.getMinX(), mapBounds.getMinY(), mapBounds.getWidth(), mapBounds.getHeight() ) , lvl , getProjectionRange(crs, targetCRS));
 		}
 		
-//		System.out.println("imageWidth:" + imageWidth + " imageHeight:" + imageHeight + " geoXstep:" + geoXstep + " gepYstep:" + geoYstep + " geoXstart:" + geoXstart + " geoYstart:" + geoYstart + " GridXsize:" + GridXsize + " GridYsize:" + GridYsize);
+//		System.out.println("imageWidth:" + imageWidth + " imageHeight:" + imageHeight + " mapXstep:" + mapXstep + " mapYstep:" + mapYstep + " mapXstart:" + mapXstart + " mapYstart:" + mapYstart + " GridXsize:" + GridXsize + " GridYsize:" + GridYsize + "   mapBounds:"+mapBounds);
 		
 		for ( int i = 0 ; i < styleArray.length; i++ ){
 			if ( meshMarkerGeoHeight > 0 ){
-				int mkSize = (int)(meshMarkerGeoHeight * imageHeight / geoYstep);
+				int mkSize = (int)(meshMarkerGeoHeight * imageHeight / mapYstep); // TBDメルカトルでは標準緯線で考えるか・・
 				if ( mkSize == 0 ){
 					mkSize = 1;
 				}
 				setMarkerSize(styleArray[i] , mkSize );
 //				System.out.println("MESH SIZE: geo:"+meshMarkerGeoHeight+"    pix:"+ mkSize);
-//				System.out.println("MESH SIZE: imageHeight:"+imageHeight+"    geoYstep:"+ geoYstep);
+//				System.out.println("MESH SIZE: imageHeight:"+imageHeight+"    mapYstep:"+ mapYstep);
 				
 			}
 		}
 		
-		prevGeoXstart = geoXstart;
-		prevGeoYstart = geoYstart;
-		prevGeoXend = geoXstart + GridXsize * geoXstep;
-		prevGeoYend = geoYstart + GridYsize * geoYstep;
+		prevMapXstart = mapXstart;
+		prevMapYstart = mapYstart;
+		prevMapXend = mapXstart + GridXsize * mapXstep;
+		prevMapYend = mapYstart + GridYsize * mapYstep;
 		
 		if ( rebuildContainerOnly ){
 			sumUp = 1; // コンテナ生成のみの場合は一括生成は抑制
@@ -896,13 +952,13 @@ public class Shape2ImageSVGMap4 {
 		
 		
 //		System.out.println("Rect:"+imageWidth * sumUp + "," + imageHeight * sumUp);
-		Rectangle rect = new Rectangle(0, 0, imageWidth * sumUp , imageHeight * sumUp );
+		Rectangle imageRect = new Rectangle(0, 0, imageWidth * sumUp , imageHeight * sumUp );
 		
 		if ( usePrevBounds ){
-			geoXstart = prevGeoXstart;
-			geoYstart = prevGeoYstart;
-			GridXsize = (int)Math.round( ( prevGeoXend - prevGeoXstart ) / geoXstep);
-			GridYsize = (int)Math.round( ( prevGeoYend - prevGeoYstart ) / geoYstep);
+			mapXstart = prevMapXstart;
+			mapYstart = prevMapYstart;
+			GridXsize = (int)Math.round( ( prevMapXend - prevMapXstart ) / mapXstep);
+			GridYsize = (int)Math.round( ( prevMapYend - prevMapYstart ) / mapYstep);
 		}
 		
 		int totalGrid = GridXsize * GridYsize;
@@ -914,16 +970,21 @@ public class Shape2ImageSVGMap4 {
 			jpt = new jpLandTester();
 		}
 		
-//		double geoXstep=0;
-//		double geoYstep=0;
+//		double mapXstep=0;
+//		double mapYstep=0;
 		
-//		System.out.println("image Rect:" + rect + "  \ndata Bounds: minX:" + bounds.getMinX() + " minY:" + bounds.getMinY() + " width:" + bounds.getWidth() + " height:" + bounds.getHeight() + " \nraw:" + bounds );
+//		System.out.println("image Rect:" + imageRect + "  \ndata Bounds: minX:" + bounds.getMinX() + " minY:" + bounds.getMinY() + " width:" + bounds.getWidth() + " height:" + bounds.getHeight() + " \nraw:" + bounds );
 		
-		
-		double lngMin  = bounds.getMinX();
-		double latMin  = bounds.getMinY(); 
-		double lngSpan = bounds.getWidth();
-		double latSpan = bounds.getHeight();
+		ReferencedEnvelope geoBounds = mapBounds;
+		if ( webMercatorTile ){
+			geoBounds = mapBounds.transform(crs, true);
+			System.out.println("webMercatorTile geoBounds:"+geoBounds);
+		}
+		double lngMin  = geoBounds.getMinX();
+		double latMin  = geoBounds.getMinY(); 
+		double lngSpan = geoBounds.getWidth();
+		double latSpan = geoBounds.getHeight();
+//		System.out.println("lngMin:"+lngMin+" latMin:"+latMin+" lngSpan:"+lngSpan+" latSpan:"+latSpan);
 		
 		String containerFileName = outDir + containerName;
 		
@@ -960,8 +1021,9 @@ public class Shape2ImageSVGMap4 {
 		int smX , smY;
 		
 		double geoX , geoY;
+		double mapX , mapY;
 		
-//		System.out.println("GridXsize,sumUp,ceil" + GridXsize + "," + sumUp + "," + (int)Math.ceil( (double)GridXsize / sumUp ) );
+//		System.out.println("GridXsize,sumUp,ceil:" + GridXsize + "," + sumUp + "," + (int)Math.ceil( (double)GridXsize / sumUp ) );
 		
 		
 		// add 2014.2.20 for speedup (1)
@@ -991,8 +1053,8 @@ public class Shape2ImageSVGMap4 {
 			int tx = existPrevSumUpTile[0];
 			int ty = existPrevSumUpTile[1];
 //		// この2重fornextループはHashSet(prevTileExistence)ループに代えるべき(ToDo 2014/2/24)　⇒処理済
-			geoX = tx * geoXstep * sumUp + geoXstart;
-			geoY = ty * geoYstep * sumUp + geoYstart;
+			mapX = tx * mapXstep * sumUp + mapXstart;
+			mapY = ty * mapYstep * sumUp + mapYstart;
 			
 			if ( reqTile != null ){
 				// reqTile(svgコンテナから与えられた生成すべきタイル)がある場合、それとと合致したブロックのみ処理
@@ -1023,6 +1085,13 @@ public class Shape2ImageSVGMap4 {
 //				System.out.println("tx,ty:"+tx+","+ty);
 			
 			counter += sumUp * sumUp;
+			ReferencedEnvelope mapSumUpTileEnvelope = new ReferencedEnvelope(mapX , mapX + (mapXstep * sumUp) , mapY , mapY + (mapYstep * sumUp), targetCRS);
+			mapSumUpTileEnvelope = new ReferencedEnvelope(mapSumUpTileEnvelope.intersection(getProjectionRangeEnvelope(crs,targetCRS)),targetCRS); // クリップする
+			ReferencedEnvelope geoSumUpTileEnvelope = mapSumUpTileEnvelope.transform(crs,true);
+//			System.out.println("mapSumUpTileEnvelope:"+mapSumUpTileEnvelope+" geoSumUpTileEnvelope:"+geoSumUpTileEnvelope);
+			geoX = geoSumUpTileEnvelope.getMinX();
+			geoY = geoSumUpTileEnvelope.getMinY();
+			/**
 			if ( false && (geoX * geoY + geoY) % 5 == 0){ // やめました・・・
 				
 				String del="";
@@ -1036,16 +1105,17 @@ public class Shape2ImageSVGMap4 {
 //					System.out.print( "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
 //					System.out.print( nFmt.format(100.0 * (double)counter / (double)totalGrid) +"%      ");
 			}
-			
-			if ( checkJp && ! jpt.hasMap( geoY + geoYstep * sumUp , geoY , geoX + geoXstep * sumUp , geoX ) ){
+			**/
+			if ( checkJp && ! jpt.hasMap( geoSumUpTileEnvelope.getMaxY() , geoSumUpTileEnvelope.getMinY() , geoSumUpTileEnvelope.getMaxX() , geoSumUpTileEnvelope.getMinX() ) ){
 				// 日本域チェックOnで、日本域外ならループ飛ばす
 //					System.out.println("out of ja");
 				System.out.print("s");
 				continue;
 			}
 			
-//				System.out.println("*******intersec:" + geoX+","+(geoX + (geoXstep * sumUp))+","+ geoY+","+(geoY + (geoYstep * sumUp))+","+bounds);
-			if ( ! bounds.intersects( new Envelope(geoX , geoX + (geoXstep * sumUp) , geoY , geoY + (geoYstep * sumUp)))){
+//				System.out.println("*******intersec:" + geoX+","+(geoX + (mapXstep * sumUp))+","+ geoY+","+(geoY + (mapYstep * sumUp))+","+geoBounds);
+			
+			if ( ! geoBounds.intersects( (Envelope)geoSumUpTileEnvelope)){
 				// 描画領域にフィーチャー(shapefile全体のbbox)がない場合も飛ばす
 //					System.out.println("no feature in bbox");
 				continue;
@@ -1063,7 +1133,7 @@ public class Shape2ImageSVGMap4 {
 			// 背景を透明にするためARGBを使う
 //			BufferedImage image = new BufferedImage( imageWidth * sumUp , imageHeight * sumUp , BufferedImage.TYPE_INT_ARGB );
 			
-//			ReferencedEnvelope geoRect = new ReferencedEnvelope(geoX , geoX + (geoXstep * sumUp) , geoY , geoY + (geoYstep * sumUp) , crs);
+//			ReferencedEnvelope geoRect = new ReferencedEnvelope(geoX , geoX + (mapXstep * sumUp) , geoY , geoY + (mapYstep * sumUp) , crs);
 			
 			if ( rebuildContainerOnly ){
 				// レンダリングは行なわない・・ sumUp != 1ではバグるのでは？(2013.3.28)
@@ -1077,12 +1147,12 @@ public class Shape2ImageSVGMap4 {
 				tilePosList.add(  txy );
 				// 描画するためのスレッドを準備する
 //				System.out.println("build runnable");
-//				TileRenderRunnable trr = new TileRenderRunnable( antiAlias, map, image, rect, geoRect, tx, ty );
+//				TileRenderRunnable trr = new TileRenderRunnable( antiAlias, map, image, imageRect, geoRect, tx, ty );
 //				tileRenderRunnables.add( trr );
 			}
 		}
 		
-		System.out.println("\n Build images");
+		System.out.println("\n Build images: "+ tilePosList.size());
 		
 //		ArrayList<Thread> tileRenderThreads;
 		ArrayList<TileRenderRunnable> tileRenderRunnables;
@@ -1098,18 +1168,20 @@ public class Shape2ImageSVGMap4 {
 				int[] txy = tilePosList.get(threadCount);
 				int tx = txy[0];
 				int ty = txy[1];
-				geoX = tx * geoXstep * sumUp + geoXstart;
-				geoY = ty * geoYstep * sumUp + geoYstart;
+				mapX = tx * mapXstep * sumUp + mapXstart;
+				mapY = ty * mapYstep * sumUp + mapYstart;
 				
 				// 描画用イメージを用意する：背景を透明にするためARGBを使う
 				BufferedImage image = new BufferedImage( imageWidth * sumUp , imageHeight * sumUp , BufferedImage.TYPE_INT_ARGB );
 				// 描画地理座標領域を生成する
-				ReferencedEnvelope geoRect = new ReferencedEnvelope(geoX , geoX + (geoXstep * sumUp) , geoY , geoY + (geoYstep * sumUp) , crs);
+				ReferencedEnvelope mapRect = new ReferencedEnvelope(mapX , mapX + (mapXstep * sumUp) , mapY , mapY + (mapYstep * sumUp), targetCRS);
+//				System.out.println("mapRect:"+mapRect);
+//				ReferencedEnvelope geoRect = mapRect.transform(crs, true);
 				
 				
 				//描画runnableを生成する
 //				System.out.println("build runnable");
-				TileRenderRunnable trr = new TileRenderRunnable( antiAlias, map, image, rect, geoRect, tx, ty, sumUp, reqTile, rebuildContainerOnly , outDir );
+				TileRenderRunnable trr = new TileRenderRunnable( antiAlias, map, image, imageRect, mapRect, tx, ty, sumUp, reqTile, rebuildContainerOnly , outDir );
 				tileRenderRunnables.add(trr);
 				
 				//ビットイメージ描画・タイル分割・保存スレッドを起動する
@@ -1144,8 +1216,8 @@ public class Shape2ImageSVGMap4 {
 				TileRenderRunnable trr = tileRenderRunnables.get(threadCount - threadBlockIndex);
 				int tx = trr.tx;
 				int ty = trr.ty;
-				geoX = tx * geoXstep * sumUp + geoXstart;
-				geoY = ty * geoYstep * sumUp + geoYstart;
+				mapX = tx * mapXstep * sumUp + mapXstart;
+				mapY = ty * mapYstep * sumUp + mapYstart;
 				
 				int[][] hasData = trr.hasData;
 				boolean[][] isImage = trr.isImage;
@@ -1162,19 +1234,29 @@ public class Shape2ImageSVGMap4 {
 						if ( isImage[subX][subY] ){
 							if (hasSmsMap ){
 								if ( !smsMap.containsKey(getHashKey(smX,smY) )){
-									smp = buildSms(smX , smY , smsMap , bounds , tcmul , nFmt , containerName , outDir );
+									smp = buildSms(smX , smY , smsMap , geoBounds , tcmul , nFmt , containerName , outDir );
 								} else {
 									smp = getSms(smX,smY,smsMap);
 								}
 							} else {
 								smp = sm;
 							}
-	//						System.out.println("subX,subY:" + subX +","+subY);
 							String tileName = "tile" + ttx + "_" + (GridYsize - tty -1) + ".png";
+							ReferencedEnvelope mapRect = new ReferencedEnvelope(
+								mapX + subX * mapXstep,
+								mapX + subX * mapXstep + mapXstep,
+								mapY + subY * mapYstep,
+								mapY + subY * mapYstep + mapYstep,
+								targetCRS
+							);
+							
+							ReferencedEnvelope geoRect = mapRect.transform(crs, true);
+//							System.out.println("putImage subX,subY:" + subX +","+subY+"  tileName:"+tileName+" mapRect:"+mapRect+" geoRect:"+geoRect);
+							
 							smp.putImage( 
-								new Coordinate( (geoX + subX * geoXstep ) * tcmul ,
-									( - ( geoY + subY * geoYstep + geoYstep ) * tcmul  ) ) ,
-								geoXstep*tcmul , geoYstep * tcmul  , tileName );
+								new Coordinate( geoRect.getMinX() * tcmul ,
+									( - ( geoRect.getMaxY() ) * tcmul  ) ) ,
+								geoRect.getWidth()*tcmul , geoRect.getHeight() * tcmul  , tileName );
 						}
 					}
 				}
@@ -1202,16 +1284,27 @@ public class Shape2ImageSVGMap4 {
 				int[] smsix = getIndex(skey);
 				int i = smsix[0];
 				int j = smsix[1];
-				geoY = geoYstart + j * containerCounts * geoYstep;
-				geoX = geoXstart + i * containerCounts * geoXstep;
+				mapY = mapYstart + j * containerCounts * mapYstep;
+				mapX = mapXstart + i * containerCounts * mapXstep;
 				SvgMap oneSms = smsMap.get(skey);
 				oneSms.termGroup();
 				oneSms.putFooter();
 				String subCfilePath = "sub_" + i + "_" + j + "_" + containerName;
 //					File mapFile = new File( outDir + subCfilePath );
 //					if ( mapFile.exists()){}
-				sm.putImage( new Coordinate( geoX * tcmul , ( - (geoY + containerCounts * geoYstep) * tcmul  ) ) ,
-				geoXstep * containerCounts * tcmul , geoYstep * containerCounts * tcmul  , subCfilePath );
+				
+				ReferencedEnvelope mapRect = new ReferencedEnvelope(
+					mapX,
+					mapX + mapXstep * containerCounts,
+					mapY,
+					mapY + mapYstep * containerCounts,
+					targetCRS
+				);
+				
+				ReferencedEnvelope geoRect = mapRect.transform(crs, true);
+				sm.putImage( new Coordinate( geoRect.getMinX() * tcmul ,
+					( - ( geoRect.getMaxY() ) * tcmul  ) ) ,
+				geoRect.getWidth()*tcmul , geoRect.getHeight() * tcmul  , subCfilePath );
 			}
 		}
 		sm.termGroup();
@@ -1612,8 +1705,8 @@ public class Shape2ImageSVGMap4 {
 		return (lvl);
 	}
 	
-	double getPartDeg(int lvl){
-		double partD = 360.0;
+	double getPartInv(int lvl){
+		double partD = 1.0;
 		for ( int i = 0 ; i < lvl ; i++){
 			partD = partD / 2.0;
 		}
@@ -1628,11 +1721,11 @@ public class Shape2ImageSVGMap4 {
 		return( (SvgMap)smsMap.get(getHashKey( GridX , GridY ) ) );
 	}
 	
-	public SvgMap buildSms( int j , int i , HashMap<Long,SvgMap> smsMap , ReferencedEnvelope bounds , double tcmul , NumberFormat nFmt ,  String fileName , String dir ) throws Exception{
-		double lngMin  = bounds.getMinX();
-		double latMin  = bounds.getMinY(); 
-		double lngSpan = bounds.getWidth();
-		double latSpan = bounds.getHeight();
+	public SvgMap buildSms( int j , int i , HashMap<Long,SvgMap> smsMap , ReferencedEnvelope geoBounds , double tcmul , NumberFormat nFmt ,  String fileName , String dir ) throws Exception{
+		double lngMin  = geoBounds.getMinX();
+		double latMin  = geoBounds.getMinY(); 
+		double lngSpan = geoBounds.getWidth();
+		double latSpan = geoBounds.getHeight();
 		SvgMap newsm = new SvgMap ( dir + "sub_" + j + "_" + i + "_" + fileName , nFmt);
 		newsm.putHeader( lngMin * tcmul , - (latMin + latSpan) * tcmul  , lngSpan * tcmul , latSpan * tcmul );
 		newsm.putCrs( tcmul , 0 , 0 , -tcmul , 0 , 0 );
@@ -1676,14 +1769,14 @@ public class Shape2ImageSVGMap4 {
 		StreamingRenderer renderer;
 		Graphics2D gr;
 		BufferedImage image;
-		Rectangle rect;
-		ReferencedEnvelope geoRect;
+		Rectangle imageRect;
+		ReferencedEnvelope mapRect;
 		int tx, ty;
 		int[][] hasData;
 		boolean[][] isImage;
 		String outDir;
 		
-		TileRenderRunnable( boolean antiAlias , DefaultMapContext map , BufferedImage image , Rectangle rect , ReferencedEnvelope geoRect , int tx, int ty , int sumUp , HashSet<Long> reqTile , boolean rebuildContainerOnly , String outDir ){
+		TileRenderRunnable( boolean antiAlias , DefaultMapContext map , BufferedImage image , Rectangle imageRect , ReferencedEnvelope mapRect , int tx, int ty , int sumUp , HashSet<Long> reqTile , boolean rebuildContainerOnly , String outDir ){
 			renderer = new StreamingRenderer();
 			if ( antiAlias ){
 				// アンチエリアス関係のヒントを付ける
@@ -1700,8 +1793,8 @@ public class Shape2ImageSVGMap4 {
 			}
 			renderer.setContext(map);
 			this.gr = gr;
-			this.rect = rect;
-			this.geoRect = geoRect;
+			this.imageRect = imageRect;
+			this.mapRect = mapRect;
 			this.tx = tx;
 			this.ty = ty;
 			this.image = image;
@@ -1715,10 +1808,11 @@ public class Shape2ImageSVGMap4 {
 		public void run(){
 			// geotoolsに投げてgr経由でimageにレンダリングさせる
 //			System.out.println("Thread: tx:" + tx + ", ty:"+ ty + "  描画開始");
-			renderer.paint(gr, rect, geoRect);
+			renderer.paint(gr, imageRect, mapRect);
 //			System.out.println("Thread: tx:" + tx + ", ty:"+ ty + "  描画終了");
 			
 			// sumUpタイルの分割処理
+//			System.out.println("GridXsizex:" + GridXsize + ", GridYsize:"+ GridYsize);
 			
 			int divs = sumUp / 2;
 			if ( sumUp == 1 ){ divs = 1; } // sumUp == 1の特殊処理
@@ -1730,16 +1824,18 @@ public class Shape2ImageSVGMap4 {
 					int tty = ty * sumUp + subY;
 					int smY = tty / containerCounts;
 					if ( ttx >= GridXsize || tty >= GridYsize ){
+//						System.out.println(">=GridSize");
 						continue;
 					}
 					if ( reqTile != null && ! reqTile.contains(getReqTileKey( ttx, tty ) ) ){ // 2014.2.28 debug
+//						System.out.println("noReqTile");
 						continue;
 					}
 					String tileName = "tile" + ttx + "_" + (GridYsize - tty -1) + ".png";
 					if ( !rebuildContainerOnly ){
 						BufferedImage bim = image.getSubimage( imageWidth * subX , imageHeight * (sumUp - 1 - subY) , imageWidth , imageHeight );
 						if( reqTile == null && isNullImage( bim ) ){ // 2014.5.2 debug line objの場合nullImageになるときがあるので・・
-//								System.out.println("NULL IMAGE....");
+//							System.out.println("NULL IMAGE....");
 							continue;
 						} else {
 							++ hasData[subX/divs][subY/divs];
@@ -1754,7 +1850,7 @@ public class Shape2ImageSVGMap4 {
 					} else {
 						isImage[subX][subY] = true;
 					}
-//						System.out.println("subX,subY:" + subX +","+subY);
+//					System.out.println("subX,subY:" + subX +","+subY);
 				}
 			}
 			
