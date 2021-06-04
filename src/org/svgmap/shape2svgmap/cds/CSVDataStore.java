@@ -184,6 +184,7 @@ public class CSVDataStore extends ContentDataStore {
 			BufferedReader reader = new BufferedReader(new InputStreamReader(sequenceInputStream,charset));
 			csvReader = new CsvReader(reader);
 		}
+		csvReader.setSafetySwitch(false); // 2021/6/4 WKTのポリゴンなどでリミッターを超える文字数がある可能性があるので・・
 //		csvReader.close();
 		return csvReader;
 	}
