@@ -1536,7 +1536,18 @@ public class Shape2ImageSVGMap4 {
 			Rule rulePolygon = getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 3);
 			rulePolygon.setFilter(getGeometryTypeFilter("Polygon"));
 			
-			Rule rules[] = {rulePoint,ruleLineString,rulePolygon};
+			// for multi 2021/6/10
+			Rule ruleMultiPoint = getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 1);
+			ruleMultiPoint.setFilter(getGeometryTypeFilter("MultiPoint"));
+			
+			Rule ruleMultiLineString = getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 2);
+			ruleMultiLineString.setFilter(getGeometryTypeFilter("MultiLineString"));
+			
+			Rule ruleMultiPolygon = getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 3);
+			ruleMultiPolygon.setFilter(getGeometryTypeFilter("MultiPolygon"));
+			
+			
+			Rule rules[] = {rulePoint,ruleLineString,rulePolygon,ruleMultiPoint,ruleMultiLineString,ruleMultiPolygon};
 			
 			return ( rules );
 			
