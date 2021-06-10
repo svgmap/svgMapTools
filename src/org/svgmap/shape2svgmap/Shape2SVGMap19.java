@@ -230,6 +230,8 @@ public class Shape2SVGMap19 {
 	// 2019.1.24 レイヤールートコンテナの<metadata>要素に、任意のデータ(含むタグ文字列)を入れるための文字列変数
 	String layerMetadata ="";
 	
+	boolean putRecord = false; // 2021.6.10 レコード番号をdata-recordに記載する
+	
 	static boolean layerDebug = false;
 	
 	private static void showHelp(){
@@ -435,6 +437,7 @@ public class Shape2SVGMap19 {
 		System.out.println("-threadBuffer: 各スレッドが受け取る描画命令バッファ数 デフォルト：16384");
 		System.out.println("-divErrMax: 分割効果がこの数分ない場合、分割処理中断 デフォルト：3");
 		System.out.println("-optionFile: オプションファイルを指定する。(入出力ファイルはこのファイル中では指定できない)コマンドラインでのオプションと同じ書式(ただし改行許可)　こちらが優先される");
+		System.out.println("-putRecord: data-record属性に、レコード番号を記載する");
 		
 		
 		
@@ -907,6 +910,10 @@ public class Shape2SVGMap19 {
 					++i;
 					s2sm.csvSchemaPath = args[i];
 					System.out.println("Schema Path for CSV file: " + s2sm.csvSchemaPath);
+				} else if ( args[i].toLowerCase().equals("-putrecord")){ // add 2021.06
+					++i;
+					s2sm.putRecord=true;
+					System.out.println("Put record number on data-record attr");
 				} else {
 					showHelp();
 					System.out.println("存在しないオプション\"" + args[i] + "\"が指定されました。");
@@ -1741,6 +1748,11 @@ public class Shape2SVGMap19 {
 //							hasAnchor = true;
 						}
 					}
+					
+					if ( putRecord ){
+						sm.setCustomAttribute("data-record=\""+sm.htmlEscape(Integer.toString(lop))+"\" ");
+					}
+					
 					oneGeom = (Geometry) oneFeature.getDefaultGeometry();
 					
 					if ( ! noShape ){
