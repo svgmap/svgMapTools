@@ -36,6 +36,7 @@ package org.svgmap.shape2svgmap;
 // 2018/09/25 マーカーを選択可能にした。meshマーカーは実空間サイズ(degrees)を設定可能。strokeColor省略オプション追加(fillColorと合わせる)。属性値に応じた色塗りでもstrokeを指定可能に('-'で省略も可能)
 // 2020/01/21 WKTなどジオメトリタイプが混合したデータでも描画可能にし始めた(まだ値によって色が変わるものは未対応)
 // 2020/04/09 メルカトル正方タイルを出力する機能を追加(ただし、SVGのほうはWGS84,PlateCaree想定のコンテナを生成(背景地図と合わせる))
+// 2021/06/29 値に応じて色を変化させる機能を 混合ジオメトリタイプデータに対応
 
 import java.awt.*;
 import java.awt.image.*;
@@ -1351,9 +1352,10 @@ public class Shape2ImageSVGMap4 {
 	
 	
 	// ポリゴンスタイルの生成関数２　値に応じて色を変化させる機能用
-	// ISSUE and TBD: 混合ジオメトリタイプデータへの対応(2020/1/21)
+	// ISSUE and TBD: 混合ジオメトリタイプデータへの対応(2020/1/21) -> 2021/06/29 DONE
 	public Style getFeatureStyle2( int colorCol , Color strokeColor , int strokeWidth , boolean dash , int markerSize ,  SimpleFeatureSource fs , double fMin , double fMax , String markerName) throws Exception {
-		System.out.println("Call getFeatureStyle2 : colorCol:" + colorCol );
+		boolean mixedType = isMixedType(fs.getSchema());
+		System.out.println("Call getFeatureStyle2 : colorCol:" + colorCol + "  mixedType:" + mixedType );
 		FeatureType schema = fs.getSchema();
 		//スタイルを作成
 		FilterFactory ff = CommonFactoryFinder.getFilterFactory2(null);
@@ -1408,8 +1410,9 @@ public class Shape2ImageSVGMap4 {
 			}
 		}
 		
+		ArrayList<Rule> ruleList = new ArrayList<Rule>();
 		
-		Rule rules[] = null;
+		// Rule rules[] = null;
 		
 		if ( colu.mainAttrIsNumber ){
 			
@@ -1419,24 +1422,36 @@ public class Shape2ImageSVGMap4 {
 			
 			if ( outOfRangeView == SVGMapGetColorUtil.COUNTER_STOP || outOfRangeView == SVGMapGetColorUtil.MARK ){
 				// オーバーフローデータに対する描画条件　２件追加
-				rules = new Rule[colorResolution+2];
+				//rules = new Rule[colorResolution+2];
 				
 				// オーバーフロー時
 				Color overFlowColor =  getColor(colu.getColor( colu.mainAttrMax + 0.5 * vSpan , colu.mainAttrMin , colu.mainAttrMax ));
 				Filter overFlowFl =  ff.greater( ff.property(attrName) , ff.literal(colu.mainAttrMax) );
-				Rule overFlowRl = getOneSymbolizeRule( overFlowColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
-				overFlowRl.setFilter(overFlowFl);
-				rules[colorResolution] = overFlowRl;
+				if ( mixedType ){
+					Rule[] rls = getMixedGeometryRules(overFlowColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , overFlowFl);
+					Collections.addAll(ruleList,rls);
+				} else {
+					Rule overFlowRl = getOneSymbolizeRule( overFlowColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
+					overFlowRl.setFilter(overFlowFl);
+					ruleList.add(overFlowRl);
+					//rules[colorResolution] = overFlowRl;
+				}
 				
 				// アンダーフロー時
 				Color underFlowColor =  getColor(colu.getColor( colu.mainAttrMin - 0.5 * vSpan , colu.mainAttrMin , colu.mainAttrMax ));
 				Filter underFlowFl = ff.less( ff.property(attrName) , ff.literal(colu.mainAttrMin) );
-				Rule underFlowRl = getOneSymbolizeRule( underFlowColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
-				underFlowRl.setFilter(underFlowFl);
-				rules[colorResolution+1] = underFlowRl;
+				if ( mixedType ){
+					Rule[] rls = getMixedGeometryRules(underFlowColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , underFlowFl);
+					Collections.addAll(ruleList,rls);
+				} else {
+					Rule underFlowRl = getOneSymbolizeRule( underFlowColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
+					underFlowRl.setFilter(underFlowFl);
+					ruleList.add(underFlowRl);
+					//rules[colorResolution+1] = underFlowRl;
+				}
 				
 			} else {
-				rules = new Rule[colorResolution];
+				//rules = new Rule[colorResolution];
 			}
 			
 			for ( int i = 0 ; i < colorResolution ; i ++ ){
@@ -1451,16 +1466,23 @@ public class Shape2ImageSVGMap4 {
 				}
 				Filter fl2 = ff.lessOrEqual( ff.property(attrName) , ff.literal(vHigh) );
 				Filter fl = ff.and( fl1 , fl2 );
-				Rule rl = getOneSymbolizeRule( getColor(color) , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
-				rl.setFilter(fl);
-				rules[ i ] = rl;
+				
+				if ( mixedType ){
+					Rule[] rls = getMixedGeometryRules(getColor(color) , strokeColor , strokeWidth , dash , markerSize , schema , markerName , fl);
+					Collections.addAll(ruleList,rls);
+				} else {
+					Rule rl = getOneSymbolizeRule( getColor(color) , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
+					rl.setFilter(fl);
+					ruleList.add(rl);
+					//rules[ i ] = rl;
+				}
 				System.out.println(color + " = " + vLow + " ... " + vHigh);
 			}
 			
 		} else {
 			HashMap colorMap = colu.colorMap;
 			HashSet truncatedKey = colu.truncatedKey; // added 2018.8.31
-			rules = new Rule[colorMap.size()+1];
+			//rules = new Rule[colorMap.size()+1];
 			
 			Set set = colorMap.keySet();
 			Iterator it = set.iterator();
@@ -1487,10 +1509,16 @@ public class Shape2ImageSVGMap4 {
 //				Filter fl = ff.like( ff.property(attrName) , o+"*" ); // http://www.programcreek.com/java-api-examples/index.php?api=org.opengis.filter.FilterFactory2 を参考にしたワイルドカード検索・・(頭の文字列を検索する) 2017.5.12
 //				Filter fl = ff.like( ff.property(attrName) , o ); // ワイルドカードはまずい場合がある。完全一致に修正・・　debug: 2018/8/9
 				
-//				Rule rl = getOneSymbolizeRule( getColor(color) , getColor("#000000") , 0 , dash , markerSize , schema );
-				Rule rl = getOneSymbolizeRule( getColor(color) , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
-				rl.setFilter(fl);
-				rules[ i ] = rl;
+				if ( mixedType ){
+					Rule[] rls = getMixedGeometryRules(getColor(color) , strokeColor , strokeWidth , dash , markerSize , schema , markerName , fl);
+					Collections.addAll(ruleList,rls);
+				} else {
+	//				Rule rl = getOneSymbolizeRule( getColor(color) , getColor("#000000") , 0 , dash , markerSize , schema );
+					Rule rl = getOneSymbolizeRule( getColor(color) , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
+					rl.setFilter(fl);
+					ruleList.add(rl);
+					//rules[ i ] = rl;
+				}
 				orList.add(fl);
 				++i;
 			}
@@ -1498,23 +1526,98 @@ public class Shape2ImageSVGMap4 {
 			@SuppressWarnings("unchecked")
 			Filter otfl = ff.or(orList);
 			otfl = ff.not(otfl);
-			Rule otrl = getOneSymbolizeRule( getColor(colu.nullColor) , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
-			otrl.setFilter(otfl);
-			rules[ colorMap.size() ] = otrl;
+			if ( mixedType ){
+				Rule[] rls = getMixedGeometryRules(getColor(colu.nullColor) , strokeColor , strokeWidth , dash , markerSize , schema , markerName , otfl);
+				Collections.addAll(ruleList,rls);
+			} else {
+				Rule otrl = getOneSymbolizeRule( getColor(colu.nullColor) , strokeColor , strokeWidth , dash , markerSize , schema , markerName );
+				otrl.setFilter(otfl);
+				ruleList.add(otrl);
+				//rules[ colorMap.size() ] = otrl;
+			}
 		}
 		
 		
 //		Rule rule = getOneSymbolizeRule( fillColor , strokeColor , strokeWidth , dash , markerSize , schema );
 		
-		FeatureTypeStyle fts = sf.createFeatureTypeStyle(rules);
+//		FeatureTypeStyle fts = sf.createFeatureTypeStyle(rules);
+		FeatureTypeStyle fts = sf.createFeatureTypeStyle((Rule[])ruleList.toArray(new Rule[ruleList.size()]));
 		Style style = sf.createStyle();
 		style.featureTypeStyles().add(fts);
 		return ( style );
 	}
 	
+	Rule[] getMixedGeometryRules(Color fillColor , Color strokeColor , int strokeWidth , boolean dash , int markerSize , FeatureType schema , String markerName , Filter fl){
+		// 2021/06/29 getFeatureStyle2でも使えるように関数化
+		FilterFactory ff = CommonFactoryFinder.getFilterFactory2(null);
+		
+		Rule rulePoint = getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 1);
+		if ( fl != null ){
+			Filter cfl = ff.and( getGeometryTypeFilter("Point") , fl );
+			rulePoint.setFilter(cfl);
+		}else{
+			rulePoint.setFilter(getGeometryTypeFilter("Point"));
+		}
+		
+		Rule ruleLineString = getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 2);
+		if ( fl != null ){
+			Filter cfl = ff.and( getGeometryTypeFilter("LineString") , fl );
+			ruleLineString.setFilter(cfl);
+		} else {
+			ruleLineString.setFilter(getGeometryTypeFilter("LineString"));
+		}
+		
+		Rule rulePolygon = getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 3);
+		if ( fl != null ){
+			Filter cfl = ff.and( getGeometryTypeFilter("Polygon") , fl );
+			rulePolygon.setFilter(cfl);
+		} else {
+			rulePolygon.setFilter(getGeometryTypeFilter("Polygon"));
+		}
+		
+		// for multi 2021/6/10
+		Rule ruleMultiPoint = getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 1);
+		if ( fl != null ){
+			Filter cfl = ff.and( getGeometryTypeFilter("MultiPoint") , fl );
+			ruleMultiPoint.setFilter(cfl);
+		} else {
+			ruleMultiPoint.setFilter(getGeometryTypeFilter("MultiPoint"));
+		}
+		
+		Rule ruleMultiLineString = getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 2);
+		if ( fl != null ){
+			Filter cfl = ff.and( getGeometryTypeFilter("MultiLineString") , fl );
+			ruleMultiLineString.setFilter(cfl);
+		} else {
+			ruleMultiLineString.setFilter(getGeometryTypeFilter("MultiLineString"));
+		}
+		
+		Rule ruleMultiPolygon = getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 3);
+		if ( fl != null ){
+			Filter cfl = ff.and( getGeometryTypeFilter("MultiPolygon") , fl );
+			ruleMultiPolygon.setFilter(cfl);
+		} else {
+			ruleMultiPolygon.setFilter(getGeometryTypeFilter("MultiPolygon"));
+		}
+		
+		
+		Rule rules[] = {rulePoint,ruleLineString,rulePolygon,ruleMultiPoint,ruleMultiLineString,ruleMultiPolygon};
+		
+		return ( rules );
+	}
+	
+	boolean isMixedType(FeatureType schema){
+		boolean ans = false;
+		Class<?> type = schema.getGeometryDescriptor().getType().getBinding();
+		if ( type.isAssignableFrom( com.vividsolutions.jts.geom.Point.class) && type.isAssignableFrom( com.vividsolutions.jts.geom.LineString.class) ){
+			ans = true;
+			System.out.println("Mixed geometry type data...");
+		}
+		return ( ans );
+	}
 	
 	Rule[] getSymbolizeRules( Color fillColor , Color strokeColor , int strokeWidth , boolean dash , int markerSize , FeatureType schema , String markerName ){
-		Class<?> type = schema.getGeometryDescriptor().getType().getBinding();
+		//Class<?> type = schema.getGeometryDescriptor().getType().getBinding(); // move to isMixedType
 		// 2020/1/21 ジオメトリタイプの混合があり得る場合に対応する(WKTとか・・・)
 		
 		// Reerences:
@@ -1524,9 +1627,11 @@ public class Shape2ImageSVGMap4 {
 		// https://docs.geotools.org/latest/javadocs/org/geotools/filter/function/FilterFunction_geometryType.html
 		// https://github.com/geotools/geotools/blob/master/modules/library/main/src/test/java/org/geotools/filter/visitor/AbstractCapabilitiesFilterSplitterTests.java#L155
 		
-		if ( type.isAssignableFrom( com.vividsolutions.jts.geom.Point.class) && type.isAssignableFrom( com.vividsolutions.jts.geom.LineString.class) ){
-			System.out.println("Mixed geometry type data...");
-			
+		boolean mixedType = isMixedType(schema);
+		
+		if ( mixedType ){
+			Rule rules[] = getMixedGeometryRules( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , null );
+			/** 2021/06/29 getMixedGeometryRulesを作り移動
 			Rule rulePoint = getOneSymbolizeRule_int( fillColor , strokeColor , strokeWidth , dash , markerSize , schema , markerName , 1);
 			rulePoint.setFilter(getGeometryTypeFilter("Point"));
 			
@@ -1548,7 +1653,7 @@ public class Shape2ImageSVGMap4 {
 			
 			
 			Rule rules[] = {rulePoint,ruleLineString,rulePolygon,ruleMultiPoint,ruleMultiLineString,ruleMultiPolygon};
-			
+			**/
 			return ( rules );
 			
 		} else {
