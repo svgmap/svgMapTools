@@ -853,6 +853,11 @@ public class Shape2ImageSVGMap4 {
 		CoordinateReferenceSystem crs = 
 		sfcArray[0].getSchema().getGeometryDescriptor().getCoordinateReferenceSystem();
 //		sfcArray[0].getSchema().getCoordinateReferenceSystem();
+		if ( crs == null ){
+//			crs = CRS.decode("EPSG:4326");
+			crs = org.geotools.referencing.crs.DefaultGeographicCRS.WGS84;
+		}
+//		System.out.println("crs:" + crs );
 //		crs = CRS.decode("EPSG:3785");
 		MapLayer layers[] = {};
 		
