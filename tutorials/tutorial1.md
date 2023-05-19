@@ -9,7 +9,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 ## Notes:
 ### 実行環境について
 * データの作成のために、Java 8 (jre 8もしくはjdk 8) がインストールされている環境が必要です。
-  * なお、動作チェックはWindows11とJAVA8で行っています。(JAVA10(JAVA9以降)では動作しません。使用しているGeotoolsがJAVA10非互換のため。なおJavaはOracle晩だけではなくOpenJDK (Correttor等)でも動作確認しています。)
+  * なお、動作チェックはWindows11とJAVA8で行っています。(JAVA10(JAVA9以降)では動作しません。使用しているGeotoolsがJAVA10非互換のため。なおJavaはOracle版だけではなくOpenJDK (Corretto等)でも動作確認しています。)
 * 生成したコンテンツはほとんどのウェブブラウザで利用可能です。<BR>ただしローカルファイルでの動作確認には制約があります以下に記載します。<BR>(なお、Webサーバ上にコンテンツを設置した場合は、制限なく表示できます。)
   * ローカルに保存したコンテンツでは、Chromeで `--allow-file-access-from-files` オプションをつけて起動した場合のみ表示できます。以下起動例（２例）（ショートカットを作成すると良い）
     * `"C:\Program Files\Google\Chrome\Application\chrome.exe" --allow-file-access-from-files`
