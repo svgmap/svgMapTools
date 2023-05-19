@@ -16,7 +16,7 @@ SVGMapの概要・どのようなコンテンツが表示できるかは、http:
 * Shape2WGS84:  測地系変換や属性に応じたファイル分割、Shapefile<>CSV変換などを行うプリプロセッサ
 * HyperBuilder: 複数のSVGMapレイヤーを統合するコンテナデータを生成
 
-Shape2SVGMapとShape2ImageSVGMapを組み合わせると、SVGMapで特徴的な[Quad Tree Composite Tiling](https://satakagi.github.io/mapsForWebWS2020-docs/QuadTreeCompositeTilingAndVectorTileStandard.html)コンテンツを生成することもできます
+Shape2SVGMapとShape2ImageSVGMapを組み合わせることで、SVGMapで特徴的な[Quad Tree Composite Tiling](https://satakagi.github.io/mapsForWebWS2020-docs/QuadTreeCompositeTilingAndVectorTileStandard.html)コンテンツが生成できます。
 
 先ず、[tutorial](tutorial)ディレクトリの内容を用いて、基本モジュール（Shape2SVGMap、Shape2ImageSVGMap）の基本操作を学習し、処理の流れを理解してから使用してください。なお、tutorialsの内容はWindows用に調整されています。Linuxなどで使う場合は適宜翻訳して利用してください。
 
