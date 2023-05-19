@@ -150,6 +150,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
    +-...
    ```
 1. `{ルートディレクトリ}\tutorials\webApps\Container.svg`をテキストエディタで編集
+   * このファイル(`Container.svg`)は、**ルートコンテナ**と呼ばれるファイルで、SVGMap.jsが表示する地図コンテンツの基本構成(どのようなレイヤーが配置されるか)が記述されたコンテンツです。ホームページとなるコンテンツ(`SvgMapper.html`)の`<div id="mapcanvas" title="Container.svg"></div>`から参照されます。
    * `<!-- Thematic Layer -->`の行の後に、生成したコンテンツのルートとなるファイルへのリンクを追加します。<br>（サンプルにはすでに追加済みですので確認のみで大丈夫です。実際の作業ではここにリンクを追加することで、レイヤーが追加されていきます。）
    * `<animation title="Cities of Japan" xlink:href="sample/JPcities_of_worldcitiespop_utf8.svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />`
    * これで地図作成完了
