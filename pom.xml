@@ -17,8 +17,8 @@
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
     <geotools.version>9.5</geotools.version>
-<!--    <mainClass>org.svgmap.shape2svgmap.Shape2SVGMap19</mainClass> -->
     <mainClass>org.svgmap.shape2svgmap.MainWrapper</mainClass>
+    <builtByName>svgmap.org admin</builtByName>
   </properties>
 
   <dependencies>
@@ -92,7 +92,7 @@
 	            <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
 	                <manifestEntries>
 	                    <Main-Class>${mainClass}</Main-Class>
-	                    <Built-By>svgmap.org admin</Built-By>
+	                    <Built-By>${builtByName}</Built-By>
 	                    <!-- custom manifest entries -->
 	                    <!-- JAIが、以下のエントリーがMANIFEST.MFに無いとインスタンス生成失敗する。値は何でも良いらしい -->
 	                    <!-- https://stackoverflow.com/questions/7051603/jai-vendorname-null/18495658#18495658 -->
@@ -176,6 +176,11 @@
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.0.2</version>
+          <configuration><archive>
+          <manifestEntries>
+            <Built-By>${builtByName}</Built-By>
+          </manifestEntries>
+          </archive></configuration>
         </plugin>
         <plugin>
           <artifactId>maven-install-plugin</artifactId>
