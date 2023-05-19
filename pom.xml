@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.svgmap</groupId>
+  <artifactId>svgMapTools</artifactId>
+  <version>202305</version>
+
+  <name>svgMapTools</name>
+  <!-- FIXME change it to the project's website -->
+  <url>http://www.svgmap.org/</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>1.7</maven.compiler.source>
+    <maven.compiler.target>1.7</maven.compiler.target>
+    <geotools.version>9.5</geotools.version>
+<!--    <mainClass>org.svgmap.shape2svgmap.Shape2SVGMap19</mainClass> -->
+    <mainClass>org.svgmap.shape2svgmap.MainWrapper</mainClass>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.11</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- for org.geotools -->
+    <dependency>
+      <groupId>org.geotools</groupId>
+      <artifactId>gt-shapefile</artifactId>
+      <version>${geotools.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.geotools</groupId>
+      <artifactId>gt-geojson</artifactId>
+      <version>${geotools.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.geotools</groupId>
+      <artifactId>gt-swing</artifactId>
+      <version>${geotools.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/net.sourceforge.javacsv/javacsv -->
+    <dependency>
+      <groupId>net.sourceforge.javacsv</groupId>
+      <artifactId>javacsv</artifactId>
+      <version>2.0</version> <!-- ISSUE : 2.1が最新だがmaven repo.に存在しない・・ -->
+    </dependency>
+  </dependencies>
+
+  <repositories>
+    <repository>
+    <id>osgeo</id>
+    <name>OSGeo Release Repository</name>
+    <url>https://repo.osgeo.org/repository/release/</url>
+    <snapshots><enabled>false</enabled></snapshots>
+    <releases><enabled>true</enabled></releases>
+    </repository>
+  </repositories>
+
+  <build>
+      <plugins>
+	<plugin>
+	    <!-- shadeを使うと回避できた！ -->
+	    <artifactId>maven-shade-plugin</artifactId>
+	    <version>3.2.4</version>
+	    <executions>
+	        <execution>
+	            <phase>package</phase>
+	            <goals>
+	                <goal>shade</goal>
+	            </goals>
+	        </execution>
+	    </executions>
+	    <configuration>
+	        <filters>
+	            <filter>
+	                <artifact>org.geotools:*</artifact>
+	                <excludes>
+	                    <exclude>META-INF/services/org.geotools.renderer.style.MarkFactory</exclude>
+	                </excludes>
+	            </filter>
+	        </filters>
+	        <shadedArtifactAttached>true</shadedArtifactAttached>
+	        <shadedClassifierName>jar-with-dependencies</shadedClassifierName>
+	        <transformers>
+	            <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+	                <manifestEntries>
+	                    <Main-Class>${mainClass}</Main-Class>
+	                    <Built-By>svgmap.org admin</Built-By>
+	                    <!-- custom manifest entries -->
+	                    <!-- JAIが、以下のエントリーがMANIFEST.MFに無いとインスタンス生成失敗する。値は何でも良いらしい -->
+	                    <!-- https://stackoverflow.com/questions/7051603/jai-vendorname-null/18495658#18495658 -->
+	                    <!-- https://stackoverflow.com/questions/15345769/exception-when-trying-to-save-images -->
+	                    <Implementation-Title>SVGMapTools</Implementation-Title>
+	                    <Implementation-Version>${version}</Implementation-Version>
+	                    <Implementation-Vendor>svgmap.org</Implementation-Vendor>
+	                    <!--
+	                    <Specification-Title>Java Advanced Imaging Image I/O Tools</Specification-Title>
+	                    <Specification-Version>1.1</Specification-Version>
+	                    <Specification-Vendor>Sun Microsystems, Inc.</Specification-Vendor>
+	                    <Implementation-Title>com.sun.media.imageio</Implementation-Title>
+	                    <Implementation-Version>1.1</Implementation-Version>
+	                    <Implementation-Vendor>Sun Microsystems, Inc.</Implementation-Vendor>
+	                    -->
+	                </manifestEntries>
+	            </transformer>
+	            
+	            <!-- https://kazuhira-r.hatenablog.com/entry/2020/11/23/001949 -->
+	            <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+	            <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer">
+	            </transformer>
+	            <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer">
+	            </transformer>
+	        </transformers>
+	    </configuration>
+	</plugin>
+      <!-- assemblyではうまくSPIの環境設定ファイル(for MarkFactory)が置換できないことがわかったので廃止
+         <plugin>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>3.5.0</version>
+          <configuration>
+          <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+          <archive>
+            <manifest>
+              <mainClass>org.svgmap.App</mainClass>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+            </manifest>
+            <manifestEntries>
+              <Specification-Vendor>MyCompany</Specification-Vendor>
+              <Implementation-Vendor>MyCompany</Implementation-Vendor>
+            </manifestEntries>
+          </archive>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+        </plugin>
+      -->
+      </plugins>
+      
+    <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
+      <plugins>
+        <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
+        <plugin>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>3.1.0</version>
+        </plugin>
+        <!-- default lifecycle, jar packaging: see https://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_jar_packaging -->
+        <plugin>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>3.0.2</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.8.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.22.1</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.0.2</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>2.5.2</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>2.8.2</version>
+        </plugin>
+        <!-- site lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#site_Lifecycle -->
+        <plugin>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>3.7.1</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-project-info-reports-plugin</artifactId>
+          <version>3.0.0</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+</project>

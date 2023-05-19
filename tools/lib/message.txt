@@ -1,1 +1,0 @@
-Please put the jar files of geotools (2.7.5) and javacsv (2.1) here.
