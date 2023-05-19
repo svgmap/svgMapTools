@@ -10,11 +10,11 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 ### 実行環境について
 * データの作成のために、Java 8 (jre 8もしくはjdk 8) がインストールされている環境が必要です。
   * なお、動作チェックはWindows11とJAVA8で行っています。(JAVA10(JAVA9以降)では動作しません。使用しているGeotoolsがJAVA10非互換のため。なおJavaはOracle版だけではなくOpenJDK (Corretto等)でも動作確認しています。)
-* 生成したコンテンツはほとんどのウェブブラウザで利用可能です。<BR>ただしローカルファイルでの動作確認には制約があります以下に記載します。<BR>(なお、Webサーバ上にコンテンツを設置した場合は、制限なく表示できます。)
+* 生成したコンテンツはほとんどのウェブブラウザで利用可能です。<BR>ただしローカルファイルでの動作確認には制約があります。以下に記載します。<BR>(なお、Webサーバ上にコンテンツを設置した場合は、制限なく表示できます。)
   * ローカルに保存したコンテンツでは、Chromeで `--allow-file-access-from-files` オプションをつけて起動した場合のみ表示できます。以下起動例（２例）（ショートカットを作成すると良い）
     * `"C:\Program Files\Google\Chrome\Application\chrome.exe" --allow-file-access-from-files`
     * `start chrome --allow-file-access-from-files`
-      * 既にChromeが起動している場合は無効。すべてのChromeをいったん終了させてから起動す必要があります。
+      * 既にChromeが起動している場合は無効。すべてのChromeをいったん終了させてから起動する必要があります。
       * 同オプションの参照情報([Chdromium公式ドキュメント](https://www.chromium.org/developers/how-tos/run-chromium-with-flags/)から[参照されているオプション情報](https://peter.sh/experiments/chromium-command-line-switches/#allow-file-access-from-files))
   * microsoft Edgeでも同様に動作します。(Chromeと同じChromeiumベースのブラウザのため)
     * `start msedge --allow-file-access-from-files`
@@ -65,11 +65,11 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
    * ルート直下の`target`ディレクトリに `svgMapTools-{REV}.jar`を投入します。
       ```
       +-target
-        +svgMapTools-{REV}.jar
+         +svgMapTools-{REV}.jar
       ```
      
    * もしくは自分でjarを生成することもできます。
-     * javacがあれば、下記 外部ライブラリの準備後、toolsディレクトリの`MakeClass.bat`でjarを生成できます。
+     * javacがあれば、**下記 外部ライブラリの準備後**、toolsディレクトリの`MakeClass.bat`でjarを生成できます。
      * 更にmaven環境も構築済みであれば、`pom.xml`があるアーカイブのルートディレクトリで
        * `mvn release`
        * `mvn dependency:copy-dependencies`<br>
@@ -77,7 +77,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
    
 1. 外部ライブラリの準備
     * `svgmaptools`が使用する外部ライブラリ([geotools](https://www.geotools.org/)9.5)をダウンロードします。
-       * geotools-9.5-bin.zip を https://sourceforge.net/projects/geotools/files/GeoTools%209%20Releases/9.5/ からダウンロード
+       * `geotools-9.5-bin.zip` を https://sourceforge.net/projects/geotools/files/GeoTools%209%20Releases/9.5/ からダウンロード
     * `tools`ディレクトリ下に`geotools-9.5`ディレクトリを用意し、ここにzipを解凍した内容のjarファイル群を全て保存します。<br>
     geotools9.5のjarファイルは(geotools-9.5-bin.zip)にパックされており、解凍すると複数のjarに分かれています。これらのjarファイルをすべて`tools/geotools-9.5`下に投入してください。<br>
     (解凍・保存後のルートディレクトリ以下の構造)
@@ -101,8 +101,8 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 1. 作業ディレクトリ移動とライブラリの設定
     * コマンドプロンプトを開き、以下を指示します<br>
-    `cd {ルートディレクトリ}\tools\`<br>
-    `CopyDependLibs.bat`
+      * `cd {ルートディレクトリ}\tools\`<br>
+      * `CopyDependLibs.bat`
     * `target\dependency`ディレクトリが作られ、ルートディレクトリ以下の構成が以下になれば準備完了です。
       ```
       +-target
@@ -119,10 +119,10 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 ### 練習の開始
 
-変換する対象ファイルは、toolsディレクトリに対して、`..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv` に格納されていると仮定して練習を進めます。
+変換する対象ファイルは、`tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv` に格納されているものとして練習を進めます。
 
-1. コマンドプロンプトを開き、toolsディレクトリにcdします。環境設定に続いて進めていれば不要<br>
-    `cd {ルートディレクトリ}\tools\`<br>
+1. コマンドプロンプトを開き、toolsディレクトリにcdします。環境設定に続いて進めていれば不要
+   * `cd {ルートディレクトリ}\tools\`<br>
 
 1. csvfileを大縮尺(拡大表示)用ベクター地図に変換
    * `Shape2SVGMap.bat -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv`<br>
@@ -132,24 +132,25 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
    * `Shape2ImageSVGMap.bat ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.svg -sumUp 16 -antiAlias -charset utf-8 ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv #0000ff #0000ff 0 3`<br>
      * `tutorials\webApps\sample\`ディレクトリに、JPcities_of_worldcitiespop_utf8ディレクトリが作成され、その下に付随するファイル群が作成されます。(いくつかのディレクトリとpngやsvgファイル）
 
-      ```
-      +-target
-      +-tutorials
-      |   +webApps
-      |     +SvgMapper.html
-      |     +Container.svg
-      |     +...(その他のファイル)
-      |     +sample
-      |       +JPcities_of_worldcitiespop_utf8.svg
-      |       +...(その他のファイル)
-      |       +JPcities_of_worldcitiespop_utf8
-      |         +lvl2(ディレクトリ)
-      |         +...(その他のディレクトリやファイル)
-      |
-      +-tools
-      +-...
+   ```
+   +-target
+   +-tutorials
+   |   +webApps
+   |     +SvgMapper.html
+   |     +Container.svg
+   |     +...(その他のファイル)
+   |     +sample
+   |       +JPcities_of_worldcitiespop_utf8.svg
+   |       +...(その他のファイル)
+   |       +JPcities_of_worldcitiespop_utf8
+   |         +lvl2(ディレクトリ)
+   |         +...(その他のディレクトリやファイル)
+   |
+   +-tools
+   +-...
+   ```
 1. `{ルートディレクトリ}\tutorials\webApps\Container.svg`をテキストエディタで編集
-   * `<!-- Thematic Layer -->`の行の後に、生成したコンテンツのルートとなるファイルへのリンクを追加します。（サンプルにはすでに追加済みですので確認のみで大丈夫です。実際の作業ではここにリンクを追加することで、レイヤーが追加されていきます。）
+   * `<!-- Thematic Layer -->`の行の後に、生成したコンテンツのルートとなるファイルへのリンクを追加します。<br>（サンプルにはすでに追加済みですので確認のみで大丈夫です。実際の作業ではここにリンクを追加することで、レイヤーが追加されていきます。）
    * `<animation title="Cities of Japan" xlink:href="sample/JPcities_of_worldcitiespop_utf8.svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" />`
    * これで地図作成完了
   
@@ -199,25 +200,25 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
    * Note:<br> ウェブホストに`tutorials\webApps`以下を配置すれば、そのコンテンツのURL(ウェブホストのディレクトリのURL/SvgMapper.html)で通常のブラウザで表示することができます。<br>
    生成されたコンテンツは全て静的なものですので、一般的な静的ホスティングサービスで配信できます。
 
-## 応用：複数のデータの合成
-* 複数のデータを別のディレクトリに作成し、それらを地図上でに合成したり、切り替えたりできるようにすします（レイヤリング機能）<br>
+## 応用：複数のデータの合成(レイヤー合成)
+* 複数のデータ(レイヤー)を別のディレクトリに作成し、それらを地図上でに合成したり、切り替えたりできるようにすします（レイヤリング機能）<br>
   * 実践編の作業を別のディレクトリ名を作って複数回実施
   * ルートコンテナには、追加したいレイヤー分のタグを追加
   * これでデフォルトですべてのレイヤーが表示された状態となります。
 
 * 大縮尺表示用ピンを変更<br>
-　mapins\の適当なpngを作業ディレクトリにコピーしたうえで、mappin.pngにリネームします。
+　`tools\icons\mappins\`の適当なpngを作業ディレクトリにコピーしたうえで、mappin.pngにリネームします。<br>自分の好みのアイコン(pngやjpg形式)を使用することも可能です。アイコンのサイズ・アスペクト比もsymbolTemplate.txtを編集して変更することができます。
 
 * 小縮尺表示用の丸点の色を変更<br>
 　Shape2ImageSVGMapコマンドの、以下の(色コード)部分を変更して実行します<br>
 　`java -Xmx500m Shape2ImageSVGMap ..\tutorials\webApps\(wdir)\(wfile).svg -sumUp 8 -antiAlias ..\tutorials\webApps\(wdir)\(wfile).shp (Fill Color) (Stroke Color) 0 3`
   * (Fill Color) (Stroke Color)はPOIの色コードで、ひとまずは両方とも同じ値で良いでしょう。色コードはWebの色コードで#RRGGBB (RR,GG,BBそれぞれ00-FF)です。
 　
-* 初期状態で表示させたくないデータ<br>
+* 初期状態で表示させたくないレイヤーの設定<br>
 ルートコンテナファイルのタグ編集において、`visibilty="hidden"`属性を付けます
   * `<animation title="Cities of Japan" xlink:href="(wdir)/(wfile).svg" class="poi" x="-30000" y="-30000" width="60000" height="60000" visibilty="hidden"/>`
 
-* どれかのデータだけを表示（択一表示）<br>
+* どれかのレイヤーだけを表示（択一表示）<br>
 ルートコンテナファイルのタグ編集において、デフォルトで表示させたいデータ以外に`visibilty="hidden"`属性を付けたうえで、全てのレイヤーのタグのclass属性を`class="poi switch"`に変更します。
   * `<animation title="Cities of Japan" xlink:href="(wdir)/(wfile).svg" class="poi switch" x="-30000" y="-30000" width="60000" height="60000" visibilty="hidden"/>`
 
