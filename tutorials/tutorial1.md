@@ -73,7 +73,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
      * 更にmaven環境も構築済みであれば、`pom.xml`があるアーカイブのルートディレクトリで
        * `mvn release`
        * `mvn dependency:copy-dependencies`<br>
-       でも構築できます。詳しくは[..\readMeFirstJA.md](..\readMeFirstJA.md)を参照
+       でも構築できます。詳しくは[readMeFirstJA.md](../readMeFirstJA.md)を参照
    
 1. 外部ライブラリの準備
     * `svgmaptools`が使用する外部ライブラリ([geotools](https://www.geotools.org/)9.5)をダウンロードします。
