@@ -1,2 +1,2 @@
 #!/bin/bash
-java -Xmx800m -jar "../target/svgMapTools-202305-jar-with-dependencies.jar" Shape2SVGMap $@
+java -Xmx800m -classpath "../target/dependency/*:../target/svgMapTools-202305.jar:" org.svgmap.shape2svgmap.MainWrapper Shape2SVGmap $@
