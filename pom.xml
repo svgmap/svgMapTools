@@ -6,7 +6,7 @@
 
   <groupId>org.svgmap</groupId>
   <artifactId>svgMapTools</artifactId>
-  <version>202305</version>
+  <version>202307</version>
 
   <name>svgMapTools</name>
   <!-- FIXME change it to the project's website -->
@@ -16,7 +16,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
-    <geotools.version>9.5</geotools.version>
+    <geotools.version>28.4</geotools.version>
     <mainClass>org.svgmap.shape2svgmap.MainWrapper</mainClass>
     <builtByName>svgmap.org admin</builtByName>
   </properties>
@@ -37,7 +37,7 @@
     </dependency>
     <dependency>
       <groupId>org.geotools</groupId>
-      <artifactId>gt-geojson</artifactId>
+      <artifactId>gt-geojson-core</artifactId>
       <version>${geotools.version}</version>
     </dependency>
     <dependency>
@@ -85,6 +85,14 @@
 	                    <exclude>META-INF/services/org.geotools.renderer.style.MarkFactory</exclude>
 	                </excludes>
 	            </filter>
+	            <filter><!-- https://www.tssol.net/blog/2019/10/26/java_lang_securityexception_invalid-signature-file-digest-for-manifest-main-attributes/ -->
+	                <artifact>*:*</artifact>
+	                <excludes>
+	                    <exclude>META-INF/*.SF</exclude>
+	                    <exclude>META-INF/*.DSA</exclude>
+                            <exclude>META-INF/*.RSA</exclude>
+	                </excludes>
+	            </filter>
 	        </filters>
 	        <shadedArtifactAttached>true</shadedArtifactAttached>
 	        <shadedClassifierName>jar-with-dependencies</shadedClassifierName>
@@ -98,7 +106,7 @@
 	                    <!-- https://stackoverflow.com/questions/7051603/jai-vendorname-null/18495658#18495658 -->
 	                    <!-- https://stackoverflow.com/questions/15345769/exception-when-trying-to-save-images -->
 	                    <Implementation-Title>SVGMapTools</Implementation-Title>
-	                    <Implementation-Version>${version}</Implementation-Version>
+	                    <Implementation-Version>${project.version}</Implementation-Version>
 	                    <Implementation-Vendor>svgmap.org</Implementation-Vendor>
 	                    <!--
 	                    <Specification-Title>Java Advanced Imaging Image I/O Tools</Specification-Title>

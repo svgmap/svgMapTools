@@ -5,7 +5,7 @@ You can create your own map from such source data using this tool.
 
 You should be able to convert millions of fairly large data into map content by [quad tree tiling](https://www.slideshare.net/totipalmate/tiling-51301496). [(Example)](http://svgmap.org/devinfo/devkddi/lvl0.1/rev14/SVGMapper_r14.html#visibleLayer=worldcities&hiddenLayer=polygonAuthoringTester)
 
-There are built by Java and requires an environment that runs Java 8 (Oracle and OpenJDK).
+There are built by Java and requires an environment that runs Java 17 (Oracle and OpenJDK).
 
 For details, please refer to http://svgmap.org/
 
@@ -24,7 +24,7 @@ You should read  [tutorials](tutorials) for preparation of environment and basic
 Note: Currently, much of the tutorials and help files are in Japanese. Please do somehow with google translation etc :-)
 
 ## Setup
-The JDK 8 (Java 8) should be set up including the PATH and JAVA_HOME environment variable.
+The JDK 17 (Java 17) should be set up including the PATH and JAVA_HOME environment variable.
 
 Basically build using maven. If maven is not provided, see below. It is also possible to set up without maven, but it is a bit cumbersome; instructions for Windows are given below.
 
@@ -40,17 +40,22 @@ If you cloned the repository, `cd` to the directory where pom.xml is located.
 * `mvn dependency:copy-dependencies` (Optional)
 
 ### Without maven (for Windows)
-* Download geotools-9.5-bin.zip from https://sourceforge.net/projects/geotools/files/GeoTools%209%20Releases/9.5/
-* Unzip it and copy the geotools-9.5 directory into the tools directory as follows
+* Download javacsv2.1.zip from https://sourceforge.net/projects/javacsv/
+* Download geotools-28.4-bin.zip from https://sourceforge.net/projects/geotools/files/GeoTools%2028%20Releases/28.4/
+* Unzip them and copy the `javacsv2.1` and `geotools-28.4` directories into the `tools` directory as follows
 ```
 +-pom.xml
 +-src
 +-target
 +-tools
-|  +-geotools-9.5
-|  |  +-batik-transcoder-1.7.jar
-|  |  +-*.jar
-|  |  +-...
+|  +-javacsv2.1
+|  | +-javacsv.jar
+|  | +-...
+|  |
+|  +-geotools-28.4
+|  | +-lib
+|  |   +-*.jar
+|  |   +-...
 |  |
 |  +-CopyDependLibs.bat
 |  +-MakeClass.bat
@@ -82,7 +87,7 @@ If you cloned the repository, `cd` to the directory where pom.xml is located.
 * `java -Xmx800m -classpath target\dependency\*;target\svgMapTools-{REV}.jar org.svgmap.shape2svgmap.MainWrapper Shape2WGS84 (options)`
 * `java -Xmx800m -classpath target\dependency\*;target\svgMapTools-{REV}.jar org.svgmap.shape2svgmap.MainWrapper HyperBuilder (options)`
 
-  * *{REV} are numbers that vary by release such as "202305"*
+  * *{REV} are numbers that vary by release such as "202307"*
   * *linux: s/;/:/*
 
 ### In case of using packaged jars with dependent libraries by maven

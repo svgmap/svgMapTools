@@ -12,7 +12,8 @@ import java.awt.geom.Rectangle2D;
 //import java.awt.geom.Rectangle2D.Double;
 import java.util.logging.Logger;
 
-import org.geotools.renderer.style.shape.ExplicitBoundsShape;
+//import org.geotools.renderer.style.shape.ExplicitBoundsShape;
+import org.geotools.renderer.util.ExplicitBoundsShape;
 import org.opengis.feature.Feature;
 import org.opengis.filter.expression.Expression;
 import org.geotools.renderer.style.MarkFactory;

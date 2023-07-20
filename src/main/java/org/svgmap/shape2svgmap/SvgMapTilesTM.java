@@ -43,7 +43,7 @@ import java.lang.*;
 import java.net.URL;
 import java.net.URI;
 import java.text.NumberFormat ;
-import com.vividsolutions.jts.geom.*;
+import org.locationtech.jts.geom.*;
 import java.awt.geom.*;
 import org.geotools.feature.*;
 // import org.geotools.feature.type.*;

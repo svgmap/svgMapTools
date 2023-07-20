@@ -42,7 +42,7 @@ import org.opengis.feature.type.*;
 //import org.geotools.filter.FilterFactoryFinder;
 //import org.geotools.filter.FilterType;
 // import org.geotools.data.vpf.*; //このモジュールはgt2.5.2ではdisableされてる！！2.5.2_M3にはあるらしい
-import com.vividsolutions.jts.geom.*;
+import org.locationtech.jts.geom.*;
 
 import org.geotools.geometry.jts.* ;
 

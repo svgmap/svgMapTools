@@ -4,13 +4,15 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 > 2017.12.07 OSS化に対応した更新<br>
 > 2018.01.11 markdown化 <br>
 > 2018.06.01 SVGMap*.jsを更新、-Xmx追加<br>
-> 2023.05.19 mavenベースのパッケージに移行。SVGMap*.jsをCDN経由に変更
+> 2023.05.19 mavenベースのパッケージに移行。SVGMap*.jsをCDN経由に変更<br>
+> 2023.07.18 Java17, Geotools28.4対応<br>
+> 2023.07.20 tutorial3を追加<br>
 
 ## Notes:
 ### 実行環境について
-* データの作成のために、Java 8 (jre 8もしくはjdk 8) がインストールされている環境が必要です。
-  * なお、動作チェックはWindows11とJAVA8で行っています。(JAVA10(JAVA9以降)では動作しません。使用しているGeotoolsがJAVA10非互換のため。なおJavaはOracle版だけではなくOpenJDK (Corretto等)でも動作確認しています。)
-* 生成したコンテンツはほとんどのウェブブラウザで利用可能です。<BR>ただしローカルファイルでの動作確認には制約があります。以下に記載します。<BR>(なお、Webサーバ上にコンテンツを設置した場合は、制限なく表示できます。)
+* データの作成のために、Java 17 (jre 17もしくはjdk 17) がインストールされている環境が必要です。
+  * なお、動作チェックはWindows11とJAVA17(Corretto17)で行っています。なおJavaはOracle版だけではなくOpenJDK (Corretto等)でも動作確認しています。
+* 生成したコンテンツはほとんどのウェブブラウザで利用可能です。<BR>ただしローカルファイルでの動作確認には制約があります。以下に記載します。<BR>(なお、この制約はSVGMap固有でなくWebAppに一般的なもので、Webサーバ上にコンテンツを設置した場合は制限なく表示できます。)
   * ローカルに保存したコンテンツでは、Chromeで `--allow-file-access-from-files` オプションをつけて起動した場合のみ表示できます。以下起動例（２例）（ショートカットを作成すると良い）
     * `"C:\Program Files\Google\Chrome\Application\chrome.exe" --allow-file-access-from-files`
     * `start chrome --allow-file-access-from-files`
@@ -18,7 +20,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
       * 同オプションの参照情報([Chdromium公式ドキュメント](https://www.chromium.org/developers/how-tos/run-chromium-with-flags/)から[参照されているオプション情報](https://peter.sh/experiments/chromium-command-line-switches/#allow-file-access-from-files))
   * microsoft Edgeでも同様に動作します。(Chromeと同じChromeiumベースのブラウザのため)
     * `start msedge --allow-file-access-from-files`
-* 生成したコンテンツは、背景地図としてインターネット上のコンテンツ(OpenStreetMapや電子国土)を参照しているため、一般的なインターネットWebサイトに接続できる環境で利用する必要があります（別途背景地図をローカルに用意すればスタンドアロン環境でも利用可能）
+* 生成したコンテンツは、背景地図としてインターネット上のコンテンツ(OpenStreetMapや地理院タイル)を参照しているため、一般的なインターネットWebサイトに接続できる環境で利用する必要があります（別途背景地図をローカルに用意すればスタンドアロン環境でも利用可能）
 * 練習は[Windowsのコマンドプロンプト環境](https://ja.wikipedia.org/wiki/%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89%E3%83%97%E3%83%AD%E3%83%B3%E3%83%97%E3%83%88)をベースに行います。（[powershell](https://ja.wikipedia.org/wiki/PowerShell)でも実行可能）
 
 ### サンプルデータについて
@@ -27,27 +29,25 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 * なお、チュートリアルでは日本部分のみを抽出して使用していますが、このコンバータはヒープを確保すれば全世界の変換も可能です。
   * [全世界(約317万ポイント)の変換例](https://svgmap.org/devinfo/devkddi/lvl0.1/demos/demo0.html#visibleLayer=worldcities&hiddenLayer=polygonAuthoringTester)
   (ヒープ確保量　-XMx800m)
-<!--
 * このチュートリアルはまた、練習用サンプルデータとして[地球地図日本](https://www.gsi.go.jp/kankyochiri/gm_jpn.html)データを使用しています。
   * 地球地図日本 ©　国土地理院
--->
 
 ## 最初の練習  
 ### 環境設定
-1. Java 8 の準備
+1. Java 17 の準備
    * 既にインストール済みの場合は飛ばしてください。
    * Javaには複数のディストリビューションがあります。
-     * Amazon Corretto 8 : (動作確認環境 (Windows x64) )
-       * https://docs.aws.amazon.com/ja_jp/corretto/latest/corretto-8-ug/downloads-list.html
-       * [インストール手順](https://docs.aws.amazon.com/ja_jp/corretto/latest/corretto-8-ug/windows-7-install.html)
-     * Redhat OpenJDK 8 : 
+     * Amazon Corretto 17 : (動作確認環境 (Windows x64) )
+       * https://docs.aws.amazon.com/corretto/latest/corretto-17-ug/downloads-list.html
+       * [インストール手順](https://docs.aws.amazon.com/ja_jp/corretto/latest/corretto-17-ug/windows-7-install.html)
+     * Redhat OpenJDK 17 : 
        * https://developers.redhat.com/products/openjdk/download
      * Oracle JDK : 
-       * https://www.oracle.com/java/technologies/downloads/#java8-windows
+       * https://www.oracle.com/jp/java/technologies/downloads/
 
 1. ツールのダウンロード
    * [releases](https://github.com/svgmap/svgMapTools/releases)から、最新のリリースのソースコード（ Source code (zip)）と、jar（`svgMapTools-{REV}.jar`）をダウンロードします。
-     * `{REV}`はリリースによって異なります。`202305`など
+     * `{REV}`はリリースによって異なります。`202307`など
    * ソースコードを解凍します。アーカイブを解凍した直下のディレクトリ(`pom.xml`ファイルや`tools`ディレクトリがある)を以後ルートディレクトリと呼びます。また以降のパス表記はこのルートディレクトリからの相対パスとします<br>（ルートディレクトリ以下の構造）
       ```
       +-pom.xml
@@ -76,21 +76,25 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
        でも構築できます。詳しくは[readMeFirstJA.md](../readMeFirstJA.md)を参照
    
 1. 外部ライブラリの準備
-    * `svgmaptools`が使用する外部ライブラリ([geotools](https://www.geotools.org/)9.5)をダウンロードします。
-       * `geotools-9.5-bin.zip` を https://sourceforge.net/projects/geotools/files/GeoTools%209%20Releases/9.5/ からダウンロード
-    * `tools`ディレクトリ下に`geotools-9.5`ディレクトリを用意し、ここにzipを解凍した内容のjarファイル群を全て保存します。<br>
-    geotools9.5のjarファイルは(geotools-9.5-bin.zip)にパックされており、解凍すると複数のjarに分かれています。これらのjarファイルをすべて`tools/geotools-9.5`下に投入してください。<br>
+    * `svgmaptools`が使用する外部ライブラリ([javacsv](https://sourceforge.net/projects/javacsv/)2.1)をダウンロードします。
+       * `javacsv2.1.zip` を https://sourceforge.net/projects/javacsv/ からダウンロードする
+    * `svgmaptools`が使用する外部ライブラリ([geotools](https://www.geotools.org/)28.4)をダウンロードします。
+       * `geotools-28.4-bin.zip` を https://sourceforge.net/projects/geotools/files/GeoTools%2028%20Releases/28.4/ からダウンロードする
+    * `tools`ディレクトリ下に二つのzipファイルを解凍し、以下の構成になるように`javacsv2.1`及び`geotools-28.4`ディレクトリを作成します。<br>
     (解凍・保存後のルートディレクトリ以下の構造)
       ```
       +-pom.xml
+      +-src
       +-target
-      |  +svgMapTools-{REV}.jar
-      +-tutorials
       +-tools
-      |  +-geotools-9.5
-      |  |  +-batik-transcoder-1.7.jar
-      |  |  +-gt-main-9.5.jar
-      |  |  +-(たくさんのjarファイル)..
+      |  +-javacsv2.1
+      |  | +-javacsv.jar
+      |  | +-...
+      |  |
+      |  +-geotools-28.4
+      |  | +-lib
+      |  |   +-*.jar
+      |  |   +-...
       |  |
       |  +-CopyDependLibs.bat
       |  +-MakeClass.bat
@@ -108,8 +112,8 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
       +-target
       |  +svgMapTools-{REV}.jar
       |  +dependency
-      |    +commons-pool-1.5.4.jar
-      |    +(合計28個のjarファイル)
+      |    +aircompressor-0.20.jar
+      |    +(合計89個のjarファイル)
       |
       +-tutorials
       +-tools
@@ -164,6 +168,66 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 
 1. `..\tutorials\webApps\SvgMapper.html`　ファイルを上で起動したChromeのウィンドにドラッグアンドドロップすると、変換したデータが見られる。
 
+### 作業内容のポイント
+この練習で使用したコマンドと、そのパラメータの意味を解説します
+
+SVGMapToolkitが備える、Quad Tree Composite Tiling([スライド](https://www.slideshare.net/totipalmate/quad-tree-composite-tiling-for-web-mapping-in-japanese)、[解説ページ](https://satakagi.github.io/mapsForWebWS2020-docs/QuadTreeCompositeTilingAndVectorTileStandard.html))は大規模な地理情報から容易に伸縮可能な地図コンテンツを生成できる技術です。要点は小縮尺(引いた地図)は軽いビットイメージで、大縮尺(拡大下地図)はインタラクティブなベクトルグラフィックスの地図に、場所に応じたタイミングで切り替えるものです。
+
+SVGMapToolsはこれを実現するために2つのツールを使用します。
+
+* Shape2SVGMap.bat
+  * 大縮尺(拡大表示)用のベクトルグラフィックス地図を生成
+  * 四分木タイリング : 地図データの密度に応じて四分木構造のタイル分割を行う
+  * 四分木タイルのインデックスデータの生成　(インデックスデータもまたsvg形式で生成されます。インデックスデータはタイル番号がなく、元データと同じ名前の拡張子svgのデータです。)
+
+* Shape2ImageSVGMap.bat
+  * 小縮尺(引いた表示)用のビットイメージ地図を生成
+  * Shape2SVGMapで生成されたインデックスデータを基に小縮尺用のビットイメージタイルを生成
+
+* 入力データ形式
+  * いずれのツールもいくつかのベクトルデータ形式(shapefile, CSV, GeoJSON)の地理情報をソースとして入力できます。空間参照系は緯度経度の世界測地系(WGS84もしくはJGC2000等)です。もしもこの形式以外のデータを処理したい場合はこれらの形式にデータ変換が必要です。ツールに付属している、Shape2WGS84.batは日本の旧測地系や平面直交座標系(19座標系)のデータを変換するときに使用できます。またよく知られたオープンソースのツールとして[OGR2OGR](https://gdal.org/programs/ogr2ogr.html)も活用できます。
+
+#### コマンドラインパラメータのポイント
+実習で実際に入力した各コマンドのパラメータのポイントを説明します
+なお、いずれのコマンドも、**パラメータなしで起動するとヘルプ**情報が表示されますので参考にしてください。
+
+自分で用意したデータからコンテンツを生成する場合も、まずはここで設定した値をベースに調整していくと良いでしょう。
+
+##### Shape2SVGMap.bat
+* -poisymbol symbolTemplate.txt :
+* -micrometa2 : インタラクティブ操作で表示されるメタデータを各図形に埋め込み
+* -level 3 : 四分木タイリングの最初の分割レベル (このレベルまであらかじめ分割された状態から四分木タイリングをスタートさせる)
+* -limit 50 : 次の階層の四分木を生成する可を判断する閾値(KBytes)(コンテンツが概ねこの値以上になったら次の階層のタイリングをする)
+* -showtile : Quad Tree Composite Tilingを行うことを指定 1
+* -densityControl 400 : 画面上でタイルがこの値(px)を超えたら次の階層(より大縮尺用)のタイルに切り替える
+* -lowresimage : Quad Tree Composite Tilingを行うことを指定 2
+* -charset utf-8 : CSVの文字コードを指定
+* -linktitle 3 : インタラクティブ操作で表示される吹き出しのカラムを指定
+* ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv : 入力データ
+
+##### Shape2ImageSVGMap.bat
+Shape2ImageSVGMapのパラメータの与え方は少々複雑です。第一引数にはタイリングのためのインデックス情報を、第二引数以降は　ハイフン付きのパラメータを任意の数、ハイフン付き任意パラメータ群が終わった後は順番が固定された5個のパラメータを設定します
+* 第一引数 
+  * ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.svg : 
+* ハイフン付き任意パラメータ
+  * -sumUp 16 : ビットイメージタイルを生成するとき一気にまとめて生成(16を設定すると良い)
+  * -antiAlias : [アンチエイリアス処理](https://ja.wikipedia.org/wiki/%E3%82%A2%E3%83%B3%E3%83%81%E3%82%A8%E3%82%A4%E3%83%AA%E3%82%A2%E3%82%B9)指定
+  * -charset utf-8 : CSVの文字コードを指定
+* 末尾の5個の固定パラメータ
+  * ..\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv : 入力データ
+  * #0000ff : 塗の色をHTMLカラーで指定 : 今回はポイントをアイコンで表示するので使用されない
+  * #0000ff : 線の色 : 同上
+  * 0 : 線の幅(px) : 同上
+  * 3 : ポイントのサイズ(px) : 同上
+
+## この次に行うこと
+興味に応じて以下のいずれかを進めてみてください。
+
+* 自分で用意したデータを使用して次章以降(実践・応用)に進む
+* [tutorial2](tutorial2.md) では、本編で使用したCSVポイントデータ(JPcities*.csv)を使用して、より高度な可視化を行う練習をします
+* [tutorial3](tutorial3.md) では、別途同梱してあるいくつかの形式(ライン・ポリゴン、shapefile・GeoJSON)のベクトル地理情報を使用した可視化を練習します
+
+
 ## 実践
 1. 作業ディレクトリの設置
    * `tools`ディレクトリをカレントディレクトリと想定
@@ -175,7 +239,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
    * 設置した`..\tutorials\webApps\(wdir)`　に、あらかじめ用意したCSVファイル（適当な桁に緯度、経度が入っている）を配置
      * 以下、そのファイルを　`..\tutorials\webApps\(wdir)\(wfile).csv`　とします。
      * csvファイルの注意点：（なお、shapefileを変換することも可能）
-       * 漢字が入っている場合、シフトJISにします。(Windowsの場合（OS標準文字コード）　オプションによって文字コードを明示することも可能)
+       * 漢字が入っている場合、シフトJISにします。(Windowsの場合（OS標準文字コード）　オプションによってUTF-8テキストを使用することも可能)
        * 最初の行には項目名がカンマ区切りで入っている必要があります。（無い場合はテキストエディタで編集挿入します。なお、スキーマファイルを与えることで項目名が無いままでの変換も可能です。）
        * 緯度経度のカラムの項目名は、`latitude`, `longitude`　となっている必要があります。
        * 緯度経度のカラムは、以降のカラム指定番号から外して考えます。

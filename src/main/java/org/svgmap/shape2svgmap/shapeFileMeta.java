@@ -1,6 +1,6 @@
 package org.svgmap.shape2svgmap;
 
-import com.vividsolutions.jts.geom.*;
+import org.locationtech.jts.geom.*;
 
 import java.io.*;
 import java.net.URL;

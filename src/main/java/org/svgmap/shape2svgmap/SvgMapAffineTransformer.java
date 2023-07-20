@@ -22,7 +22,7 @@ import org.geotools.feature.type.*;
 import org.geotools.data.Transaction;
 import org.geotools.filter.*;
 // import org.geotools.data.vpf.*;
-import com.vividsolutions.jts.geom.*;
+import org.locationtech.jts.geom.*;
 
 
 public class SvgMapAffineTransformer {

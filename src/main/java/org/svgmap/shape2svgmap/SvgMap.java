@@ -26,7 +26,7 @@ import java.lang.*;
 import java.net.URL;
 import java.net.URI;
 import java.text.NumberFormat ;
-import com.vividsolutions.jts.geom.*;
+import org.locationtech.jts.geom.*;
 
 
 public class SvgMap {

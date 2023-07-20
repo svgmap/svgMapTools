@@ -43,7 +43,7 @@ import org.opengis.feature.simple.*;
 import org.opengis.referencing.crs.*;
 import org.opengis.feature.type.*;
 
-import com.vividsolutions.jts.geom.*;
+import org.locationtech.jts.geom.*;
 
 public class SVGMapGetColorUtil {
 	// numcolorの方法

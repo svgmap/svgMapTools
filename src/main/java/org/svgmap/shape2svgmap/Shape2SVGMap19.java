@@ -85,7 +85,9 @@ import org.geotools.data.*;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.feature.*;
 import org.opengis.feature.simple.*;
-import org.geotools.geojson.feature.FeatureJSON;
+//import org.geotools.geojson.feature.FeatureJSON; 2023/7/19 deprecatedライブラリだとのことなので・・・・
+import org.geotools.data.geojson.GeoJSONReader;
+import java.nio.charset.StandardCharsets;
 
 import java.awt.geom.*;
 
@@ -93,11 +95,11 @@ import org.geotools.data.Transaction;
 import org.geotools.filter.*;
 // import org.geotools.data.vpf.*;
 import org.geotools.geometry.jts.* ;
-import com.vividsolutions.jts.geom.*;
+import org.locationtech.jts.geom.*;
 
-import com.vividsolutions.jts.simplify.*;
+import org.locationtech.jts.simplify.*;
 
-import com.vividsolutions.jts.operation.linemerge.LineMerger;
+import org.locationtech.jts.operation.linemerge.LineMerger;
 
 // import java.security.*;
 
@@ -1923,7 +1925,8 @@ public class Shape2SVGMap19 {
 		return(ret);
 	}
 	
-	private getFct getJsonCollection( String infile )throws Exception {
+	/** ライブラリが廃止されたので下に変更、　geotoolsって不安定すぎ・・ダメだよねぇ
+	private getFct getJsonCollectionDeprecated( String infile )throws Exception {
 		System.out.println("load geojson file");
 		strIsNative = true;
 		FileInputStream fIStream= new FileInputStream(infile);
@@ -1942,6 +1945,27 @@ public class Shape2SVGMap19 {
 		ret.readFT = readFT;
 		return(ret);
 		
+	}
+	**/
+	
+	private getFct getJsonCollection( String infile )throws Exception {
+		System.out.println("load geojson file");
+		strIsNative = true;
+		FileInputStream fIStream= new FileInputStream(infile);
+		
+		String jsonTxt = new String(fIStream.readAllBytes(),StandardCharsets.UTF_8);
+		
+		GeoJSONReader gr = new GeoJSONReader(jsonTxt);
+		FeatureCollection<SimpleFeatureType, SimpleFeature> fsShape = gr.getFeatures();
+		Envelope env = getFSExtent( fsShape );
+		SimpleFeatureType readFT = fsShape.getSchema();
+		int featureCount = fsShape.size();
+		System.out.println("count:"+featureCount+" env:"+env + " readFT:"+readFT );
+		getFct ret = new getFct();
+		ret.fsShape = fsShape;
+		ret.env =env;
+		ret.readFT = readFT;
+		return(ret);
 	}
 	
 	

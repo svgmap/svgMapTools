@@ -2,7 +2,7 @@ package org.svgmap.shape2svgmap.cds;
 import java.util.*;
 import java.util.regex.*;
 import java.awt.*;
-//import com.vividsolutions.jts.geom.*;
+//import org.locationtech.jts.geom.*;
 
 // CSVにおける緯度経度の形式でDDMMSS.SS, DDMM.MMをサポートする
 // 2018/09/26

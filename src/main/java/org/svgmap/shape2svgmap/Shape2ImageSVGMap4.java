@@ -69,9 +69,11 @@ import org.opengis.referencing.crs.*;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.feature.type.*;
 import org.geotools.referencing.CRS;
-import org.geotools.geojson.feature.FeatureJSON;
+//import org.geotools.geojson.feature.FeatureJSON; 2023/7/19 deprecatedライブラリだとのことなので・・・・
+import org.geotools.data.geojson.GeoJSONReader;
+import java.nio.charset.StandardCharsets;
 
-import com.vividsolutions.jts.geom.*;
+import org.locationtech.jts.geom.*;
 
 // for CSV Reader/Exporter 2017.4.3
 import org.svgmap.shape2svgmap.cds.CSVDataStore;
@@ -660,11 +662,11 @@ public class Shape2ImageSVGMap4 {
 		SimpleFeatureType sfSchema = null;
 		//TODO 入力部をShape2SvgMap*と共通化する2019.6.7
 		if ( inputJson ){
+			// 2023/07/19 GeoJSONReaderに変更（geotoolsのgt-geojson廃止により・・・・
 			FileInputStream fIStream= new FileInputStream(filePath);
-			InputStreamReader iSReader = new InputStreamReader(fIStream, "UTF-8");
-			FeatureJSON json = new FeatureJSON();
-			@SuppressWarnings("unchecked")
-			FeatureCollection<SimpleFeatureType, SimpleFeature> fsShape = json.readFeatureCollection(iSReader);
+			String jsonTxt = new String(fIStream.readAllBytes(),StandardCharsets.UTF_8);
+			GeoJSONReader gr = new GeoJSONReader(jsonTxt);
+			FeatureCollection<SimpleFeatureType, SimpleFeature> fsShape = gr.getFeatures();
 			SimpleFeatureType readFT = fsShape.getSchema();
 			
 			sfc = (SimpleFeatureCollection)fsShape;
@@ -690,13 +692,12 @@ public class Shape2ImageSVGMap4 {
 				URL url = uri.toURL();
 			  	System.out.println("URL:"+url);
 	//		    sds = new ShapefileDataStore(url); 
-			    sds = new ShapefileDataStore(url, true , Charset.forName("Windows-31j")); // 2018.8.10 debug   shapefileでもcharsetを指定すれば文字化けしないことが判明　これをしないと、FilterFactoryのpropertyが正しく処理されないため・・
-				/**
-			    sds = new ShapefileDataStore(url); // for support modern geotools(>=10) 2019.6.7
+//				sds = new ShapefileDataStore(url, true , Charset.forName("Windows-31j")); // 2018.8.10 debug   shapefileでもcharsetを指定すれば文字化けしないことが判明　これをしないと、FilterFactoryのpropertyが正しく処理されないため・・
+				
+				sds = new ShapefileDataStore(url); // for support modern geotools(>=10) 2019.6.7
 				sds.setCharset(Charset.forName("Windows-31j"));
 				sds.setMemoryMapped(true);
-				**/
-			    fs = sds.getFeatureSource();
+				fs = sds.getFeatureSource();
 			}
 			
 			sfc = fs.getFeatures();
@@ -888,7 +889,8 @@ public class Shape2ImageSVGMap4 {
 		}
 //		System.out.println("crs:" + crs );
 //		crs = CRS.decode("EPSG:3785");
-		MapLayer layers[] = {};
+//		MapLayer layers[] = {}; // http://man.hubwiz.com/docset/GeoTools.docset/Contents/Resources/Documents/deprecated-list.html
+		FeatureLayer layers[] = {};
 		
     	CoordinateReferenceSystem targetCRS=null;
 		if ( webMercatorTile ){
@@ -904,7 +906,8 @@ public class Shape2ImageSVGMap4 {
 		}
 		
 		
-		DefaultMapContext map = new DefaultMapContext(layers, targetCRS);
+//		DefaultMapContext map = new DefaultMapContext(layers, targetCRS); http://man.hubwiz.com/docset/GeoTools.docset/Contents/Resources/Documents/deprecated-list.html
+		MapContent map = new MapContent();
 		
 		for ( int i = 0 ; i < layerCount ; i++ ){
 			System.out.println("Add Layer:" + i );
@@ -941,10 +944,16 @@ public class Shape2ImageSVGMap4 {
 //		System.out.println("\n\mapBounds:"+mapBounds+"  : "+mapBounds.getMinX()+","+mapBounds.getMinY()+","+mapBounds.getMaxX()+","+mapBounds.getMaxY()+"\n\n");
 		if ( mapBounds.getMinX()==0 && mapBounds.getMaxX()==-1 ){
 			mapBounds = sfcArray[0].getBounds();
+			/**
 			if ( webMercatorTile ){ // 2020/4/8
 				mapBounds = new ReferencedEnvelope(mapBounds, crs).transform(targetCRS, true);
 			}
+			**/
 			System.out.println("Hmmm can't get mapBounds.. fixIt by layer0 : " + mapBounds);
+		}
+		if ( webMercatorTile ){ // 2023/7/19 gt22以降のMapContentではReferencedEnvelopeでCRSを指示する？
+			mapBounds = new ReferencedEnvelope(mapBounds, crs).transform(targetCRS, true);
+			map.setViewport​(new MapViewport(mapBounds));
 		}
 		
 		
@@ -1018,6 +1027,10 @@ public class Shape2ImageSVGMap4 {
 		if ( webMercatorTile ){
 			geoBounds = mapBounds.transform(crs, true);
 			System.out.println("webMercatorTile geoBounds:"+geoBounds);
+			System.out.println("webMercatorTile mercator Map Bounds:"+mapBounds);
+//			System.out.println("TF:"+new ReferencedEnvelope(mapBounds, crs).transform(targetCRS, true));
+			System.out.println("webMercatorTile map : crs:"+map.getCoordinateReferenceSystem().getName());
+			
 		}
 		double lngMin  = geoBounds.getMinX();
 		double latMin  = geoBounds.getMinY(); 
@@ -1648,7 +1661,7 @@ public class Shape2ImageSVGMap4 {
 	boolean isMixedType(FeatureType schema){
 		boolean ans = false;
 		Class<?> type = schema.getGeometryDescriptor().getType().getBinding();
-		if ( type.isAssignableFrom( com.vividsolutions.jts.geom.Point.class) && type.isAssignableFrom( com.vividsolutions.jts.geom.LineString.class) ){
+		if ( type.isAssignableFrom( org.locationtech.jts.geom.Point.class) && type.isAssignableFrom( org.locationtech.jts.geom.LineString.class) ){
 			ans = true;
 			System.out.println("Mixed geometry type data...");
 		}
@@ -1729,14 +1742,14 @@ public class Shape2ImageSVGMap4 {
 		if (specificType == 0 ){
 			specificType = 3;
 			Class<?> type = schema.getGeometryDescriptor().getType().getBinding();
-			if ( type.isAssignableFrom( com.vividsolutions.jts.geom.Point.class) || 
-			type.isAssignableFrom( com.vividsolutions.jts.geom.MultiPoint.class)){
+			if ( type.isAssignableFrom( org.locationtech.jts.geom.Point.class) || 
+			type.isAssignableFrom( org.locationtech.jts.geom.MultiPoint.class)){
 				specificType = 1;
-			} else if(type.isAssignableFrom( com.vividsolutions.jts.geom.LineString.class) ||
-			type.isAssignableFrom( com.vividsolutions.jts.geom.MultiLineString.class) ){
+			} else if(type.isAssignableFrom( org.locationtech.jts.geom.LineString.class) ||
+			type.isAssignableFrom( org.locationtech.jts.geom.MultiLineString.class) ){
 				specificType = 2;
-			} else if(type.isAssignableFrom( com.vividsolutions.jts.geom.Polygon.class) ||
-			type.isAssignableFrom( com.vividsolutions.jts.geom.MultiPolygon.class) ){
+			} else if(type.isAssignableFrom( org.locationtech.jts.geom.Polygon.class) ||
+			type.isAssignableFrom( org.locationtech.jts.geom.MultiPolygon.class) ){
 				specificType = 3;
 			}
 		}
@@ -1931,7 +1944,7 @@ public class Shape2ImageSVGMap4 {
 		boolean[][] isImage;
 		String outDir;
 		
-		TileRenderRunnable( boolean antiAlias , DefaultMapContext map , BufferedImage image , Rectangle imageRect , ReferencedEnvelope mapRect , int tx, int ty , int sumUp , HashSet<Long> reqTile , boolean rebuildContainerOnly , String outDir ){
+		TileRenderRunnable( boolean antiAlias , MapContent map , BufferedImage image , Rectangle imageRect , ReferencedEnvelope mapRect , int tx, int ty , int sumUp , HashSet<Long> reqTile , boolean rebuildContainerOnly , String outDir ){
 			renderer = new StreamingRenderer();
 			if ( antiAlias ){
 				// アンチエリアス関係のヒントを付ける
@@ -1946,7 +1959,8 @@ public class Shape2ImageSVGMap4 {
 					RenderingHints.VALUE_TEXT_ANTIALIAS_ON));
 				renderer.setJava2DHints(rh);		
 			}
-			renderer.setContext(map);
+			renderer.setMapContent(map);
+			//System.out.println("TileRenderRunnable: crs:"+map.getCoordinateReferenceSystem().getName());
 			this.gr = gr;
 			this.imageRect = imageRect;
 			this.mapRect = mapRect;
