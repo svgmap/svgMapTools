@@ -38,6 +38,7 @@ package org.svgmap.shape2svgmap;
 // 2020/04/09 メルカトル正方タイルを出力する機能を追加(ただし、SVGのほうはWGS84,PlateCaree想定のコンテナを生成(背景地図と合わせる))
 // 2021/06/29 値に応じて色を変化させる機能を 混合ジオメトリタイプデータに対応
 // 2023/05/09 geoJSON support, geotools9.5
+// 2023/07/20 geotools 28.4, java17 (GeoJSONReader使用、JTSドメイン変更等) Java更新によるWarningは残置
 
 import java.awt.*;
 import java.awt.image.*;
