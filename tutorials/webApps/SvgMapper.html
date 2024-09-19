@@ -25,12 +25,14 @@
  }
 </style>
 
-<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/svgmap/svgMapLv0.1@2307/SVGMapLv0.1_r17.js"></script>
-<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/svgmap/svgMapLv0.1@2307/SVGMapLv0.1_LayerUI2_r4.js"></script>
+<script type="module">
+  import { svgMap } from 'https://cdn.jsdelivr.net/gh/svgmap/svgmapjs@latest/SVGMapLv0.1_r18module.js';
+  window.svgMap=svgMap
+</script>
 
 <script type="text/javascript">
 
-console.log("start svgMapper_r12");
+console.log("start svgMapjs");
 // メタデータがマッチしたPOIだけを表示する
 // ズームパンが実行されると、"zoomPanMap" イベントが発行される。それをキャプチャして伸縮スクロール時に処理を実行させる。
 

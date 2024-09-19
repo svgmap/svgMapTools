@@ -8,7 +8,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 > 2023.07.18 Java17, Geotools28.4対応<br>
 > 2023.07.20 tutorial3を追加<br>
 > 2024.06.19 Macintosh, Linux用の補足説明追加<br>
-> 2024.09.18 Java21で動作確認<br>
+> 2024.09.19 Java21で動作確認, SVGMap.jsをESM版に更新<br>
 
 ## Notes:
 ### 実行環境について
