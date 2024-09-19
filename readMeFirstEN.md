@@ -31,7 +31,7 @@ Basically build using maven. If maven is not provided, see below. It is also pos
 #### maven setup
 ##### Linux:
 * `sudo apt install maven`
-##### For windows:
+##### Windows:
 * Refer [this link](https://maven.apache.org/guides/getting-started/windows-prerequisites.html)
 
 ### Build package
@@ -39,7 +39,8 @@ If you cloned the repository, `cd` to the directory where pom.xml is located.
 * `mvn package`
 * `mvn dependency:copy-dependencies` (Optional)
 
-### Without maven (for Windows)
+### Without maven
+#### Windows:
 * Download javacsv2.1.zip from https://sourceforge.net/projects/javacsv/
 * Download geotools-28.4-bin.zip from https://sourceforge.net/projects/geotools/files/GeoTools%2028%20Releases/28.4/
 * Unzip them and copy the `javacsv2.1` and `geotools-28.4` directories into the `tools` directory as follows
@@ -79,6 +80,9 @@ If you cloned the repository, `cd` to the directory where pom.xml is located.
    |
    +svgMapTools-{REV}.jar
 ```
+
+#### Linux:
+Almost the same as Windows. However, use `CopyDependLibs.bat` and `MakeClass.bat`.
 
 ## Usage
 

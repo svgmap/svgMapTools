@@ -874,7 +874,7 @@ public class Shape2ImageSVGMap4 {
 	
 	public Long getReqTileKey( int tx , int ty ){
 		// 注意 yがひっくり返っていますよ！
-		return (new Long((long)((long)tx * (long)100000000 + (long)(GridYsize-ty-1))));
+		return (Long.valueOf((long)((long)tx * (long)100000000 + (long)(GridYsize-ty-1))));
 	}
 	
 	public String buildImage() throws Exception {
@@ -1904,7 +1904,7 @@ public class Shape2ImageSVGMap4 {
 	}
 	
 	public Long getHashKey( int index1 , int index2 ){
-		return ( new Long((long)((long)index1 * (long)100000000 + (long)index2)));
+		return ( Long.valueOf((long)((long)index1 * (long)100000000 + (long)index2)));
 	}
 		
 	public int[] getIndex( Long key ){

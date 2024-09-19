@@ -9,6 +9,6 @@ CP="../../../target/dependency/*:."
 javac -encoding utf-8 -classpath "$CP" "org/svgmap/shape2svgmap/svgMapMarkFactory.java"
 javac -encoding utf-8 -classpath "$CP" "org/svgmap/shape2svgmap/MainWrapper.java"
 
-jar cf "../../../target/svgMapTools-202307.jar" META-INF/services/* org/svgmap/shape2svgmap/*.class org/svgmap/shape2svgmap/cds/*.class
+jar cf "../../../target/svgMapTools.jar" META-INF/services/* org/svgmap/shape2svgmap/*.class org/svgmap/shape2svgmap/cds/*.class
 
 cd "../../../tools"

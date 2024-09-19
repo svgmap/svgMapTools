@@ -372,7 +372,7 @@ public class SvgMapContainerReader{
 				
 				
 				HashSet<Long> mapSet;
-				Long lvKey = new Long(-((long)partxy[0] * (long)partxy[1])); // マイナスの値をキーにして最初から降順に・・2014.2.28
+				Long lvKey = Long.valueOf(-((long)partxy[0] * (long)partxy[1])); // マイナスの値をキーにして最初から降順に・・2014.2.28
 //				Long lvKey = new Long(-((long)partxy[0] )); // どっちかの軸だけで十分では？(これでもまだ無駄)
 //				System.out.println("lvKey:"+lvKey+ " ptx:"+partxy[0] + " pty:" + partxy[1] + " posx:"+posxy[0] + " posy:"+posxy[1]);
 				if ( lvlMap.containsKey( lvKey )){
@@ -393,9 +393,9 @@ public class SvgMapContainerReader{
 				if ( !lvlZoom.containsKey( lvKey )){
 					String vz = anim.getAttribute("visibleMinZoom");
 					if ( vz != "" ){
-						lvlZoom.put(lvKey , new Double( vz ));
+						lvlZoom.put(lvKey , Double.valueOf( vz ));
 					} else {
-						lvlZoom.put(lvKey , new Double( -1 ));
+						lvlZoom.put(lvKey , Double.valueOf( -1 ));
 					}
 				}
 				
@@ -496,7 +496,7 @@ public class SvgMapContainerReader{
 	}
 	
 	public Long getHashKey( int index1 , int index2 ){
-		return ( new Long((long)((long)index1 * (long)100000000 + (long)index2)));
+		return ( Long.valueOf((long)((long)index1 * (long)100000000 + (long)index2)));
 	}
 	
 	public int[] getPart( Long lvl , double partAspect ){

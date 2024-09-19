@@ -662,9 +662,9 @@ public class Shape2SVGMap19 {
 					while ( args[i+1].indexOf("-") == -1 && i < params - 1 ){
 						++i;
 						if ( args[i].indexOf("=") == -1 ){
-							s2sm.metaIndex.put(new Integer(args[i]) , "" );
+							s2sm.metaIndex.put(Integer.valueOf(args[i]) , "" );
 						} else {
-							s2sm.metaIndex.put(new Integer(args[i].substring(0,args[i].indexOf("="))), args[i].substring(args[i].indexOf("=")+1));
+							s2sm.metaIndex.put(Integer.valueOf(args[i].substring(0,args[i].indexOf("="))), args[i].substring(args[i].indexOf("=")+1));
 						}
 						
 					}
@@ -675,9 +675,9 @@ public class Shape2SVGMap19 {
 					while ( args[i+1].indexOf("-") == -1 && i < params - 1 ){
 						++i;
 						if ( args[i].indexOf("=") == -1 ){
-							s2sm.metaIndex.put(new Integer(args[i]) , "" );
+							s2sm.metaIndex.put(Integer.valueOf(args[i]) , "" );
 						} else {
-							s2sm.metaIndex.put(new Integer(args[i].substring(0,args[i].indexOf("="))), args[i].substring(args[i].indexOf("=")+1));
+							s2sm.metaIndex.put(Integer.valueOf(args[i].substring(0,args[i].indexOf("="))), args[i].substring(args[i].indexOf("=")+1));
 						}
 						
 					}
@@ -1467,7 +1467,7 @@ public class Shape2SVGMap19 {
 					// 指定されていない場合(metaIndexがカラ)は全部出すために、全属性を書き出す
 					if ( metaIndex.size() == 0 ){
 						for ( int i = 0 ; i < readFT.getAttributeCount() ; i++){
-							metaIndex.put(new Integer(i) , "");
+							metaIndex.put(Integer.valueOf(i) , "");
 						}
 					}
 					

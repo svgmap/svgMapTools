@@ -1811,7 +1811,7 @@ public class SvgMapTilesTM {
 	
 	public void set2DHashD( HashMap<Long,Double> hMap , int index1 , int index2 , double value ){
 		Long key = getHashKey( index1 , index2 );
-		hMap.put(key , new Double( value ) );
+		hMap.put(key , Double.valueOf( value ) );
 	}
 	
 	public double get2DHashD( HashMap<Long,Double> hMap , int index1 , int index2 ){
@@ -1822,7 +1822,7 @@ public class SvgMapTilesTM {
 	
 	public void set2DHashI( HashMap<Long,Integer> hMap , int index1 , int index2 , int value ){
 		Long key = getHashKey( index1 , index2 );
-		hMap.put(key , new Integer( value ) );
+		hMap.put(key , Integer.valueOf( value ) );
 	}
 	
 	public int get2DHashI( HashMap<Long,Integer> hMap , int index1 , int index2 ){
@@ -1856,7 +1856,7 @@ public class SvgMapTilesTM {
 	}	
 	
 	public Long getHashKey( int index1 , int index2 ){
-		return ( new Long((long)((long)index1 * (long)100000000 + (long)index2)));
+		return ( Long.valueOf((long)((long)index1 * (long)100000000 + (long)index2)));
 	}
 		
 	public int[] getIndex( Long key ){
@@ -1876,7 +1876,7 @@ public class SvgMapTilesTM {
 			for ( int j = 0 ; j < array2.length ; j++ ){
 //				System.out.println( j+","+i+":"+array2[j][i]);
 				if ( array2[j][i] != defaultVal ){
-					Long key = new Long((long)((long)j * (long)100000000 + (long)i));
+					Long key = Long.valueOf((long)((long)j * (long)100000000 + (long)i));
 					ans.add( key );
 				
 				}

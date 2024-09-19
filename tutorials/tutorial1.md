@@ -7,11 +7,13 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
 > 2023.05.19 mavenベースのパッケージに移行。SVGMap*.jsをCDN経由に変更<br>
 > 2023.07.18 Java17, Geotools28.4対応<br>
 > 2023.07.20 tutorial3を追加<br>
+> 2024.06.19 Macintosh, Linux用の補足説明追加<br>
+> 2024.09.18 Java21で動作確認<br>
 
 ## Notes:
 ### 実行環境について
-* データの作成のために、Java 17 (jre 17もしくはjdk 17) がインストールされている環境が必要です。
-  * なお、動作チェックはWindows11とJAVA17(Corretto17)で行っています。なおJavaはOracle版だけではなくOpenJDK (Corretto等)でも動作確認しています。
+* データの作成のために、Java 17 (jre 17もしくはjdk 17)もしくはJava 21 がインストールされている環境が必要です。
+  * なお、動作チェックはWindows11とJava21(Corretto21)で行っています。なおJavaはOracle版だけではなくOpenJDK (Corretto等)でも動作確認しています。
 * 生成したコンテンツはほとんどのウェブブラウザで利用可能です。<BR>ただしローカルファイルでの動作確認には制約があります。以下に記載します。<BR>(なお、この制約はSVGMap固有でなくWebAppに一般的なもので、Webサーバ上にコンテンツを設置した場合は制限なく表示できます。)
   * ローカルに保存したコンテンツでは、Chromeで `--allow-file-access-from-files` オプションをつけて起動した場合のみ表示できます。以下起動例（２例）（ショートカットを作成すると良い）
     * `"C:\Program Files\Google\Chrome\Application\chrome.exe" --allow-file-access-from-files`
@@ -22,6 +24,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
     * `start msedge --allow-file-access-from-files`
 * 生成したコンテンツは、背景地図としてインターネット上のコンテンツ(OpenStreetMapや地理院タイル)を参照しているため、一般的なインターネットWebサイトに接続できる環境で利用する必要があります（別途背景地図をローカルに用意すればスタンドアロン環境でも利用可能）
 * 練習は[Windowsのコマンドプロンプト環境](https://ja.wikipedia.org/wiki/%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89%E3%83%97%E3%83%AD%E3%83%B3%E3%83%97%E3%83%88)をベースに行います。（[powershell](https://ja.wikipedia.org/wiki/PowerShell)でも実行可能）
+  * Macintosh, Linux環境での練習については、本資料末尾の [補足説明：Linux,Macintosh環境での実行について](#補足説明：Linux,Macintosh環境での実行について) も併せて参照ください。
 
 ### サンプルデータについて
 * このチュートリアルは練習用のサンプルデータとしてMaxMind社が製作したWorld Cities Databaseを使用しています。下記はその宣言です。
@@ -40,8 +43,12 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
      * Amazon Corretto 17 : (動作確認環境 (Windows x64) )
        * https://docs.aws.amazon.com/corretto/latest/corretto-17-ug/downloads-list.html
        * [インストール手順](https://docs.aws.amazon.com/ja_jp/corretto/latest/corretto-17-ug/windows-7-install.html)
+     * OpenJDK : 
+       * https://jdk.java.net/archive/
      * Redhat OpenJDK 17 : 
        * https://developers.redhat.com/products/openjdk/download
+     * Microsoft Build of OpenJDK :
+       * https://learn.microsoft.com/ja-jp/java/openjdk/download
      * Oracle JDK : 
        * https://www.oracle.com/jp/java/technologies/downloads/
 
@@ -52,7 +59,6 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
       ```
       +-pom.xml
       +-src
-      +-target
       +-tutorials
       +-tools
       |  +-CopyDependLibs.bat
@@ -62,7 +68,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
       +-...
       ```
 
-   * ルート直下の`target`ディレクトリに `svgMapTools-{REV}.jar`を投入します。
+   * ルート直下に`target`ディレクトリをつくり、そこに `svgMapTools-{REV}.jar`を投入します。
       ```
       +-target
          +svgMapTools-{REV}.jar
@@ -71,7 +77,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
    * もしくは自分でjarを生成することもできます。
      * javacがあれば、**下記 外部ライブラリの準備後**、toolsディレクトリの`MakeClass.bat`でjarを生成できます。
      * 更にmaven環境も構築済みであれば、`pom.xml`があるアーカイブのルートディレクトリで
-       * `mvn release`
+       * `mvn package`
        * `mvn dependency:copy-dependencies`<br>
        でも構築できます。詳しくは[readMeFirstJA.md](../readMeFirstJA.md)を参照
    
@@ -80,6 +86,7 @@ CSVデータからインタラクティブ地図を作製する方法のチュ�
        * `javacsv2.1.zip` を https://sourceforge.net/projects/javacsv/ からダウンロードする
     * `svgmaptools`が使用する外部ライブラリ([geotools](https://www.geotools.org/)28.4)をダウンロードします。
        * `geotools-28.4-bin.zip` を https://sourceforge.net/projects/geotools/files/GeoTools%2028%20Releases/28.4/ からダウンロードする
+       * sourceforgeサイトの目立つダウンロードボタンは最新版のダウンロードとなってしまうので、`geotools-28.4-bin.zip`を間違わずダウンロードしてください。
     * `tools`ディレクトリ下に二つのzipファイルを解凍し、以下の構成になるように`javacsv2.1`及び`geotools-28.4`ディレクトリを作成します。<br>
     (解凍・保存後のルートディレクトリ以下の構造)
       ```
@@ -226,6 +233,9 @@ Shape2ImageSVGMapのパラメータの与え方は少々複雑です。第一引
 * 自分で用意したデータを使用して次章以降(実践・応用)に進む
 * [tutorial2](tutorial2.md) では、本編で使用したCSVポイントデータ(JPcities*.csv)を使用して、より高度な可視化を行う練習をします
 * [tutorial3](tutorial3.md) では、別途同梱してあるいくつかの形式(ライン・ポリゴン、shapefile・GeoJSON)のベクトル地理情報を使用した可視化を練習します
+* 作成した地図コンテンツをインターネット上で公開
+   * webAppsディレクトリ ( `{ルートディレクトリ}\tutorials\webApps` ) 以下をそのままウェブサーバ上にコピーすることで、`{公開するサーバのディレクトリのURL}/webApps/SvgMapper.html`　で地図コンテンツを公開できます。
+   * なお、公開するサーバ上のディレクトリから、csvデータ(`{ルートディレクトリ}\tutorials\webApps\sample\JPcities_of_worldcitiespop_utf8.csv`) は消してしまって構いません。
 
 
 ## 実践
@@ -298,5 +308,47 @@ Shape2ImageSVGMapのパラメータの与え方は少々複雑です。第一引
 * 複数のタイリング手法のサポート
   * 均一に分割されたタイリング
   * なるべく同程度のファイルサイズとなるように四分木で調整されたタイリング（Quad Tree Tiling：本チュートリアルで使用）
+
+
+## 補足説明：Linux,Macintosh環境での実行について
+Linux(Ubuntu等), Macintosh等のUNIX系の環境で、本チュートリアルを実施するときの留意点・相違点を記載します
+
+### 環境設定
+* Java
+  * Java17もしくはJDK17を使用してください。 [OpenJDK](https://jdk.java.net/archive/)で動作します。(Java21でも動作確認)
+* ツール
+  * 特に注意する点はありません。zipの解凍に必要なソフトウェアを別途用意する必要がある場合があります。
+* 外部ライブラリ
+  * 特に注意する点はありません。
+* ライブラリの設定
+  * `CopyDependLibs.sh` を使用します
+* 自分でjarを生成する場合
+  * mavenを使用する場合は特に違いはありません
+  * mavenを使用しない場合は、`MakeClass.sh` を使います
+
+### 練習
+* バッチファイルの代わりにシェルスクリプトを使用します (`Shape2SVGMap.sh`, `Shape2ImageSVGMap.sh`) パラメータの与え方は以下の若干の相違点を除き同じです。
+* ソースファイル、コンテンツファイルを指定するパスのセパレータがバックスラッシュ(`\`)ではなくスラッシュ(`/`)を使用します。
+* 色を指定するパラメータ部をダブルクオーテーション(`"`)で囲む必要があります。
+* OSデフォルトの漢字コードが異なりますので、CSVデータの文字コードがUTF-8になっていることを確認してください。(むしろSJISがデフォルトのwindowsのほうが誤りが起きやすい)
+* 以降のチュートリアルについても同様です。
+
+1. csvfileを大縮尺(拡大表示)用ベクター地図に変換
+   * コマンドは以下のようになります。
+   * `./Shape2SVGMap.sh -poisymbol symbolTemplate.txt -micrometa2 -level 3 -limit 50 -showtile -densityControl 400 -lowresimage -charset utf-8 -linktitle 3 ../tutorials/webApps/sample/JPcities_of_worldcitiespop_utf8.csv`<br>
+
+1. csvfileを小縮尺(縮小表示)用ラスター地図に変換
+   * コマンドは以下のようになります。
+   * `./Shape2ImageSVGMap.sh ../tutorials/webApps/sample/JPcities_of_worldcitiespop_utf8.svg -sumUp 16 -antiAlias -charset utf-8 ../tutorials/webApps/sample/JPcities_of_worldcitiespop_utf8.csv "#0000ff" "#0000ff" 0 3`<br>
+
+1. `{ルートディレクトリ}/tutorials/webApps/Container.svg`をテキストエディタで編集
+   * 特に注意すべき相違点はありません
+
+1. ローカルにあるWebAppsを動作させるための特別なモードのChromeを起動
+   * 起動方法が異なります。あらかじめ起動中のChromeを終了させておく必要があります
+   * MacOS:  `open -a "Google Chrome" --args --allow-file-access-from-files`
+   * Linux: `google-chrome --allow-file-access-from-files`
+
+
 <br><br>
 以上

@@ -858,10 +858,10 @@ public class Shape2WGS84 {
 				int c = ((Integer)(layerNameMapCount.get(layerNameValue))).intValue() + 1;
 				oneEnv.expandToInclude( (ReferencedEnvelope)oneFeature.getBounds() );
 				layerNameMap.put( layerNameValue , oneEnv ); // これは不要？・・じゃないか
-				layerNameMapCount.put( layerNameValue , new Integer(c) );
+				layerNameMapCount.put( layerNameValue , Integer.valueOf(c) );
 			} else {
 				layerNameMap.put( layerNameValue , (Envelope)(oneFeature.getBounds()) );
-				layerNameMapCount.put( layerNameValue , new Integer(1) );
+				layerNameMapCount.put( layerNameValue , Integer.valueOf(1) );
 			} 
 			
 			
