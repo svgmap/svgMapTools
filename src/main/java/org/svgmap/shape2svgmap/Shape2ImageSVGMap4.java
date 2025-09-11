@@ -1,5 +1,10 @@
 package org.svgmap.shape2svgmap;
 
+// License: (MPL v2)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 // Shape2ImageSVGMap4 (shp2Imageから改名)
 //
 // shapefileからビットイメージタイル地図群とそのSVGコンテナを生成する

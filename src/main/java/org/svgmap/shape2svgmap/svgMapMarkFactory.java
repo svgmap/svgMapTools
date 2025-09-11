@@ -1,5 +1,10 @@
 package org.svgmap.shape2svgmap;
 
+// License: (MPL v2)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 // svgMapMarkFactory programmed by Satoru Takagi
 // メッシュ(物理空間上でのサイズを持ったポイントの概念としての)を実現ずるための特殊なマーカーを定義・追加する
 // SPYなのでMETA-INF/services/org.geotools.renderer.style.MarkFactoryの登録も必要

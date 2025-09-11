@@ -1,5 +1,10 @@
 package org.svgmap.shape2svgmap;
 
+// License: (MPL v2)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 // SVG Mapで使う、地理座標(XY含)からSVG座標へ変換するための座標変換システム
 // 2007/11/1 S.Takagi
 // 2010.08.19 geoTools 2.6.5 support

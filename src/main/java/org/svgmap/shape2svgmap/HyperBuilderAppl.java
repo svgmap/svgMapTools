@@ -1,5 +1,10 @@
 package org.svgmap.shape2svgmap;
 
+// License: (MPL v2)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 // HyperLayerBuilder: 複数のSVG Mapコンテンツを重畳するコンテナを生成します。
 // Copyright 2009-2010 by Satoru Takagi All Rights Reserved.
 // 2009.09.08 コンテナをコンテンツと同じディレクトリに出力。リンクを相対パスに。
